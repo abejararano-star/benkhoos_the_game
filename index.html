@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10221e">
+<meta name="description" content="Construye, libera y defiende el Palenque de la Matuna. Estrategia y acción para PC.">
+<title>Benkhoos · El Palenque de la Matuna</title>
+<link rel="icon" href="assets/ui/emblem.svg">
+<link rel="stylesheet" href="css/game.css">
+<script src="js/db.js" defer>
+</script>
+<script src="js/sprite_manager.js" defer>
+</script>
+<script type="module" src="js/game.js">
+</script>
+</head>
+<body>
+<main id="gameStage" aria-label="El Palenque de la Matuna">
+<canvas id="gameCanvas" width="640" height="360" aria-label="Mundo del juego. A y D para moverte, S para pagar y espacio para atacar.">
+</canvas>
+</main>
+<div class="game-ui" id="gameUI">
+<header class="topbar">
+<div class="wordmark">
+<img src="assets/ui/emblem.svg" alt="" width="34" height="34">
+<div>
+<strong>BENKHOOS</strong>
+<span>EL PALENQUE DE LA MATUNA</span>
+</div>
+</div>
+<div class="top-actions">
+<i id="dbDot" class="status-dot">
+</i>
+<span id="dbStatusLabel">Comprobando guardado…</span>
+<button id="btnQuickSave" title="Guardar partida · F5">
+<svg class="icon">
+<use href="assets/ui/icons.svg#save"/>
+</svg>Guardar <kbd>F5</kbd>
+</button>
+<button id="btnPause" title="Pausa · Escape" aria-label="Abrir pausa">
+<svg class="icon">
+<use href="assets/ui/icons.svg#pause"/>
+</svg>
+</button>
+</div>
+</header>
+<section class="stats-row" aria-label="Recursos">
+<div class="stat pouch">
+<svg class="icon">
+<use href="assets/ui/icons.svg#coin"/>
+</svg>
+<div>
+<span class="eyebrow">BOLSA</span>
+<strong>
+<span id="hudCoins">16</span>
+<small> / <span id="hudMaxCoins">24</span>
+</small>
+</strong>
+</div>
+<i class="divider">
+</i>
+<div>
+<span class="eyebrow">COFRE DE WIWA</span>
+<strong id="hudTreasury">12</strong>
+</div>
+</div>
+<div class="stat day-stat">
+<svg class="icon" id="phaseIcon">
+<use href="assets/ui/icons.svg#sun"/>
+</svg>
+<div>
+<span id="hudDay" class="eyebrow">DÍA 1</span>
+<strong id="hudPhaseBadge">Exploración</strong>
+<div class="phase-track">
+<i id="phaseProgress">
+</i>
+</div>
+</div>
+<span id="phaseCountdown">
+</span>
+</div>
+<div class="stat threat-stat">
+<svg class="icon">
+<use href="assets/ui/icons.svg#flag"/>
+</svg>
+<div>
+<span class="eyebrow">AMENAZA</span>
+<strong id="hudAlertLevel">15%</strong>
+</div>
+<button id="btnArmy">Ejército <kbd>Tab</kbd>
+</button>
+</div>
+</section>
+<aside class="objective">
+<span class="eyebrow">EL CAMINO A LA LIBERTAD</span>
+<h1 id="objectiveTitle">Un pueblo que resiste</h1>
+<p id="objectiveText">Libera a los fugitivos y fortalece el palenque antes de la noche.</p>
+<div class="objective-progress">
+<i id="objectiveProgress">
+</i>
+</div>
+<span id="hudArmyTierBadge" class="rank">Rango I · Cimarrón</span>
+</aside>
+<aside id="armyPanel" class="drawer hidden" aria-label="Estado del ejército">
+<div class="panel-heading">
+<h2>Gente del palenque</h2>
+<button id="btnCloseArmy" aria-label="Cerrar ejército">×</button>
+</div>
+<div class="army-grid">
+<span>Personas libres <b id="popAldeano">0</b>
+</span>
+<span>Agricultores <b id="popAgricultor">0</b>
+</span>
+<span>Mineros <b id="popMinero">0</b>
+</span>
+<span>Cazadores <b id="popCazador">0</b>
+</span>
+<span>Arqueros <b id="popArquero">0</b>
+</span>
+<span>Lanceros <b id="popGuerrero">0</b>
+</span>
+<span>Espadachines <b id="popEspadachin">0</b>
+</span>
+<span>Caballería <b id="popCaballero">0</b>
+</span>
+<span>Campeones <b id="popCampeon">0</b>
+</span>
+</div>
+<p id="hudNextTierHint">
+</p>
+<div class="minimap">
+<i class="safe-zone">
+</i>
+<i id="minimapHaciendaL" class="hacienda west">
+</i>
+<i id="minimapHaciendaR" class="hacienda east">
+</i>
+<i id="minimapBenkos">
+</i>
+</div>
+<p class="map-legend">Oeste · Palenque · Este</p>
+</aside>
+<div id="bossHudContainer" class="boss-panel hidden">
+<div>
+<span id="bossHudTitle">
+</span>
+<span id="bossHudStateBadge">EN COMBATE</span>
+</div>
+<div class="boss-track">
+<i id="bossHudBar">
+</i>
+</div>
+<small id="bossHudSub">Observa la señal de ataque y esquiva.</small>
+</div>
+<div id="loreBanner" class="banner" role="status" aria-live="polite">
+<span id="loreBannerSub">
+</span>
+<strong id="loreBannerMain">
+</strong>
+</div>
+<footer class="bottom-bar">
+<div class="player-panel">
+<div class="spirit-label">
+<span>
+<svg class="icon">
+<use href="assets/ui/icons.svg#jaguar"/>
+</svg> ESPÍRITU</span>
+<strong id="hudSpiritText">100 / 100</strong>
+</div>
+<div class="spirit-track">
+<i id="hudSpiritBar">
+</i>
+</div>
+<div class="player-badges">
+<span id="hudCrownStatus">Protegido</span>
+<span id="hudMountBadge" class="hidden">A caballo</span>
+<span id="hudRoyalArmorBadge" class="hidden">Armadura real</span>
+</div>
+<div class="movement-help">
+<span>
+<kbd>A</kbd>
+<kbd>D</kbd> Mover</span>
+<span>
+<kbd>S</kbd> Pagar</span>
+<span>
+<kbd>E</kbd> Interactuar</span>
+<span>
+<kbd>Espacio</kbd> Atacar</span>
+</div>
+</div>
+<div class="skills" aria-label="Habilidades">
+<button data-skill="dash" title="Sombra · 1">
+<kbd>1</kbd>
+<svg class="icon">
+<use href="assets/ui/icons.svg#dash"/>
+</svg>
+<span>Sombra</span>
+<small id="badgeSkill2">Altar</small>
+</button>
+<button data-skill="ceiba" title="Ceiba · 2">
+<kbd>2</kbd>
+<svg class="icon">
+<use href="assets/ui/icons.svg#tree"/>
+</svg>
+<span>Ceiba</span>
+<small id="badgeSkill3">Altar</small>
+</button>
+<button data-skill="roar" title="Rugido · 3">
+<kbd>3</kbd>
+<svg class="icon">
+<use href="assets/ui/icons.svg#wave"/>
+</svg>
+<span>Rugido</span>
+<small id="badgeSkill4">Altar</small>
+</button>
+<button data-skill="jaguar" title="Jaguar · 4">
+<kbd>4</kbd>
+<svg class="icon">
+<use href="assets/ui/icons.svg#jaguar"/>
+</svg>
+<span>Jaguar</span>
+<small id="badgeSkill5">Altar</small>
+</button>
+</div>
+</footer>
+</div>
+<dialog id="menuDialog" aria-labelledby="menuTitle">
+<div class="menu-content">
+<span class="eyebrow">MONTES DE MARÍA · UNA TIERRA LIBRE</span>
+<img src="assets/ui/emblem.svg" alt="" class="menu-emblem">
+<h1 id="menuTitle">BENKHOOS</h1>
+<p class="menu-subtitle">EL PALENQUE DE LA MATUNA</p>
+<p class="menu-description">Levanta un refugio. Rompe las cadenas.<br>Defiende la libertad de tu pueblo.</p>
+<div class="menu-buttons">
+<button id="btnNewGame" class="primary">Nueva campaña <span>→</span>
+</button>
+<button id="btnContinue">Continuar partida</button>
+<button id="btnOpenGuide">Cómo jugar <kbd>?</kbd>
+</button>
+</div>
+<span class="menu-footnote">ESTRATEGIA Y ACCIÓN · EDICIÓN PC</span>
+</div>
+</dialog>
+<dialog id="pauseDialog" aria-labelledby="pauseTitle">
+<div class="dialog-content">
+<span class="eyebrow">EL PALENQUE DESCANSA</span>
+<h2 id="pauseTitle">Partida en pausa</h2>
+<div class="menu-buttons">
+<button id="btnResume" class="primary">Volver al palenque <kbd>Esc</kbd>
+</button>
+<button id="btnPauseSave">Guardar partida <kbd>F5</kbd>
+</button>
+<button id="btnQuickLoad">Cargar partida <kbd>F9</kbd>
+</button>
+<button id="btnGuidePause">Guía y controles</button>
+<button id="btnOpenLeaderboard">Crónica de campañas</button>
+<button id="btnFullscreen">Pantalla completa <kbd>F11</kbd>
+</button>
+<button id="btnMainMenu">Menú principal</button>
+</div>
+<fieldset>
+<legend>Sonido y accesibilidad</legend>
+<label>
+<input type="checkbox" id="audioEnabled" checked> Tambores y efectos</label>
+<label>Volumen <input id="audioVolumeSlider" type="range" min="0" max="100" value="65">
+</label>
+<label>
+<input id="reduceMotion" type="checkbox"> Reducir movimiento y destellos</label>
+<button id="btnToggleRoyalArmor">Armadura real <kbd>C</kbd>
+</button>
+</fieldset>
+<button id="btnOpenDebug" class="hidden">Abrir taller de desarrollo</button>
+</div>
+</dialog>
+<dialog id="modalGuide" aria-labelledby="guideTitle">
+<div class="dialog-content wide">
+<div class="panel-heading">
+<div>
+<span class="eyebrow">MEMORIA DE LA MATUNA</span>
+<h2 id="guideTitle">Construye. Libera. Resiste.</h2>
+</div>
+<button id="btnCloseGuide" aria-label="Cerrar guía">×</button>
+</div>
+<div class="guide-grid">
+<article>
+<h3>01 · Un refugio para todos</h3>
+<p>Encuentra a las personas encadenadas fuera de las murallas. Cerca de ellas, mantén <kbd>S</kbd> para lanzar un real y romper sus cadenas. Buscarán herramientas disponibles para unirse al palenque.</p>
+</article>
+<article>
+<h3>02 · Una economía que vive</h3>
+<p>Agricultores y mineros transportan recursos al centro. Acércate al cofre y pulsa <kbd>E</kbd> para retirar hasta cinco reales. La bolsa admite 24: guarda plata manteniendo <kbd>S</kbd> junto al cofre.</p>
+</article>
+<article>
+<h3>03 · El precio de resistir</h3>
+<p>Mantén <kbd>S</kbd> junto a murallas, granjas y puestos para invertir. En el tótem, al oeste del altar, paga 6 reales para el rango Élite y 8 para el Real. El rango Real desbloquea la armadura y un campeón.</p>
+</article>
+<article>
+<h3>04 · La libertad se defiende</h3>
+<p>Las oleadas llegan desde las haciendas al caer la noche. Las señales rojas anuncian ataques. Si caes sin monedas, Wiwa necesita 8 reales del cofre para rescatarte y entregarte 3. Si no alcanzan, termina la campaña.</p>
+</article>
+</div>
+<p>
+<strong>Objetivo:</strong> destruye las dos haciendas y derrota a sus gobernadores para asegurar la libertad de la Matuna.</p>
+<div class="controls-grid">
+<span>
+<kbd>A / D</kbd> Mover · mantén para correr</span>
+<span>
+<kbd>Espacio / J</kbd> Lanza y espada</span>
+<span>
+<kbd>S / ↓</kbd> Mantener para pagar</span>
+<span>
+<kbd>E / W / ↑</kbd> Montar, desmontar o retirar plata</span>
+<span>
+<kbd>1–4</kbd> Habilidades del altar</span>
+<span>
+<kbd>C</kbd> Alternar armadura desbloqueada</span>
+<span>
+<kbd>R / T</kbd> Descansar / antorcha</span>
+<span>
+<kbd>Tab / Esc</kbd> Ejército / pausa</span>
+<span>
+<kbd>F5 / F9</kbd> Guardar / cargar</span>
+<span>
+<kbd>F11</kbd> Pantalla completa</span>
+</div>
+<p class="muted">Ficción histórica inspirada en la resistencia cimarrona. Los poderes y encuentros pertenecen al mundo del juego.</p>
+</div>
+</dialog>
+<dialog id="modalPolitics" aria-labelledby="politicsTitle">
+<div class="dialog-content">
+<span class="eyebrow">UN EMISARIO EN LA MATUNA</span>
+<h2 id="politicsTitle">El precio de una tregua</h2>
+<p>La Corona ofrece tres noches sin asaltos a cambio de 15 reales. Decide si ganar tiempo para construir o reforzar la resistencia.</p>
+<div class="menu-buttons">
+<button id="btnChoiceAccept">Aceptar tregua <span>15 reales</span>
+</button>
+<button id="btnChoiceReject">Rechazar y resistir <span>+25% ataque y un campeón</span>
+</button>
+</div>
+</div>
+</dialog>
+<dialog id="modalLeaderboard" aria-labelledby="recordsTitle">
+<div class="dialog-content wide">
+<div class="panel-heading">
+<h2 id="recordsTitle">Crónica de campañas</h2>
+<button id="btnCloseLeaderboard" aria-label="Cerrar crónica">×</button>
+</div>
+<div class="table-scroll">
+<table>
+<thead>
+<tr>
+<th>Comandante</th>
+<th>Días</th>
+<th>Aliados</th>
+<th>Oleadas</th>
+<th>Puntos</th>
+<th>Fecha</th>
+</tr>
+</thead>
+<tbody id="leaderboardTbody">
+</tbody>
+</table>
+</div>
+</div>
+</dialog>
+<dialog id="resultDialog" aria-labelledby="resultTitle">
+<div class="dialog-content">
+<span class="eyebrow">CRÓNICA DE LA MATUNA</span>
+<h2 id="resultTitle">Campaña terminada</h2>
+<p id="resultDescription">
+</p>
+<div id="resultStats" class="result-stats">
+</div>
+<div class="menu-buttons">
+<button id="btnResultLoad" class="primary">Recuperar último guardado</button>
+<button id="btnResultNew">Nueva campaña</button>
+<button id="btnResultMenu">Menú principal</button>
+</div>
+</div>
+</dialog>
+<dialog id="debugDialog" aria-labelledby="debugTitle">
+<div class="dialog-content">
+<div class="panel-heading">
+<h2 id="debugTitle">Taller de desarrollo</h2>
+<button id="btnCloseDebug">Cerrar</button>
+</div>
+<p>Usar estas herramientas convierte la campaña en una prueba y excluye sus récords.</p>
+<div class="menu-buttons">
+<button id="btnUpgradeTier">Ascender ejército</button>
+<button id="btnSpawnChampion">Añadir campeón</button>
+<button id="btnSpawnAllAllies">Añadir escuadrón</button>
+<button id="btnSimWave">Crear oleada</button>
+<button id="btnSpawnGovernor">Crear gobernador</button>
+<button id="btnSimCoins">Añadir 15 reales</button>
+<button id="btnToggleSpriteMode">Cambiar sprites / dibujo</button>
+</div>
+</div>
+</dialog>
+<noscript>Activa JavaScript para jugar a Benkhoos.</noscript>
+</body>
+</html>

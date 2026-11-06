@@ -1,0 +1,13 @@
+.work/
+archive/
+node_modules/
+.env
+.env.*
+!.env.example
+api/config.local.php
+*.log
+__pycache__/
+*.pyc
+tools/previews/
+.DS_Store
+Thumbs.db

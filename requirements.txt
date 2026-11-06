@@ -1,0 +1,4 @@
+# Only needed to rebuild sprite atlases, not to play or validate them.
+numpy==2.5.4
+scipy==1.18.1
+Pillow==13.0.0
