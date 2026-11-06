@@ -1,4 +1,4 @@
-import { WORLD_MAX_X, WORLD_MIN_X } from './config.js';
+import { WORLD_MAX_X, WORLD_MIN_X } from './config.js?v=36fd021d06a5';
 export const ROAD_GATES = Object.freeze([{side:-1,x:WORLD_MIN_X-90,label:'Camino de Cartagena'},{side:1,x:WORLD_MAX_X+90,label:'Camino de la hacienda oriental'}]);
 export function ensureCampaign(state){
   state.messengers??=[];
@@ -42,7 +42,7 @@ export function dispatchReinforcement(state,type,side=1){
 export function arrivalHint(state){
   const c=ensureCampaign(state),order=c.orders.slice().sort((a,b)=>a.eta-b.eta)[0];
   if(order)return `${order.kind==='boss'?'Un jefe se aproxima':order.kind==='raid'?'Una patrulla está en marcha':'Llegan refuerzos'} · camino ${order.side<0?'oeste':'este'} · ${Math.ceil(Math.max(0,order.eta))} s hasta el puesto de entrada`;
-  if(state.enemies.length)return `${state.enemies.length} enemigos avanzan por los caminos. Las murallas contienen su marcha.`;
+  if(state.enemies.length)return `${state.enemies.length===1?'Un enemigo avanza':state.enemies.length+' enemigos avanzan'} por los caminos. Las murallas contienen su marcha.`;
   if(state.truceDays>0)return `Tregua: ${state.truceDays} noches protegidas.`;
   return 'Los vigías observan los caminos. Los estandartes anuncian las expediciones.';
 }

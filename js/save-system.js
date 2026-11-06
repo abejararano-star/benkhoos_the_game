@@ -1,7 +1,7 @@
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js';
-import { ensurePerson } from './people.js';
-import { ensureSettlement } from './settlement.js';
-import { ensureCampaign } from './campaign.js';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=36fd021d06a5';
+import { ensurePerson } from './people.js?v=36fd021d06a5';
+import { ensureSettlement } from './settlement.js?v=36fd021d06a5';
+import { ensureCampaign } from './campaign.js?v=36fd021d06a5';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -102,6 +102,7 @@ export function restoreSave(save, defaults) {
   ensureSettlement(next);
   // Add new tool stations to old worlds without replacing their existing stocks.
   for (const rack of defaults.toolRacks) if (!next.toolRacks.some(r=>r.id===rack.id)) next.toolRacks.push(clone(rack));
+  next.toolRacks.forEach(r=>{r.x=STATION_X[r.role]??r.x;});
   const campaign = ensureCampaign(next);
   if (!Array.isArray(campaign.orders) || !Array.isArray(campaign.letters) || campaign.orders.some(o => !ENEMY_CATALOG[o.type] || !Number.isFinite(o.eta) || ![-1,1].includes(o.side))) throw new Error('La ruta de campaña está dañada.');
   if (save.save_version < 3 && next.timeOfDay >= .68) campaign.lastRaidDay = next.day;

@@ -1,6 +1,6 @@
 {
   "name": "benkhoos-the-game",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "private": true,
   "type": "module",
   "description": "El Palenque de la Matuna — juego de estrategia y acción para PC",
@@ -9,6 +9,7 @@
     "test:xampp": "node tools/test-xampp.js",
     "check": "node tools/check-js.js",
     "atlas:check": "python tools/check_atlas.py",
+    "client:stamp": "python tools/stamp-client.py",
     "atlas:build": "python tools/export_atlas.py",
     "serve": "python -m http.server 8765 --bind 127.0.0.1"
   },

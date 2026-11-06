@@ -13,14 +13,12 @@ export function drawLandscape(g, width, ground, camera, night, time) {
     }
     g.lineTo(width + span, ground); g.closePath(); g.fill();
   }
-  for (let i = -3; i < Math.ceil(width / 65) + 4; i++) {
-    const x = Math.round(i * 65 - ((camera * .45) % 65 + 65) % 65);
-    const h = 36 + ((i * 13) & 15);
-    g.fillStyle = night ? '#17372f' : '#345e44';
-    g.fillRect(x, ground - h, 3, h);
-    for (let k = -2; k <= 2; k++) {
-      g.fillRect(x - 20 + k * 5, ground - h - 4 + Math.abs(k) * 3, 30, 5);
-    }
+  if(window.SpriteManager?.has('forest_hardwood')){
+    g.globalAlpha=night?.38:.58;
+    for(let i=-2;i<Math.ceil(width/90)+2;i++){
+      const x=i*90-((camera*.45)%90+90)%90;
+      window.SpriteManager.draw(g,['forest_hardwood','forest_mangrove','forest_palm'][((i%3)+3)%3],['idle'],x,ground,1,62+Math.abs(i*13)%28,0);
+    }g.globalAlpha=1;
   }
   // Sparse fireflies are intentionally gentle, not strobing.
   if (night) {
@@ -58,11 +56,18 @@ export function drawVillage(g,toScreen,ground,night,time,settlement,reduceMotion
     g.fillStyle='#12241d';g.fillRect(x-30,ground-h-13,60,6);g.fillStyle='#c5ad75';g.fillRect(x-29,ground-h-12,58*job.progress,4);
     g.fillStyle='#efdcac';g.font='6px monospace';g.textAlign='center';g.fillText('EN CONSTRUCCIÓN',x,ground-h-18);
   }
-  const x=toScreen(0);g.fillStyle='#5b402a';g.fillRect(x-7,ground-5,14,4);
+  if(sm?.draw?.(g,'landmark_fire',['idle'],toScreen(70),ground,1,16,0))return;
+  const x=toScreen(70);g.fillStyle='#5b402a';g.fillRect(x-7,ground-5,14,4);
   g.fillStyle='#d29a50';g.fillRect(x-4,ground-12,8,7);g.fillStyle='#e9c77e';g.fillRect(x-2,ground-16-(reduceMotion?0:Math.round(Math.sin(time*4))),4,9);
 }
 
 export function drawToolStand(g,x,ground,rack,tier,night){
+  if(window.SpriteManager?.has('station_'+rack.role)){
+    g.fillStyle='#0c1f1755';g.beginPath();g.ellipse(x,ground+1,25,3,0,0,Math.PI*2);g.fill();
+    window.SpriteManager.draw(g,'station_'+rack.role,['idle'],x,ground,1,54,0);
+    if(tier>1){g.fillStyle=tier===3?'#d3b76c':'#67885b';g.fillRect(x+18,ground-40,4,13);}
+    return;
+  }
   g.fillStyle=night?'#5e4530':'#8b603c';g.fillRect(x-17,ground-32,3,32);g.fillRect(x+14,ground-32,3,32);g.fillRect(x-19,ground-31,38,4);
   g.fillStyle='#c09b67';g.fillRect(x-17,ground-31,1,29);g.fillRect(x-19,ground-31,38,1);
   g.fillStyle='#423829';g.fillRect(x-19,ground-6,38,3);g.fillStyle='#a98e5d';g.fillRect(x-19,ground-8,38,2);
@@ -83,6 +88,13 @@ export function drawToolStand(g,x,ground,rack,tier,night){
 }
 
 export function drawFortification(g,x,ground,wall,night,time){
+  const cls=wall.hp<=0?'fortification_ruin':'fortification_'+wall.level;
+  if(window.SpriteManager?.has(cls)){
+    const h=wall.hp<=0?28:[0,54,64,70,76,86][wall.level];
+    window.SpriteManager.draw(g,cls,['idle'],x,ground,1,h,0);
+    if(wall.hp>0&&wall.hp<wall.maxHp){g.fillStyle='#15251d';g.fillRect(x-15,ground-h-7,30,3);g.fillStyle=wall.hp/wall.maxHp<.3?'#c48763':'#aebd7c';g.fillRect(x-14,ground-h-6,28*wall.hp/wall.maxHp,1);}
+    return;
+  }
   const h=28+wall.level*9,w=wall.level>=3?28:22,stone=wall.level>=4;
   if(stone||wall.level===3){
     g.fillStyle=stone?(night?'#696759':'#b5ad8c'):'#a18659';g.fillRect(x-w/2,ground-h,w,h);
@@ -140,6 +152,9 @@ export function drawMarker(g, x, ground, entity, enemy = false) {
 }
 
 export function drawRoadGate(g,x,ground,side,active=false){
+  if(window.SpriteManager?.draw?.(g,'landmark_gate',['idle'],x,ground,1,89,0)){
+    if(active){g.fillStyle='#d6b877';g.fillRect(x-2,ground-98,4,6);g.fillRect(x-2,ground-89,4,2);}return;
+  }
   g.fillStyle='#6d5b43';g.fillRect(x-28,ground-64,10,64);g.fillRect(x+18,ground-64,10,64);
   g.fillStyle='#a28d61';g.fillRect(x-31,ground-68,62,9);
   g.fillStyle='#18231d';g.fillRect(x-18,ground-57,36,57);

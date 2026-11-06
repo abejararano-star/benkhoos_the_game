@@ -886,3 +886,27 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 .node-slots{display:flex;justify-content:center;gap:5px}.node-slots i{width:9px;height:9px;border:1px solid #b3985a;border-radius:50%;background:#0b1813}.node-slots i.filled{background:#e6c486;box-shadow:0 0 6px #d8bc7955}
 @media(max-width:900px){.node-hint{top:150px;left:auto;right:14px;transform:none;width:240px;padding:10px}.node-hint strong{font-size:10px}}
 @media(max-height:650px){.node-hint{top:143px;padding:8px 12px}.node-hint p{margin:5px 0}}
+
+/* Crisp inventory and restrained labels at the settlement's actual workstations. */
+.pouch-art{width:62px;height:66px;flex:none;object-fit:contain;image-rendering:pixelated}
+.pouch{gap:13px;padding:10px 15px}.pouch .eyebrow{font-size:9px;letter-spacing:.1em;white-space:nowrap}
+.pouch strong{font-size:24px;font-weight:bold;margin-top:4px}.pouch strong small{font-size:15px}
+.bag-slots{display:grid;grid-template-columns:repeat(12,5px);gap:3px;margin:7px 0 5px}
+.bag-slots i{display:block;width:5px;height:5px;border:1px solid #6b7055;background:#0a1813}
+.bag-slots i.filled{border-color:#d7ccb1;background:#c3bea9;box-shadow:inset -1px -1px #8a8e77}
+.stat small.bag-free{display:block;font-size:10px;color:#c9c6a1;white-space:nowrap}
+.world-labels{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.world-label{position:absolute;left:0;top:0;padding:5px 8px;text-align:center;line-height:1.4;white-space:pre-line;pointer-events:none;will-change:transform}
+.station-label{font-size:10px;color:#e0cda5;background:#263025e8;border:1px solid #957649;border-top:2px solid #bc995c;box-shadow:0 2px 0 #111b11cc;letter-spacing:.02em}
+.station-label.selected{color:#f4dfaa;border-color:#e4c985;background:#3f3b25f0}
+.speech-label{font-size:11px;color:#e5dfcb;background:#10231ef5;border:1px solid #718069;border-bottom:2px solid #b0a16c;border-radius:3px;padding:8px 10px;box-shadow:0 4px 10px #08140c55}
+.resource-label{font-size:11px;color:#f0d7a0;background:#193022f0;border-left:2px solid #c8b675;border-radius:2px;box-shadow:0 2px 5px #0004}
+.messenger-label{font-size:11px;color:#eee1bb;background:#17332ded;border:1px solid #ae995e;border-radius:2px}
+.banner{left:auto;right:28px;top:192px;transform:translateY(-6px);width:290px;max-width:calc(100vw - 40px);padding:12px 16px;text-align:left;z-index:5}
+.banner.visible{transform:translateY(0)}.banner strong{font-size:13px;line-height:1.5}.banner>span{font-size:10px;line-height:1.5}
+.campaign-notice{transition:opacity .2s}.campaign-notice.quiet{opacity:0}
+.node-hint{width:min(400px,38vw);top:202px;padding:10px 15px}
+@media(max-width:1100px){.pouch-art{width:42px;height:54px}.pouch{gap:8px;padding:9px 10px}.pouch .eyebrow{font-size:8px}.pouch strong{font-size:20px}.stat small.bag-free{font-size:9px}.bag-slots{grid-template-columns:repeat(12,4px);gap:2px}.bag-slots i{width:4px;height:4px}.objective{top:195px}.node-hint{top:163px;width:270px}.banner{top:auto;bottom:160px;right:18px;width:260px}}
+@media(max-width:740px){.stats-row{grid-template-columns:1.3fr 1fr 1fr}.pouch-art{width:34px;height:48px}.pouch .divider{display:none}.pouch{gap:5px}.pouch strong{font-size:18px}.bag-slots{grid-template-columns:repeat(12,3px)}.bag-slots i{width:3px;height:3px}.stat small.bag-free{font-size:8px}.material-count{font-size:9px}.node-hint{top:164px;right:14px;width:235px}.banner{width:230px}}
+
+.pouch .eyebrow{font-size:10px}.pouch strong{font-size:26px}.pouch strong small{font-size:16px}.stat small.bag-free{font-size:11px}.pouch-art{width:66px;height:70px}

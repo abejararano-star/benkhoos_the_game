@@ -7,12 +7,12 @@
 <meta name="description" content="Construye, libera y defiende el Palenque de la Matuna. Estrategia y acción para PC.">
 <title>Benkhoos · El Palenque de la Matuna</title>
 <link rel="icon" href="assets/ui/emblem.svg">
-<link rel="stylesheet" href="css/game.css">
-<script src="js/db.js" defer>
+<link rel="stylesheet" href="css/game.css?v=36fd021d06a5">
+<script src="js/db.js?v=36fd021d06a5" defer>
 </script>
-<script src="js/sprite_manager.js?v=6" defer>
+<script src="js/sprite_manager.js?v=36fd021d06a5" defer>
 </script>
-<script type="module" src="js/game.js">
+<script type="module" src="js/game.js?v=36fd021d06a5">
 </script>
 </head>
 <body>
@@ -21,6 +21,7 @@
 </canvas>
 </main>
 <div class="game-ui" id="gameUI">
+<div id="worldLabels" class="world-labels" aria-hidden="true"></div>
 <header class="topbar">
 <div class="wordmark">
 <img src="assets/ui/emblem.svg" alt="" width="34" height="34">
@@ -47,16 +48,15 @@
 </header>
 <section class="stats-row" aria-label="Recursos">
 <div class="stat pouch">
-<svg class="icon">
-<use href="assets/ui/icons.svg#coin"/>
-</svg>
+<canvas id="hudPouchArt" class="pouch-art" width="72" height="72" aria-label="Bolsa de monedas de Benkos"></canvas>
 <div>
-<span class="eyebrow">BOLSA</span>
+<span class="eyebrow">BOLSA · CAPACIDAD</span>
 <strong>
 <span id="hudCoins">16</span>
 <small> / <span id="hudMaxCoins">24</span>
 </small>
 </strong>
+<div id="hudBagSlots" class="bag-slots" aria-hidden="true"></div><small id="hudBagFree" class="bag-free">8 espacios libres</small>
 </div>
 <i class="divider">
 </i>

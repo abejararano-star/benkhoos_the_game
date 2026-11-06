@@ -1,4 +1,4 @@
-import { proficiency } from './people.js';
+import { proficiency } from './people.js?v=36fd021d06a5';
 export const MATERIALS=['Palma y bejuco','Madera de ceiba','Bahareque y cal','Piedra y teja','Cantería tallada'];
 export const HQ_NAMES=['Refugio de la Matuna','Casa del consejo','Casa de bahareque','Cabildo de piedra','Gran Palenque'];
 export function initialSettlement(){return {level:1,homes:[{id:'home_west',x:-530,level:1},{id:'home_inner',x:-245,level:1},{id:'home_east',x:550,level:1}],barracks:{id:'barracks',x:245,level:1},projects:[],completed:0};}

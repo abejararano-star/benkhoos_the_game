@@ -1,12 +1,13 @@
-import { MATERIALS, HQ_NAMES, upgradeInfo } from './settlement.js';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js';
-import { arrivalHint } from './campaign.js';
+import { MATERIALS, HQ_NAMES, upgradeInfo } from './settlement.js?v=36fd021d06a5';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=36fd021d06a5';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=36fd021d06a5';
+import { arrivalHint } from './campaign.js?v=36fd021d06a5';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
   const text = (id, value) => { const el = $(id); if (el && el.textContent !== String(value)) el.textContent = value; };
-  let lastNodeHint='';
+  let lastNodeHint='',lastPouch='';
+  const bagDots=[];for(let i=0;i<state.maxCoins;i++){const dot=document.createElement('i');$('hudBagSlots').append(dot);bagDots.push(dot);}
   let bannerTimer, returnDialog = 'pauseDialog';
   const dialogs = [...document.querySelectorAll('dialog')];
   function closeAll() {
@@ -50,11 +51,15 @@ export function createUI({ state, session, settings, actions }) {
   function update() {
     const node=actions.node?.();$('nodeHint').classList.toggle('hidden',!node);
     if(node){
-      text('nodeHintTitle',node.title.trim());text('nodeHintDescription',node.sub.replaceAll('[S]','S').replaceAll(' reales ',' reales ').trim());
+      text('nodeHintTitle',node.title.trim());text('nodeHintDescription',node.sub.replaceAll('[S]','S').replace(/\b1 reales\b/g,'1 real').trim());
       const signature=`${node.id}:${node.cost}:${node.getFilled()}`;
       if(signature!==lastNodeHint){lastNodeHint=signature;const slots=$('nodeHintSlots');slots.replaceChildren();for(let i=0;i<node.cost;i++){const dot=document.createElement('i');dot.className=i<node.getFilled()?'filled':'';slots.append(dot);}}
     }
     text('hudCoins', state.coins); text('hudMaxCoins', state.maxCoins); text('hudTreasury', state.treasuryCoins);
+    text('hudBagFree',state.coins===state.maxCoins?'Bolsa llena':`${state.maxCoins-state.coins} espacios libres`);
+    bagDots.forEach((dot,i)=>dot.classList.toggle('filled',i<state.coins));
+    const bagSignature=`${Math.ceil(state.coins/state.maxCoins*4)}:${window.SpriteManager?.ready}`;
+    if(bagSignature!==lastPouch){lastPouch=bagSignature;const g=$('hudPouchArt').getContext('2d');g.clearRect(0,0,72,72);window.SpriteManager?.drawPouch?.(g,36,69,64,state.coins/state.maxCoins);}
     text('hudMaterials', `${state.resources.wood} madera · ${state.resources.stone} piedra`);
     text('hudDay', `DÍA ${state.day}`); text('hudAlertLevel', `${state.alertLevel}%`);
     const night = state.timeOfDay >= .68;
@@ -107,7 +112,8 @@ export function createUI({ state, session, settings, actions }) {
     armor.title = state.armorUnlocked ? 'Alternar armadura · C' : 'Alcanza el rango Real para desbloquearla';
     text('btnChoiceAccept', `Aceptar tregua · 15 reales (${state.coins} disponibles)`);
     $('btnChoiceAccept').disabled = state.coins < 15;
-    text('campaignNotice', arrivalHint(state));
+    text('campaignNotice',arrivalHint(state));
+    $('campaignNotice').classList.toggle('quiet',state.timeOfDay<.5&&!state.campaign.orders.length&&!state.enemies.length&&!state.messengers.some(m=>m.state==='WAIT'&&!m.delivered));
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
     text('contextHint', messenger ? 'E · Escuchar al mensajero de Cartagena' : 'B · Construir y evolucionar · F · Conocer a una persona');
   }
@@ -178,6 +184,33 @@ export function createUI({ state, session, settings, actions }) {
     $('reduceMotion').checked = settings.reduce_motion;
     document.body.classList.toggle('reduce-motion', settings.reduce_motion);
   }
+  const worldLabels=new Map();
+  function renderWorldOverlay(layout){
+    const root=$('worldLabels');
+    const hidden=session.mode==='menu'||dialogs.some(d=>d.open);root.style.visibility=hidden?'hidden':'visible';if(hidden)return;
+    const active=new Set(),placed=[];
+    const projectX=x=>layout.offsetX+(x-layout.camera+layout.width/2)*layout.scale;
+    const projectY=y=>layout.offsetY+y*layout.scale;
+    function label(key,kind,x,y,content,width=160,avoid=false){
+      const px=projectX(x);let py=projectY(y);
+      if(px<24||px>window.innerWidth-24)return;
+      if(avoid){for(let pass=0;pass<6;pass++){if(!placed.some(p=>Math.abs(p.x-px)<(p.width+width)/2+8&&Math.abs(p.y-py)<30))break;py-=31;}}
+      placed.push({x:px,y:py,width});active.add(key);
+      let el=worldLabels.get(key);if(!el){el=document.createElement('div');root.append(el);worldLabels.set(key,el);}
+      el.className=`world-label ${kind}`;if(el.textContent!==content)el.textContent=content;
+      el.style.width=`${width}px`;el.style.transform=`translate3d(${Math.round(px-width/2)}px,${Math.round(py)}px,0)`;el.style.display='';
+    }
+    const stationNames={LENADOR:'Hachas',AGRICULTOR:'Cultivo',MINERO:'Minería',CAZADOR:'Caza',CONSTRUCTOR:'Taller',ARQUERO:'Arcos',GUERRERO:'Lanzas',ESPADACHIN:'Forja',CABALLERO_ALIADO:'Establo'};
+    for(const r of state.toolRacks)label('rack:'+r.id,'station-label'+(Math.abs(state.benkos.x-r.x)<35?' selected':''),r.x,layout.ground-65,`${stationNames[r.role]} · ${r.stock}/${r.maxStock}`,112);
+    const person=state.units.filter(u=>u.speechTimer>0&&Math.abs(u.x-state.benkos.x)<70).sort((a,b)=>Math.abs(a.x-state.benkos.x)-Math.abs(b.x-state.benkos.x))[0];
+    if(person)label('person','speech-label',layout.x(person),layout.ground-83,`${person.name}
+${person.speech}`,210,true);
+    const messenger=state.messengers.find(m=>m.state==='WAIT'&&!m.delivered&&Math.abs(m.x-state.benkos.x)<100);
+    if(messenger)label('messenger','messenger-label',layout.x(messenger),layout.ground-62,'E · Escuchar al mensajero',180,true);
+    const notices=state.floatingTexts.slice(-4);
+    notices.forEach((ft,i)=>{const line=ft.text.replace(/\s+/g,' ').replace('Cosecha Entregada','cosecha').replace('Plata de Mina','plata').trim();label('notice:'+i,'resource-label',layout.x(ft),layout.y(ft)-22+layout.ground-246,line,Math.max(100,Math.min(230,line.length*6+20)),true);});
+    for(const [key,el]of worldLabels)if(!active.has(key))el.style.display='none';
+  }
   function previewBuilding(){
     const level=Number($('previewLevel').value)||1,kind=$('previewKind').value||'hq',g=$('buildingPreview').getContext('2d');
     g.clearRect(0,0,560,240);const sky=g.createLinearGradient(0,0,0,240);sky.addColorStop(0,'#253f39');sky.addColorStop(1,'#677758');g.fillStyle=sky;g.fillRect(0,0,560,240);
@@ -236,7 +269,7 @@ export function createUI({ state, session, settings, actions }) {
   $('personSelect').addEventListener('change',e=>{selectedPersonId=Number(e.target.value);renderPerson();});
   on('btnAssignProfession',()=>{const res=actions.assignRole(selectedPersonId,$('personNewRole').value);renderPerson();text('personFeedback',res.message);});
   on('btnPersonAuto',()=>{actions.autoRole(selectedPersonId);renderPerson();text('personFeedback','Elegirá su oficio preferido cuando haya herramientas y el camino sea seguro.');});
-  return { update, banner, open, closeAll, resume, menu, result, togglePause, applySettings, openPeople, openSettlement,
+  return { update, banner, open, closeAll, resume, menu, result, togglePause, applySettings, openPeople, openSettlement, renderWorldOverlay,
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),
     connection: connected => { text('dbStatusLabel', connected ? 'Guardado en servidor' : 'Guardado local'); $('dbDot').classList.toggle('connected', connected); },

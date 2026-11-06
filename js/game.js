@@ -1,22 +1,24 @@
-import { requestBuilding } from './settlement.js';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js';
-import { AfroColombianAudioEngine } from './audio.js';
-import { createInitialState } from './world-state.js';
-import { makeSave, restoreSave } from './save-system.js';
-import { createRenderer } from './renderer.js';
-import { createSimulation } from './simulation.js';
-import { FixedStepper } from './clock.js';
-import { bindInput } from './input.js';
-import { createUI } from './ui.js';
-import { chooseDefenseSide } from './ai.js';
-import { ensurePerson, personMaxHp, requestProfession, ROLE_NAMES } from './people.js';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=36fd021d06a5';
+import { requestBuilding } from './settlement.js?v=36fd021d06a5';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=36fd021d06a5';
+import { AfroColombianAudioEngine } from './audio.js?v=36fd021d06a5';
+import { createInitialState } from './world-state.js?v=36fd021d06a5';
+import { makeSave, restoreSave } from './save-system.js?v=36fd021d06a5';
+import { createRenderer } from './renderer.js?v=36fd021d06a5';
+import { createSimulation } from './simulation.js?v=36fd021d06a5';
+import { FixedStepper } from './clock.js?v=36fd021d06a5';
+import { bindInput } from './input.js?v=36fd021d06a5';
+import { createUI } from './ui.js?v=36fd021d06a5';
+import { chooseDefenseSide } from './ai.js?v=36fd021d06a5';
+import { ensurePerson, personMaxHp, requestProfession, ROLE_NAMES } from './people.js?v=36fd021d06a5';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=36fd021d06a5';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const sceneCanvas = document.createElement('canvas');
 const sctx = sceneCanvas.getContext('2d');
-const view = { width: 640, height: 360 };
+const view = { width:640, height:360, waterLine:268, scale:1 };
+window.SpriteManager.motion = new GaitClock();
 const state = createInitialState();
 const session = { mode: 'menu' };
 const settings = { audio_enabled: true, audio_volume: .65, reduce_motion: window.matchMedia('(prefers-reduced-motion: reduce)').matches };
@@ -264,11 +266,10 @@ function getNearestInteractiveNode(bx) {
 
   state.toolRacks.forEach((rk) => {
     if (rk.stock < rk.maxStock && (state.armyTier >= 2 || !['ESPADACHIN','CABALLERO_ALIADO'].includes(rk.role))) {
-      const tierSuffix = state.armyTier === 3 ? 'Real' : (state.armyTier === 2 ? 'Élite' : 'Africano');
       candidates.push({
         id: rk.id,
         x: rk.x,
-        title: `${rk.icon} ${rk.label} [${tierSuffix}] (${rk.stock}/${rk.maxStock})`,
+        title: `${rk.label} · ${rk.stock}/${rk.maxStock}`,
         sub: `Mantén [S] para forjar equipo (${rk.cost} reales )`,
         cost: rk.cost,
         getFilled: () => rk.filledSlots,
@@ -610,13 +611,11 @@ const simulation = createSimulation({ state, keys, audio, updateHUD, spawnSpanis
 const stepper = new FixedStepper(BALANCE.fixedStep);
 
 function resize() {
-  view.width = Math.max(480, Math.min(880, Math.round(360 * window.innerWidth / window.innerHeight)));
-  canvas.width = view.width; canvas.height = view.height;
-  sceneCanvas.width = view.width; sceneCanvas.height = WATER_LINE_Y;
-  const scale = Math.min(window.innerWidth / view.width, window.innerHeight / view.height);
-  canvas.style.width = `${Math.floor(view.width * scale)}px`;
-  canvas.style.height = `${Math.floor(view.height * scale)}px`;
-  ctx.imageSmoothingEnabled = false; sctx.imageSmoothingEnabled = false;
+  Object.assign(view,pixelViewport(window.innerWidth,window.innerHeight));
+  canvas.width=view.width;canvas.height=view.height;
+  sceneCanvas.width=view.width;sceneCanvas.height=view.waterLine;
+  canvas.style.width=`${view.width*view.scale}px`;canvas.style.height=`${view.height*view.scale}px`;
+  ctx.imageSmoothingEnabled=false;sctx.imageSmoothingEnabled=false;
 }
 window.addEventListener('resize', resize); resize();
 
@@ -734,7 +733,7 @@ canvas.addEventListener('click', event => {
   const x = (event.clientX - rect.left) * view.width / rect.width + state.cameraX - view.width / 2;
   const y = (event.clientY - rect.top) * view.height / rect.height;
   const unit = state.units.filter(u => Math.abs(u.x-x)<18).sort((a,b) => Math.abs(a.x-x)-Math.abs(b.x-x))[0];
-  if (unit && y > WATER_LINE_Y - 80 && y < WATER_LINE_Y - 10) inspectNpc(unit.id);
+  if (unit && y>view.waterLine-95&&y<view.waterLine+4) inspectNpc(unit.id);
 });
 
 window.BenkosDB.onStatusChange(({ connected }) => ui.connection(connected));
@@ -752,11 +751,12 @@ let lastTime = performance.now(), hudTime = 0;
 function loop(now) {
   const elapsed = Math.min(.25, Math.max(0, (now - lastTime) / 1000)); lastTime = now;
   if (isPlaying()) {
-    stepper.advance(elapsed, dt => { if (isPlaying()) simulation(dt); });
+    stepper.advance(elapsed, dt => { if(isPlaying()){renderFrame.capturePrevious();simulation(dt);} });
 
   } else stepper.reset();
   if (hudTime > .1) { updateHUD(); hudTime = 0; } else hudTime += elapsed;
-  renderFrame(stepper.time);
+  renderFrame(stepper.time,isPlaying()?stepper.alpha:1);
+  ui.renderWorldOverlay?.(renderFrame.projection());
   requestAnimationFrame(loop);
 }
 window.gameApp = Object.freeze({ useSkill, save: () => saveGameToMySQL(), load: loadGameFromMySQL,

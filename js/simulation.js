@@ -1,8 +1,8 @@
-import { workConstruction, homeRecovery } from './settlement.js';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js';
-import { ensureCampaign } from './campaign.js';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js';
-import { nearest, chooseToolRack, chooseWorksite } from './ai.js';
+import { workConstruction, homeRecovery } from './settlement.js?v=36fd021d06a5';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js?v=36fd021d06a5';
+import { ensureCampaign } from './campaign.js?v=36fd021d06a5';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=36fd021d06a5';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=36fd021d06a5';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -374,10 +374,10 @@ return function updateSimulation(dt) {
       }
     } else if (u.role === 'ARQUERO') {
       const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
-      const postX = activeWall ? activeWall.x - u.assignedSide * 22 : u.assignedSide * 240;
+      const postX=defensePostX(u,state.units,activeWall);
       if (u.activity === 'KITE') {
         // Keep distance and retain the opportunity to shoot.
-      } else if (Math.abs(postX - u.x) > 14) {
+      } else if (Math.abs(postX - u.x) > 3) {
         u.facing = Math.sign(postX - u.x) || 1;
         u.vx = u.facing * 64;
         u.x += u.vx * dt;
@@ -402,10 +402,11 @@ return function updateSimulation(dt) {
       const moveSpd = ALLY_COMBAT[u.role].speed;
       const nearEnemy = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 310);
       const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
-      const guardX = activeWall ? activeWall.x - u.assignedSide * 10 : u.assignedSide * 285;
-      const targetX = nearEnemy ? (u.role === 'GUERRERO' ? Math.max(guardX - 85, Math.min(guardX + 85, nearEnemy.x)) : nearEnemy.x) : guardX;
+      const frontX=activeWall?activeWall.x-u.assignedSide*10:u.assignedSide*285;
+      const guardX=defensePostX(u,state.units,activeWall);
+      const targetX = nearEnemy ? (u.role === 'GUERRERO' ? Math.max(frontX - 85, Math.min(frontX + 85, nearEnemy.x)) : nearEnemy.x) : guardX;
 
-      if (Math.abs(targetX - u.x) > 22) {
+      if (Math.abs(targetX-u.x)>(nearEnemy?22:3)) {
         u.facing = Math.sign(targetX - u.x) || 1;
         u.vx = u.facing * moveSpd;
         u.x += u.vx * dt;

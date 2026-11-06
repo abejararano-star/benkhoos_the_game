@@ -87,6 +87,23 @@ class BenkosSpriteManager {
     clock.last=time;return Math.max(0,time-clock.start);
   }
 
+  gaitClass(role,tier=1){
+    if(role==='CAMPEON_REAL')return 'gait_royal_swordsman';
+    const military={GUERRERO:'spearman',ARQUERO:'archer',ESPADACHIN:'swordsman'}[role];
+    if(tier>=2&&military)return 'gait_'+(tier>=3?'royal_':'elite_')+military;
+    return 'gait_'+({FUGITIVO:'civil',ALDEANO:'civil',LENADOR:'woodcutter',AGRICULTOR:'farmer',MINERO:'miner',CAZADOR:'hunter',CONSTRUCTOR:'builder',ARQUERO:'archer',GUERRERO:'spearman'})[role];
+  }
+  drawPouch(ctx,x,y,height,fill){return this.draw(ctx,'currency_pouch',['fill'],x,y,1,height,0,0,Math.min(4,Math.ceil(Math.max(0,fill)*4))/5+.01);}
+  drawCargo(ctx,x,y,facing,u){
+    if(!u.carryingSack&&u.activity!=='DELIVER')return;
+    const bx=x-facing*9;
+    if(u.cargoWood){
+      ctx.save();ctx.fillStyle='#69452e';ctx.fillRect(Math.round(bx-8),Math.round(y-23),16,8);ctx.fillStyle='#bd955b';
+      for(let i=0;i<3;i++){ctx.fillRect(Math.round(bx-7),Math.round(y-23+i*3),13,1);ctx.fillRect(Math.round(bx+6),Math.round(y-23+i*3),2,2);}
+      ctx.fillStyle='#c9b881';ctx.fillRect(Math.round(bx-1),Math.round(y-24),2,10);ctx.restore();
+    }else if(u.role!=='AGRICULTOR')this.drawPouch(ctx,bx,y-13,14,.7);
+  }
+
   // =========================================================================
   // Benkos Biohó Player Rendering
   // =========================================================================
@@ -94,7 +111,8 @@ class BenkosSpriteManager {
     if (!this.ready) return false;
     const t = b.animTime ?? time;
     const royal = !!b.royalArmor;
-    const isMoving = Math.abs(b.vx) > 8;
+    const gait=this.motion?.sample(b,t);
+    const isMoving=gait?gait.moving:Math.abs(b.vx)>8;
     const isRunning = Math.abs(b.vx) > 130 || b.jaguarTimer > 0;
     const isAttacking = b.attackTimer > 0;
     const isMounted = !!b.mounted;
@@ -136,7 +154,10 @@ class BenkosSpriteManager {
 
     // 3. Renderizado del Personaje (Montado vs Pie)
     let drawn = false;
-    if (isMounted) {
+    const gaitHero=royal?'gait_royal_'+(b.weaponMode==='SPEAR'?'spearman':'swordsman'):'gait_hero';
+    if(!isMounted&&!isAttacking&&!b.resting&&!(b.hurtTimer>0)&&!(b.hurtKneelTimer>0)&&!((b.payTimer??0)>0)&&this.has(gaitHero)){
+      drawn=this.draw(ctx,gaitHero,isMoving?['walk']:['idle'],x,y,facing,48,0,0,isMoving?(gait?.phase??0):null);
+    } else if (isMounted) {
       const cavCls = this.has('real_caballero') ? 'real_caballero' : 'elite_caballero';
       const h = 54;
       if (isAttacking) {
@@ -281,14 +302,24 @@ class BenkosSpriteManager {
     return ({ALDEANO:'motion_civil',LENADOR:'motion_woodcutter',AGRICULTOR:'motion_farmer',MINERO:'motion_miner',CAZADOR:'motion_hunter',CONSTRUCTOR:'motion_builder',GUERRERO:'people_spearman',ARQUERO:'motion_archer'})[role];
   }
   drawMessenger(ctx,x,y,m,time) {
+    const gait=this.motion?.sample(m,m.animTime??time);
+    if(this.has('gait_messenger')&&m.state!=='WAIT')return this.draw(ctx,'gait_messenger',['walk'],x,y,m.facing,46,0,0,gait?.phase??0);
     return this.draw(ctx,'motion_messenger',m.state === 'WAIT' ? ['work','idle'] : ['walk'],x,y,m.facing,43,m.animTime??time,5);
   }
   drawAlly(ctx, x, y, facing, u, time) {
     if (!this.ready) return false;
     const t = u.animSeed ?? time;
-    const isMoving = Math.abs(u.vx || 0) > 8;
+    const gait=this.motion?.sample(u,t);
+    const isMoving=gait?gait.moving:Math.abs(u.vx||0)>8;
     const isAttacking = (u.attackAnimTimer || 0) > 0;
     const tier = u.tier || 1;
+    const gaitCls=this.gaitClass(u.role,tier);
+    if(this.has(gaitCls)&&!isAttacking&&!(u.hurtTimer>0)&&(isMoving||!['REST','RECOVER','WORK','CHOP','BUILD','HELP'].includes(u.activity))){
+      const drawn=this.draw(ctx,gaitCls,isMoving?['walk']:['idle'],x,y,facing,u.role==='CAMPEON_REAL'?51:46,0,0,isMoving?(gait?.phase??0):null);
+      this.drawCargo(ctx,x,y,facing,u);
+      if(u.role==='FUGITIVO'){ctx.save();ctx.strokeStyle='#aeb7ac';ctx.lineWidth=1;for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(x+facing*(5+i*3),y-22,2,0,Math.PI*2);ctx.stroke();}ctx.restore();}
+      return drawn;
+    }
     const person = this.personClass(u.role,tier);
     if (person && this.has(person)) {
       const animation = u.hurtTimer>0?'hurt':u.activity==='FLEE'?'run':['REST','RECOVER'].includes(u.activity)&&!isMoving?'rest':isAttacking?'attack':['WORK','CHOP','BUILD'].includes(u.activity)?'work':u.carryingSack||u.activity==='DELIVER'?'carry':isMoving?'walk':'idle';
@@ -345,7 +376,8 @@ class BenkosSpriteManager {
   drawEnemy(ctx, x, y, facing, en, time) {
     if (!this.ready) return false;
     const t = this.animationTime(en,en.attackAnimTimer>0?'attack':en.isMoving?'walk':'idle',en.animTime??time);
-    const isMoving = !!en.isMoving;
+    const gait=this.motion?.sample(en,en.animTime??time);
+    const isMoving=gait?gait.moving:!!en.isMoving;
     const isAttacking = (en.attackAnimTimer || 0) > 0;
     let cls;
     let h = 42;
@@ -410,7 +442,7 @@ class BenkosSpriteManager {
     }
 
     if (isMoving) {
-      return this.draw(ctx, cls, ['walk', 'seq'], x, y, facing, h, t, 8);
+      return this.draw(ctx, cls, ['walk', 'seq'], x, y, facing, h, t, 8, gait?.phase??null);
     }
     return this.draw(ctx, cls, ['idle', 'seq'], x, y, facing, h, t, 3);
   }

@@ -1,5 +1,5 @@
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y } from './config.js';
-import { initialSettlement } from './settlement.js';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=36fd021d06a5';
+import { initialSettlement } from './settlement.js?v=36fd021d06a5';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -131,6 +131,6 @@ treePositions.forEach((tx, idx) => {
 });
 
 
-state.toolRacks.forEach(rack => { rack.cost = TOOL_COSTS[rack.role]; });
+state.toolRacks.forEach(rack => { rack.cost = TOOL_COSTS[rack.role]; rack.x=STATION_X[rack.role]??rack.x; });
 return state;
 }

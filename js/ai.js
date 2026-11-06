@@ -1,4 +1,4 @@
-import { affinity } from './people.js';
+import { affinity } from './people.js?v=36fd021d06a5';
 export function nearest(entity, candidates, predicate = () => true) {
   let best = null, distance = Infinity;
   for (const item of candidates) {
@@ -6,6 +6,15 @@ export function nearest(entity, candidates, predicate = () => true) {
     if (predicate(item) && d < distance) { best = item; distance = d; }
   }
   return best;
+}
+
+export function defensePostX(unit,units,wall){
+  const order=['GUERRERO','ESPADACHIN','CAMPEON_REAL','CABALLERO_ALIADO','ARQUERO'];
+  const squad=units.filter(u=>u.hp>0&&u.assignedSide===unit.assignedSide&&order.includes(u.role))
+    .sort((a,b)=>order.indexOf(a.role)-order.indexOf(b.role)||a.id-b.id);
+  const slot=Math.max(0,squad.findIndex(u=>u.id===unit.id));
+  const side=unit.assignedSide||1;
+  return (wall?.x??side*320)-side*(18+slot*26);
 }
 
 export function chooseDefenseSide(x, units) {

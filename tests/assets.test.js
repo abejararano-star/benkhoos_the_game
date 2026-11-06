@@ -5,7 +5,18 @@ import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROLES } from '../js/config.js';
+import { GaitClock } from '../js/visual-motion.js';
 const root=fileURLToPath(new URL('../',import.meta.url));
+
+test('HTML, styles and every imported module use one client release',()=>{
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  const build=html.match(/js\/game\.js\?v=([a-f0-9]+)/)?.[1];assert.ok(build);
+  for(const [,url]of html.matchAll(/(?:src|href)="((?:js|css)\/[^\"]+)"/g))assert.ok(url.endsWith('?v='+build),url);
+  for(const file of fs.readdirSync(path.join(root,'js')).filter(f=>f.endsWith('.js'))){
+    const code=fs.readFileSync(path.join(root,'js',file),'utf8');
+    for(const [,url]of code.matchAll(/from ['"]([^'"]+)['"]/g))assert.ok(url.endsWith('?v='+build),file+' -> '+url);
+  }
+});
 test('the PC interface has unique ids and all local dependencies exist',()=>{
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length);
@@ -16,7 +27,7 @@ test('the PC interface has unique ids and all local dependencies exist',()=>{
   }
   for(const file of fs.readdirSync(path.join(root,'js')).filter(f=>f.endsWith('.js'))){
     const code=fs.readFileSync(path.join(root,'js',file),'utf8');
-    for(const [,url] of code.matchAll(/from ['"]([^'"]+)['"]/g))assert.ok(fs.existsSync(path.resolve(root,'js',url)),file+' -> '+url);
+    for(const [,url] of code.matchAll(/from ['"]([^'"]+)['"]/g))assert.ok(fs.existsSync(path.resolve(root,'js',url.split(/[?#]/)[0])),file+' -> '+url);
   }
 });
 test('every role and enemy draws from the real atlas, with stable foot anchors',async()=>{
@@ -48,4 +59,11 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
   logs.length=0;manager.draw(ctx,'benkos',['idle'],100,246,1,42,0);
   const f=atlas.sprites.benkos.anims.idle[0], scale=42/atlas.sprites.benkos.ref;
   assert.equal(logs[0][5],Math.round(-f.ax*scale));assert.equal(logs[0][6],Math.round(-f.ay*scale));
+  // A carried load must keep the full walking cycle, rather than replace it with two static sack poses.
+  manager.motion=new GaitClock();const worker={x:0,role:'MINERO',tier:1,facing:1,vx:60,carryingSack:true,animSeed:0};
+  logs.length=0;manager.drawAlly(ctx,0,246,1,worker,0);worker.x=9;worker.animSeed=.15;
+  logs.length=0;manager.drawAlly(ctx,9,246,1,worker,.15);
+  const step=atlas.sprites.gait_miner.anims.walk[2];assert.equal(logs[0][1],step.x);assert.equal(logs[0][2],step.y);
+  worker.animSeed=.3;logs.length=0;manager.drawAlly(ctx,9,246,1,worker,.3);
+  const idle=atlas.sprites.gait_miner.anims.idle[0];assert.equal(logs[0][1],idle.x);assert.equal(logs[0][2],idle.y);
 });

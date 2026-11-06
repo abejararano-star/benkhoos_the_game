@@ -4,7 +4,7 @@ $sourceRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $targetRoot = [System.IO.Path]::GetFullPath($Destination)
 if ($targetRoot -eq $sourceRoot) { throw 'La carpeta de destino debe ser diferente del proyecto.' }
 $backupRoot = Join-Path $sourceRoot ('archive/xampp-backups/' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
-$files = @('index.html', 'benkhoos_the_game_el_palenque_de_la_matuna.html')
+$files = @('.htaccess', 'index.html', 'benkhoos_the_game_el_palenque_de_la_matuna.html')
 foreach ($folder in @('js', 'css', 'api', 'assets')) {
     $files += Get-ChildItem -LiteralPath (Join-Path $sourceRoot $folder) -File -Recurse | ForEach-Object {
         $_.FullName.Substring($sourceRoot.Length + 1)

@@ -31,7 +31,7 @@ globalThis.document={body:new Element('body'),documentElement:new Element(),hidd
   querySelectorAll:selector=>selector==='dialog'?dialogs:selector==='[data-skill]'?skills:[],
   querySelector:selector=>skills.find(s=>selector.includes(s.dataset.skill))};
 globalThis.window={innerWidth:1366,innerHeight:768,addEventListener:(event,fn)=>{(windowEvents[event]??=[]).push(fn);},matchMedia:()=>({matches:false}),
-  SpriteManager:{ready:false,drawAlly:()=>false,drawEnemy:()=>false,drawBenkos:()=>false},BenkosDB:{onStatusChange(){},loadConfig:async()=>({}),checkConnection:async()=>true,saveConfig:async()=>({success:true}),
+  SpriteManager:{ready:false,has:()=>false,draw:()=>false,drawAlly:()=>false,drawEnemy:()=>false,drawBenkos:()=>false},BenkosDB:{onStatusChange(){},loadConfig:async()=>({}),checkConnection:async()=>true,saveConfig:async()=>({success:true}),
     saveGame:async value=>{saved=structuredClone(value);return {success:true,storage:'local'};},loadGame:async()=>structuredClone(saved),
     recordVictory:async value=>{records.push(value);},getLeaderboard:async()=>records,lastLoadStorage:'local'}};
 globalThis.requestAnimationFrame=fn=>{raf=fn;};

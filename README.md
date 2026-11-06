@@ -48,6 +48,18 @@ Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro ofici
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
 
+## Pixel art y fluidez · edición 7
+
+Se sustituyeron las estaciones de herramientas, cinco niveles de muralla, árboles y tocones, altar, tótem, mina, huerto, entrada de caminos, moneda, bolsa y cofre por recursos con materiales y siluetas propios. Las estaciones se distribuyen con mayor separación al cargar una partida; conservan sus existencias y mejoras. Los rótulos y las entregas se dibujan sobre una capa de interfaz para conservar la nitidez y evitar reflejos de texto en el río.
+
+Las dos hojas nuevas de marcha contienen **128 poses** para Benkos, nueve oficios y seis variantes de tropas. El ciclo avanza según la distancia recorrida y se detiene cuando la persona deja de moverse, incluso si conserva una velocidad anterior. Transportar recursos mantiene la marcha y añade la carga al personaje. Las posiciones de cámara, personajes y proyectiles se interpolan entre los pasos de simulación; la economía y las colisiones mantienen sus 60 pasos por segundo. Los soldados esperan en puestos separados por 26 unidades.
+
+El lienzo usa escalas enteras para que los píxeles mantengan su grosor. La bolsa del HUD tiene un dibujo propio, contador actual/máximo, 24 casillas y espacios libres. Se conserva el límite de 24 reales.
+
+Los recursos se generaron con la herramienta de imágenes integrada. Fuentes y prompts de esta revisión: `art/source/gait_people_v7.png`, `gait_guard_v7.png`, `stations_v7.png`, `walls_v7.png`, `forest_v7.png`, `currency_v7.png` y `landmarks_v7.png`, cada una con su `.prompt.txt`. El empaquetado reproducible está en `tools/import_pixel_v7.py`.
+
+Tras editar el cliente o regenerar atlas, ejecuta `npm run client:stamp` antes de desplegar. Este proceso asigna un hash común a HTML, estilos y todo el grafo de módulos. El archivo `.htaccess` pide revalidar código y metadatos para evitar mezclar revisiones antiguas y nuevas en caché. No hace falta borrar guardados para actualizar el arte.
+
 ## Evolución del palenque · edición 6
 
 La tecla **B** abre las obras y un catálogo visual de los cinco niveles. La casa central evoluciona de palma a madera, bahareque, piedra con teja y cantería tallada. Cada nivel permite mejorar las tres viviendas y el cuartel hasta ese mismo nivel. Las viviendas añaden un 15% de recuperación adicional por nivel a quienes descansan o se recuperan en el poblado; el cuartel añade un 6% de daño por nivel a las tropas. Casa central y cuartel de nivel IV/V permiten mejorar las murallas a esos niveles; sus materiales y siluetas cambian.

@@ -40,3 +40,5 @@ export const ENEMY_CATALOG = Object.freeze({
   HERALDO_ALADO: { hp: 280, speed: 74, dmg: 22, range: 140, reward: 10, isBoss: true },
   GOBERNADOR_GIRON: { hp: 360, speed: 70, dmg: 26, range: 34, reward: 18, isBoss: true, phase: 1 }
 });
+
+export const STATION_X=Object.freeze({LENADOR:-585,AGRICULTOR:-215,MINERO:-140,CAZADOR:-70,CONSTRUCTOR:125,ARQUERO:200,GUERRERO:275,ESPADACHIN:430,CABALLERO_ALIADO:515});
