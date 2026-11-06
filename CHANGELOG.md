@@ -1,4 +1,16 @@
-# Cambios de la edición PC · 4.0
+# Cambios de la edición PC · 5.0
+
+- Nueva hoja de 64 sprites transparentes de habitantes, oficios y mensajeros, generada con ImageGen e importada al atlas.
+- Regeneración de los atlas existentes con eliminación de blancos residuales y anclajes de pies; imágenes identificadas por hash para evitar caché antigua.
+- Personas con nombre, don, temperamento, preferencias, atributos y experiencia persistente por oficio.
+- Fichas con F o clic, afinidades comparables y cambios de rol mediante desplazamiento al puesto y consumo de herramientas.
+- Leñadores especializados; civiles que huyen, cazadores que toman distancia, soldados que defienden y malheridos que buscan recuperación.
+- Reacciones de daño, miedo, descanso, comentarios y ayuda de vecinos solidarios.
+- Primera patrulla de dos hombres, llegada escalonada y puestos fronterizos visibles; progresión gradual del ejército enemigo.
+- Mensajeros no combatientes desde Cartagena, cartas y propuesta de tregua; avisos anticipados y entrada física de jefes y refuerzos.
+- Guardado v3 compatible con v1/v2 y adaptaciones para ventanas de PC estrechas.
+
+## Edición 4.0
 
 - Interfaz propia sin CDN, con menú de campaña, pausa real, panel del ejército, objetivos y señales de combate.
 - Iconos SVG pixel art, paisaje con profundidad, viviendas del palenque y haciendas detalladas.

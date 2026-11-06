@@ -12,7 +12,7 @@ test('the PC interface has unique ids and all local dependencies exist',()=>{
   for(const [,url] of html.matchAll(/(?:src|href)="([^"]+)"/g)){
     if(url.startsWith('#'))continue;
     assert.ok(!url.startsWith('http'),'No CDN or remote dependency is required');
-    assert.ok(fs.existsSync(path.join(root,url.split('#')[0])),url);
+    assert.ok(fs.existsSync(path.join(root,url.split(/[?#]/)[0])),url);
   }
   for(const file of fs.readdirSync(path.join(root,'js')).filter(f=>f.endsWith('.js'))){
     const code=fs.readFileSync(path.join(root,'js',file),'utf8');

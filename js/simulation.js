@@ -1,9 +1,11 @@
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js';
+import { ensureCampaign } from './campaign.js';
 import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js';
 import { nearest, chooseToolRack, chooseWorksite } from './ai.js';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
-addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId } = api;
+addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId, campaign, queueReinforcement } = api;
 return function updateSimulation(dt) {
   if (state.hitStopTimer > 0) {
     state.hitStopTimer -= dt;
@@ -46,6 +48,7 @@ return function updateSimulation(dt) {
 
 
 
+  campaign?.update(dt);
   audio.update(dt, state.phase);
 
   b.animTime += dt;
@@ -198,12 +201,8 @@ return function updateSimulation(dt) {
   const moraleMult = state.morale / 100;
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
-    if (u.hp <= 0) {
-      u.role = 'ALDEANO'; u.tier = 1; u.hp = u.maxHp = getUnitMaxHp('ALDEANO', 1);
-      u.carryingSack = false; u.worksiteId = null;
-      addFloatingText(u.x, WATER_LINE_Y - 40, 'Defensor desarmado', '#e7bf78');
-    }
-    u.animSeed += dt;
+    ensurePerson(u);
+    u.animSeed = (u.animSeed ?? 0) + dt;
     if (u.attackCooldown > 0) u.attackCooldown -= dt;
     if (u.attackAnimTimer > 0) u.attackAnimTimer -= dt;
     if (u.liberateAnimTimer > 0) {
@@ -211,7 +210,9 @@ return function updateSimulation(dt) {
       continue;
     }
 
-    const tierMult = u.tier === 3 ? 1.75 : (u.tier === 2 ? 1.35 : 1.0);
+    if (updatePerson(u, state, dt)) continue;
+    const fitMult = proficiency(u);
+    const tierMult = (u.tier === 3 ? 1.75 : (u.tier === 2 ? 1.35 : 1.0)) * fitMult;
 
     if (u.role === 'FUGITIVO') {
       const dangerEnemy = state.enemies.find((en) => Math.abs(en.x - u.x) < 90);
@@ -230,57 +231,30 @@ return function updateSimulation(dt) {
         u.vx = 0;
       }
     } else if (u.role === 'ALDEANO') {
-      const markedTree = nearest(u, state.trees, (t) => t.markedForChop && !t.chopped);
-      const availableRack = chooseToolRack(u, state);
-
-      if (markedTree) {
-        const dx = markedTree.x - u.x;
-        if (Math.abs(dx) > 12) {
-          u.facing = Math.sign(dx) || 1;
-          u.vx = u.facing * 66;
-          u.x += u.vx * dt;
-        } else {
-          u.vx = 0;
-          u.facing = Math.sign(markedTree.x - u.x) || 1;
-          markedTree.chopProgress = (markedTree.chopProgress || 0) + dt * 0.35;
-          if (Math.random() < 1 - Math.exp(-7.2 * dt)) {
-            audio.playSfx('pickaxe');
-            addParticles(markedTree.x, WATER_LINE_Y - 22, 4, '#84cc16', 50);
-            addParticles(markedTree.x, WATER_LINE_Y - 14, 4, '#78350f', 40);
-          }
-          if (markedTree.chopProgress >= 1.0) {
-            markedTree.markedForChop = false;
-            markedTree.chopped = true;
-            audio.playSfx('chainBreak');
-            addParticles(markedTree.x, WATER_LINE_Y - 24, 25, '#84cc16', 95);
-            addFloatingText(markedTree.x, WATER_LINE_Y - 44, ' ¡Ceiba Cortada! +2 reales ', '#4ade80');
-            spawnPhysicalCoin(markedTree.x - 10, WATER_LINE_Y - 22, -45, -115, true, false);
-            spawnPhysicalCoin(markedTree.x + 10, WATER_LINE_Y - 22, 45, -115, true, false);
-            updateHUD();
+      const rack = chooseToolRack(u, state);
+      if (rack) {
+        const dx = rack.x - u.x;
+        u.activity = 'TRAINING';
+        if (Math.abs(dx) > 10) { u.facing = Math.sign(dx); u.vx = u.facing * 65; u.x += u.vx * dt; }
+        else { u.vx = 0; if (completeProfession(u, rack, state)) { audio.playSfx('coinPickup'); updateHUD(); } }
+      } else { u.vx = 0; }
+    } else if (u.role === 'LENADOR') {
+      const tree = nearest(u, state.trees, t => t.markedForChop && !t.chopped);
+      if (tree) {
+        const dx = tree.x - u.x;
+        if (Math.abs(dx) > 14) { u.activity = 'WALK'; u.vx = Math.sign(dx) * 62; u.facing = Math.sign(dx); u.x += u.vx * dt; }
+        else {
+          u.vx = 0; u.activity = 'CHOP';
+          tree.chopProgress = (tree.chopProgress || 0) + dt * .24 * fitMult;
+          if (Math.random() < dt * 3) { audio.playSfx('pickaxe'); addParticles(tree.x, WATER_LINE_Y - 15, 2, '#b88a54', 35); }
+          if (tree.chopProgress >= 1) {
+            tree.markedForChop = false; tree.chopped = true; u.carryingSack = true;
+            spawnPhysicalCoin(tree.x, WATER_LINE_Y - 20, 20, -90, true, false);
+            spawnPhysicalCoin(tree.x, WATER_LINE_Y - 20, -20, -90, true, false);
+            addFloatingText(tree.x, WATER_LINE_Y - 40, '+2 reales · madera', '#c6bb86'); updateHUD();
           }
         }
-      } else if (availableRack) {
-        const targetX = availableRack.x;
-        const dx = targetX - u.x;
-        if (Math.abs(dx) > 10) {
-          u.facing = Math.sign(dx) || 1;
-          u.vx = u.facing * 70;
-          u.x += u.vx * dt;
-        } else if (availableRack.stock > 0) {
-          availableRack.stock--;
-          u.role = availableRack.role;
-          u.tier = state.armyTier;
-          u.maxHp = getUnitMaxHp(u.role, u.tier);
-          u.hp = u.maxHp;
-          audio.playSfx('coinPickup');
-          addFloatingText(u.x, WATER_LINE_Y - 40, `¡${u.role} Rango ${u.tier}!`, '#4ade80');
-          updateHUD();
-        } else {
-          u.vx = 0;
-        }
-      } else {
-        u.vx = 0;
-      }
+      } else { u.vx = 0; u.carryingSack = false; }
     } else if (u.role === 'AGRICULTOR') {
       if (u.carryingSack) {
         const dx = 48 - u.x;
@@ -306,6 +280,7 @@ return function updateSimulation(dt) {
           u.x += u.vx * dt;
         } else {
           u.vx = 0;
+          u.activity = 'WORK';
           activeFarm.cropProgress += dt * 0.16 * activeFarm.level * tierMult;
           if (activeFarm.cropProgress >= 1.0) {
             activeFarm.cropProgress = 0;
@@ -338,6 +313,7 @@ return function updateSimulation(dt) {
           u.x += u.vx * dt;
         } else {
           u.vx = 0;
+          u.activity = 'WORK';
           mine.oreProgress += dt * 0.18 * tierMult;
           if (Math.random() < 1 - Math.exp(-3 * dt)) addParticles(mine.x, WATER_LINE_Y - 14, 2, '#cbd5e1', 40);
           if (mine.oreProgress >= 1.0) {
@@ -357,7 +333,7 @@ return function updateSimulation(dt) {
       if (target && u.attackCooldown <= 0) {
         u.facing = Math.sign(target.x - u.x) || 1;
         u.attackCooldown = 1.45;
-        u.attackAnimTimer = 0.45;
+        u.attackAnimTimer = 0.45; u.activity = 'HUNT';
         const throwNet = (!target.nettedTimer || target.nettedTimer <= 0) && Math.random() < 0.55;
         state.projectiles.push({
           x: u.x,
@@ -369,6 +345,8 @@ return function updateSimulation(dt) {
           fromPlayerSide: true,
           color: throwNet ? '#fde047' : '#a3e635'
         });
+      } else if (u.activity === 'KITE') {
+        // updatePerson has already taken a backward step while facing the threat.
       } else if (Math.abs(postX - u.x) > 16) {
         u.facing = Math.sign(postX - u.x) || 1;
         u.vx = u.facing * 68;
@@ -378,9 +356,11 @@ return function updateSimulation(dt) {
         u.facing = u.assignedSide;
       }
     } else if (u.role === 'ARQUERO') {
-      const activeWall = state.walls.find((w) => w.dir === u.assignedSide && w.level > 0 && w.hp > 0);
+      const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
       const postX = activeWall ? activeWall.x - u.assignedSide * 22 : u.assignedSide * 240;
-      if (Math.abs(postX - u.x) > 14) {
+      if (u.activity === 'KITE') {
+        // Keep distance and retain the opportunity to shoot.
+      } else if (Math.abs(postX - u.x) > 14) {
         u.facing = Math.sign(postX - u.x) || 1;
         u.vx = u.facing * 64;
         u.x += u.vx * dt;
@@ -392,7 +372,7 @@ return function updateSimulation(dt) {
         const enemyTarget = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 200);
         if (enemyTarget) {
           u.attackCooldown = u.tier === 3 ? 0.85 : 1.1;
-          u.attackAnimTimer = 0.35;
+          u.attackAnimTimer = 0.35; u.activity = 'ATTACK';
           u.facing = Math.sign(enemyTarget.x - u.x) || 1;
           state.projectiles.push({
             x: u.x, y: WATER_LINE_Y - 19, vx: u.facing * 245, vy: -20,
@@ -404,9 +384,9 @@ return function updateSimulation(dt) {
       const isMounted = u.role === 'CABALLERO_ALIADO';
       const moveSpd = ALLY_COMBAT[u.role].speed;
       const nearEnemy = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 310);
-      const activeWall = state.walls.find((w) => w.dir === u.assignedSide && w.level > 0 && w.hp > 0);
+      const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
       const guardX = activeWall ? activeWall.x - u.assignedSide * 10 : u.assignedSide * 285;
-      const targetX = nearEnemy ? nearEnemy.x : guardX;
+      const targetX = nearEnemy ? (u.role === 'GUERRERO' ? Math.max(guardX - 85, Math.min(guardX + 85, nearEnemy.x)) : nearEnemy.x) : guardX;
 
       if (Math.abs(targetX - u.x) > 22) {
         u.facing = Math.sign(targetX - u.x) || 1;
@@ -418,7 +398,7 @@ return function updateSimulation(dt) {
 
       if (u.attackCooldown <= 0 && nearEnemy && Math.abs(nearEnemy.x - u.x) <= 42) {
         u.attackCooldown = ALLY_COMBAT[u.role].cooldown;
-        u.attackAnimTimer = 0.38;
+        u.attackAnimTimer = 0.38; u.activity = 'ATTACK';
         u.weaponSubMode = u.weaponSubMode === 'SPEAR' ? 'SWORD' : 'SPEAR';
         const baseHit = ALLY_COMBAT[u.role].damage;
         const antiCav = (u.role === 'GUERRERO' && nearEnemy.type === 'CABALLERO') ? 1.8 : 1.0;
@@ -471,12 +451,14 @@ return function updateSimulation(dt) {
 
       if (en.type === 'GOBERNADOR_GIRON' && en.phase === 2) {
       state.bossesDefeated++;
+      const progress = ensureCampaign(state); progress.governorDefeated = true; progress.defeatedBosses.push('GOBERNADOR_GIRON');
       state.score += 5000;
       showBanner('GOBERNADOR DERROTADO', 'El territorio recuperado permanece libre.');
-      if (state.haciendas.every(h => h.destroyed) && state.bossesDefeated >= 2) {
+      if (state.haciendas.every(h => h.destroyed) && ensureCampaign(state).governorDefeated) {
         state.status = 'victory';
       }
     } else if (en.type === 'HERALDO_ALADO') {
+        const progress = ensureCampaign(state); progress.heraldDefeated = true; progress.defeatedBosses.push('HERALDO_ALADO'); state.bossesDefeated++;
         audio.playSfx('trumpet');
         state.screenShake = 10;
         showBanner(' ¡HERALDO ALADO DERRIBADO!', '¡El cielo de la Matuna vuelve a ser libre!');
@@ -516,7 +498,7 @@ return function updateSimulation(dt) {
       const escapeDir = en.x >= 0 ? 1 : -1;
       en.facing = escapeDir;
       en.x += escapeDir * en.speed * 1.25 * dt;
-      if (Math.abs(en.x) > 1590) state.enemies.splice(i, 1);
+      if (Math.abs(en.x) > 1810) state.enemies.splice(i, 1);
       continue;
     }
 
@@ -561,8 +543,8 @@ return function updateSimulation(dt) {
         en.summonedMinions = true;
         audio.playSfx('trumpet');
         showBanner(' ¡EL HERALDO ALADO CONVOCA REFUERZOS!', 'Arqueros coloniales abren fuego desde la retaguardia');
-        spawnEnemy('ARQUERO_COLONIAL', -en.facing, en.x - en.facing * 50);
-        spawnEnemy('ARQUERO_COLONIAL', -en.facing, en.x - en.facing * 90);
+        queueReinforcement('ARQUERO_COLONIAL', -en.facing);
+        queueReinforcement('ARQUERO_COLONIAL', -en.facing);
         addParticles(en.x, WATER_LINE_Y - 30, 20, '#38bdf8', 90);
       }
 
@@ -640,26 +622,12 @@ return function updateSimulation(dt) {
         en.attackCooldown = 1.15;
       en.attackReady = false;
         en.attackAnimTimer = 0.35;
-        nearAlly.hp -= en.dmg;
+        reactToDamage(nearAlly, en.dmg, en.facing);
         audio.playSfx('slash');
         addParticles(nearAlly.x, WATER_LINE_Y - 20, 6, '#ef4444', 55);
         addFloatingText(nearAlly.x, WATER_LINE_Y - 38, `-${Math.round(en.dmg)}`, '#f87171');
         nearAlly.vx = en.facing * 60;
-        if (nearAlly.hp <= 0) {
-          if (nearAlly.role !== 'ALDEANO' && nearAlly.role !== 'FUGITIVO') {
-            audio.playSfx('chainBreak');
-            addFloatingText(nearAlly.x, WATER_LINE_Y - 45, '¡Defensor Desarmado!', '#fde047');
-            nearAlly.role = 'ALDEANO';
-            nearAlly.hp = getUnitMaxHp('ALDEANO', 1);
-            nearAlly.maxHp = nearAlly.hp;
-            nearAlly.vx = -en.facing * 90;
-          } else {
-            nearAlly.liberateAnimTimer = 0.8;
-            nearAlly.vx = -en.facing * 110;
-            nearAlly.hp = 30;
-          }
-          updateHUD();
-        }
+
       }
     } else {
       en.x += dirToTarget * en.speed * dt + en.vx * dt;
@@ -717,7 +685,7 @@ return function updateSimulation(dt) {
         // Impacto en defensor aliado con escudo
         const hitAlly = state.units.find(u => (u.role === 'GUERRERO' || u.role === 'CAMPEON_REAL') && Math.abs(p.x - u.x) < 14);
         if (hitAlly) {
-          hitAlly.hp -= p.dmg;
+          reactToDamage(hitAlly, p.dmg, Math.sign(p.vx));
           addParticles(hitAlly.x, p.y, 5, '#fde047', 50);
           audio.playSfx('slash');
           hit = true;

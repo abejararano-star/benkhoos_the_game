@@ -8,6 +8,8 @@ import { FixedStepper } from './clock.js';
 import { bindInput } from './input.js';
 import { createUI } from './ui.js';
 import { chooseDefenseSide } from './ai.js';
+import { ensurePerson, personMaxHp, requestProfession, ROLE_NAMES } from './people.js';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -26,7 +28,7 @@ const ui = createUI({ state, session, settings, actions: {
   continueGame: () => session.hasCampaign && state.status === 'playing' ? ui.resume() : loadGameFromMySQL(),
   clearInput: () => input?.clear(), fullscreen: toggleFullscreen,
   settings: changeSettings, volume: v => audio.setVolume(v), politics: choosePolitics,
-  leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction
+  leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction, inspectNpc, assignRole, autoRole
 }});
 function updateHUD() { ui.update(); }
 
@@ -55,6 +57,7 @@ function spawnCimarron(role, x, customTier) {
     assignedSide: chooseDefenseSide(x ?? 0, state.units),
     animSeed: Math.random() * 10
   };
+  ensurePerson(unit);
   state.units.push(unit);
   updateHUD();
   return unit;
@@ -113,7 +116,7 @@ function spawnEnemy(type, side, customX) {
   const en = {
     id: nextEntityId++,
     type,
-    x: Math.max(WORLD_MIN_X + 60, Math.min(WORLD_MAX_X - 60, spawnX)),
+    x: Math.max(WORLD_MIN_X - 100, Math.min(WORLD_MAX_X + 100, spawnX)),
     y: WATER_LINE_Y,
     vx: 0,
     facing: -side,
@@ -147,27 +150,11 @@ function spawnEnemy(type, side, customX) {
 }
 
 function spawnSpanishWave(mult = 1) {
-  const roster = [
-    'SOLDADO_ESPANOL',
-    'ARCABUCERO',
-    'CABALLERO',
-    'ARQUERO_COLONIAL',
-    'PIQUERO',
-    'CAMPESINO',
-    'BANDOLERO'
-  ];
-  state.waveNumber++;
-  const count = Math.min(18, Math.max(4, Math.round((BALANCE.baseWaveSize + state.day * 0.6 + state.alertLevel / 25) * mult)));
-  for (let i = 0; i < count; i++) {
-    const side = i % 2 === 0 ? 1 : -1;
-    const unitType = roster[(i + state.waveNumber - 1) % Math.min(roster.length, 3 + Math.floor(state.day / 2))];
-    const origin = state.haciendas.find(h => h.side === side && !h.destroyed);
-    const spawnX = origin ? origin.x - side * (35 + (i % 4) * 24) : side * (WORLD_MAX_X - 80 - (i % 4) * 24);
-    spawnEnemy(unitType, side, spawnX);
-  }
-  showBanner('¡ESCUADRÓN REAL EN CAMINO!', 'Tus Guerreros, Arqueros, Cazadores con Red y Campeones defienden la Matuna');
-  audio.playSfx('roar');
+  const count = dispatchRaid(state, mult);
+  showBanner('UNA PATRULLA SE PONE EN MARCHA', `${count} hombres salen de los puestos fronterizos. Sus estandartes anuncian el camino.`);
 }
+function queueReinforcement(type, side) { dispatchReinforcement(state, type, side); }
+
 
 function upgradeArmyTier() {
   if (state.armyTier >= 3) return;
@@ -176,7 +163,7 @@ function upgradeArmyTier() {
   state.units.forEach((u) => {
     if (u.role !== 'FUGITIVO' && u.role !== 'CAMPEON_REAL') {
       u.tier = state.armyTier;
-      u.maxHp = getUnitMaxHp(u.role, state.armyTier);
+      u.maxHp = personMaxHp(u, u.role, state.armyTier);
       u.hp = u.maxHp;
       addParticles(u.x, WATER_LINE_Y - 20, 12, '#fde047', 85);
     }
@@ -351,7 +338,7 @@ function getNearestInteractiveNode(bx) {
         id: tr.id,
         x: tr.x,
         title: ' Marcar Ceiba para Talar',
-        sub: 'Mantén [S] (1 reales ) — Tus constructores la talarán y dará 2 reales ',
+        sub: 'Mantén [S] (1 real) · Tus leñadores talarán y obtendrán 2 reales',
         cost: 1,
         getFilled: () => tr.filledSlots,
         setFilled: (v) => { tr.filledSlots = v; },
@@ -408,6 +395,8 @@ function refundUnfinishedSlots(activeId) {
 function handleInteractOrMount() {
   const b = state.benkos;
   if (!isPlaying()) return;
+  const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x - b.x) < 60);
+  if (messenger && campaign.readMessenger(messenger)) return;
   const freeHorse = state.horses.find((h) => !h.rider && Math.abs(h.x - b.x) < 38);
   if (b.mounted) {
     b.mounted = false;
@@ -505,8 +494,7 @@ function damageHacienda(hac, dmg) {
       spawnCimarron('FUGITIVO', hac.x + (Math.random() * 50 - 25));
     }
     state.horses.push({ id: `horse_${nextEntityId++}`, x: hac.x - hac.side * 40, facing: -hac.side, rider: null });
-    showBanner('¡HACIENDA COLONIAL INCENDIADA!', '3 Esclavizados liberados, +12 reales  y el Gobernador Girón acude al campo');
-    spawnEnemy('GOBERNADOR_GIRON', hac.side, hac.x - hac.side * 80);
+    showBanner('HACIENDA RECUPERADA', 'Tres personas pueden alcanzar la libertad. Los mensajeros llevarán noticias a Cartagena.');
   }
 }
 
@@ -613,9 +601,10 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
 
 
 const renderFrame = createRenderer({ state, keys, canvas, ctx, sceneCanvas, sctx, view, settings, getNearestInteractiveNode });
+const campaign = createCampaign({ state, spawnEnemy, nextId: () => nextEntityId++, showBanner, onTreaty: () => ui.open('modalPolitics') });
 const simulation = createSimulation({ state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife,
   showBanner, saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
-  addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign,
+  addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, campaign, queueReinforcement,
   nextId: () => nextEntityId++ });
 const stepper = new FixedStepper(BALANCE.fixedStep);
 
@@ -636,7 +625,7 @@ function newGame() {
   Object.assign(state, createInitialState()); nextEntityId = 1;
   session.hasCampaign = true;
   window.BenkosDB.currentSaveId = null;
-  for (const [role, x] of [['ALDEANO',-35],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340],['FUGITIVO',-490],['FUGITIVO',510]]) spawnCimarron(role, x, 1);
+  for (const [role, x] of [['ALDEANO',-35],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340],['FUGITIVO',-490],['FUGITIVO',510]]) spawnCimarron(role, x, 1);
   spawnWildlife(-560); spawnWildlife(560);
   state.cameraX = state.benkos.x; stepper.reset();
   ui.resume(); updateHUD(); audio.init();
@@ -699,8 +688,12 @@ function finishCampaign(status) {
 }
 function choosePolitics(accept) {
   if (accept && state.coins < 15) return;
-  if (accept) { state.coins -= 15; state.truceDays = 3; state.enemies = []; }
-  else { state.morale = 125; spawnCimarron('CAMPEON_REAL', 25, 3); spawnSpanishWave(1.2); }
+  if (accept) {
+    state.coins -= 15; state.truceDays = 3; state.enemies = [];
+    state.campaign.orders = state.campaign.orders.filter(order=>order.kind==='boss');
+    if (state.timeOfDay>=.68) state.phase='TRUCE_NIGHT';
+  }
+  else { state.morale = 125; spawnCimarron('CAMPEON_REAL', -1550, 3); spawnSpanishWave(1.2); }
   state.politicalEventSeen = true; ui.resume(); updateHUD();
 }
 function debugAction(id) {
@@ -712,10 +705,36 @@ function debugAction(id) {
   if (id === 'btnSpawnGovernor') spawnEnemy('GOBERNADOR_GIRON', 1, state.benkos.x + 220);
   if (id === 'btnToggleSpriteMode') state.useRealSprites = !state.useRealSprites;
 }
-input = bindInput({ keys, isPlaying, attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
+input = bindInput({ keys, isPlaying, inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
   toggleArmor, togglePause: ui.togglePause, save: () => saveGameToMySQL(), load: loadGameFromMySQL,
   toggleArmy: ui.toggleArmy, toggleFullscreen, rest: () => { state.benkos.resting = !state.benkos.resting; },
   torch: () => { state.benkos.torchManual = !state.benkos.torchManual; } });
+
+
+function inspectNpc(id = null) {
+  const unit = id === null ? state.units.filter(u => u.role !== 'FUGITIVO').sort((a,b) => Math.abs(a.x-state.benkos.x)-Math.abs(b.x-state.benkos.x))[0] : state.units.find(u => u.id === Number(id));
+  if (!unit) { showBanner('NO HAY NADIE CERCA', 'Libera personas para conocer a tu comunidad.'); return; }
+  session.selectedNpcId = unit.id; ensurePerson(unit); ui.openPeople(unit.id);
+}
+function assignRole(id, role) {
+  const unit = state.units.find(u => u.id === Number(id));
+  if (!unit) return { success:false, message:'Esta persona ya no está disponible.' };
+  return requestProfession(unit, role, state);
+}
+function autoRole(id) {
+  const unit = state.units.find(u => u.id === Number(id));
+  if (!unit) return;
+  ensurePerson(unit);unit.requestedRole = null;
+  if (unit.role !== unit.preferredRole) requestProfession(unit, unit.preferredRole, state);
+}
+canvas.addEventListener('click', event => {
+  if (!isPlaying()) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (event.clientX - rect.left) * view.width / rect.width + state.cameraX - view.width / 2;
+  const y = (event.clientY - rect.top) * view.height / rect.height;
+  const unit = state.units.filter(u => Math.abs(u.x-x)<18).sort((a,b) => Math.abs(a.x-x)-Math.abs(b.x-x))[0];
+  if (unit && y > WATER_LINE_Y - 80 && y < WATER_LINE_Y - 10) inspectNpc(unit.id);
+});
 
 window.BenkosDB.onStatusChange(({ connected }) => ui.connection(connected));
 async function init() {
@@ -733,7 +752,7 @@ function loop(now) {
   const elapsed = Math.min(.25, Math.max(0, (now - lastTime) / 1000)); lastTime = now;
   if (isPlaying()) {
     stepper.advance(elapsed, dt => { if (isPlaying()) simulation(dt); });
-    if (state.day >= 3 && !state.politicalEventSeen && state.phase === 'DAY_EXPLORE') { updateHUD(); ui.open('modalPolitics'); }
+
   } else stepper.reset();
   if (hudTime > .1) { updateHUD(); hudTime = 0; } else hudTime += elapsed;
   renderFrame(stepper.time);

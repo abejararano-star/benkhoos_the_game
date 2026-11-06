@@ -15,7 +15,7 @@ class BenkosSpriteManager {
 
   async init() {
     try {
-      const res = await fetch('assets/atlas/atlas.json');
+      const res = await fetch('assets/atlas/atlas.json', { cache:'no-store' });
       if (res.ok) {
         const data = await res.json();
         this.atlas = data.sprites || data;
@@ -28,10 +28,10 @@ class BenkosSpriteManager {
             console.warn('[SpriteManager] No se pudo cargar atlas:', n);
             resolve();
           };
-          img.src = 'assets/atlas/' + n + '.png';
+          img.src = 'assets/atlas/' + n + '.png?v=' + encodeURIComponent(data.build ?? data.version ?? 1);
         })));
         this.ready = true;
-        console.log('[SpriteManager] Atlas v2 cargado con éxito. 36 tipos de sprites disponibles.');
+        console.log(`[SpriteManager] Atlas cargado: ${Object.keys(this.atlas).length} clases.`);
       }
     } catch (e) {
       console.warn('[SpriteManager] Atlas no disponible; usando render procedural retro.', e);
@@ -262,12 +262,23 @@ class BenkosSpriteManager {
     }
   }
 
+  personClass(role) {
+    return ({ALDEANO:'people_civil',LENADOR:'people_woodcutter',AGRICULTOR:'people_farmer',MINERO:'people_miner',CAZADOR:'people_hunter',GUERRERO:'people_spearman',ARQUERO:'people_archer'})[role];
+  }
+  drawMessenger(ctx,x,y,m,time) {
+    return this.draw(ctx,'people_messenger',m.state === 'WAIT' ? ['work','idle'] : ['walk'],x,y,m.facing,43,m.animTime??time,5);
+  }
   drawAlly(ctx, x, y, facing, u, time) {
     if (!this.ready) return false;
     const t = u.animSeed ?? time;
     const isMoving = Math.abs(u.vx || 0) > 8;
     const isAttacking = (u.attackAnimTimer || 0) > 0;
     const tier = u.tier || 1;
+    const person = this.personClass(u.role);
+    if (person && this.has(person)) {
+      const animation = u.hurtTimer > 0 ? ['hurt'] : u.activity === 'FLEE' ? ['escape','run'] : ['REST','RECOVER'].includes(u.activity) && !isMoving ? ['rest'] : isAttacking ? ['attack'] : ['WORK','CHOP'].includes(u.activity) ? ['work'] : isMoving ? ['walk'] : ['idle'];
+      return this.draw(ctx,person,animation,x,y,facing,42,t,animation[0] === 'work' ? 4 : 7);
+    }
 
     // 1. Fugitivo / Esclavizado con cadenas
     if (u.role === 'FUGITIVO' || (u.liberateAnimTimer || 0) > 0) {

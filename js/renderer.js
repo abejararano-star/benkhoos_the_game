@@ -1,4 +1,5 @@
-import { drawLandscape, drawVillage, drawHacienda, drawMarker } from './terrain.js';
+import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory } from './terrain.js';
+import { ROAD_GATES } from './campaign.js';
 import { WATER_LINE_Y } from './config.js';
 export function createRenderer({ state, keys, canvas, ctx, sceneCanvas, sctx, view, settings, getNearestInteractiveNode }) {
 const PALETTE = {
@@ -488,19 +489,22 @@ function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, 
 
 // ==================== 10. HD-2D SCENE & REFLECTION RENDERER ====================
 function drawGhostCoinSlots(g, sx, sy, totalSlots, filledSlots, title, sub) {
+  const panelWidth = Math.min(325, view.width - 24);
+  sx = Math.max(panelWidth/2+8, Math.min(view.width-panelWidth/2-8, sx));
   const spacing = 11;
   const startX = sx - ((totalSlots - 1) * spacing) / 2;
-
-  g.font = '8px "Press Start 2P", monospace';
+  g.fillStyle='#0e201ce8';g.fillRect(sx-panelWidth/2,sy-35,panelWidth,45);
+  g.strokeStyle='#9b885066';g.lineWidth=1;g.strokeRect(sx-panelWidth/2,sy-35,panelWidth,45);
+  g.font = '8px monospace';
   g.textAlign = 'center';
   g.fillStyle = '#000000';
-  g.fillText(title, sx + 1, sy - 19);
+  g.fillText(title, sx + 1, sy - 23, panelWidth-16);
   g.fillStyle = '#fde047';
-  g.fillText(title, sx, sy - 20);
+  g.fillText(title, sx, sy - 24, panelWidth-16);
 
-  g.font = '12px "VT323", monospace';
-  g.fillStyle = '#e7e5e4';
-  g.fillText(sub, sx, sy - 9);
+  g.font = '7px monospace';
+  g.fillStyle = '#c4c8b0';
+  g.fillText(sub.replace('Mantén [S]', 'S · Mantener').replaceAll(' reales ', ' r. '), sx, sy - 12, panelWidth-16);
 
   for (let i = 0; i < totalSlots; i++) {
     const cx = Math.round(startX + i * spacing);
@@ -724,17 +728,31 @@ function renderWorldAboveWater(g, time) {
     g.restore();
   });
 
+  ROAD_GATES.forEach(gate => drawRoadGate(g,toScreenX(gate.x),GROUND_SURFACE_Y,gate.side,state.campaign.orders.some(o=>o.side===gate.side)));
+  const closestPerson = state.units.filter(u=>Math.abs(u.x-state.benkos.x)<90).sort((a,b)=>Math.abs(a.x-state.benkos.x)-Math.abs(b.x-state.benkos.x))[0];
   state.units.forEach((u) => {
     const sx = toScreenX(u.x);
     if (sx < -50 || sx > w + 50) return;
     drawMarker(g, sx, GROUND_SURFACE_Y, u);
     drawAlliedUnitSprite(g, sx, GROUND_SURFACE_Y, u, time);
+    drawPersonStory(g,sx,GROUND_SURFACE_Y,u,u===closestPerson);
+  });
+
+  state.messengers.forEach(m=>{
+    const sx=toScreenX(m.x);if(sx < -50 || sx > w+50)return;
+    if(window.SpriteManager?.drawMessenger)window.SpriteManager.drawMessenger(g,sx,GROUND_SURFACE_Y,m,time);
+    else {g.fillStyle='#7694a0';g.fillRect(sx-6,GROUND_SURFACE_Y-28,12,28);}
+    g.fillStyle='#e2dfc7';g.fillRect(sx+m.facing*12,GROUND_SURFACE_Y-49,2,23);g.fillRect(sx+m.facing*12,GROUND_SURFACE_Y-49,12,7);
+    if(m.state==='WAIT'&&!m.delivered){g.font='7px monospace';g.textAlign='center';g.fillStyle='#e4c98f';g.fillText('E · Leer carta',sx,GROUND_SURFACE_Y-58);}
   });
 
   state.enemies.forEach((en) => {
     const sx = toScreenX(en.x);
     if (sx < -70 || sx > w + 70) return;
+    g.save();
+    if(en.appearTimer>0)g.globalAlpha=Math.max(0,Math.min(1,1-en.appearTimer/1.2));
     drawColonialUnitSprite(g, sx, GROUND_SURFACE_Y, en, time);
+    g.restore();
     drawMarker(g, sx, GROUND_SURFACE_Y, en, true);
   });
 

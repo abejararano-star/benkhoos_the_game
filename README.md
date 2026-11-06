@@ -1,6 +1,6 @@
 # Benkhoos · El Palenque de la Matuna
 
-Juego de estrategia y acción para **PC**. Explora, libera a los fugitivos, organiza la producción y defiende la Matuna. La campaña termina al recuperar las dos haciendas y derrotar a sus gobernadores, o si Benkos cae sin fondos para un rescate.
+Juego de estrategia y acción para **PC**. Explora, libera a los fugitivos, organiza la producción y defiende la Matuna. La campaña termina al recuperar las dos haciendas y derrotar al gobernador, o si Benkos cae sin fondos para un rescate.
 
 ## Jugar con XAMPP
 
@@ -28,6 +28,7 @@ Los valores predeterminados de XAMPP son `127.0.0.1`, usuario `root`, contraseñ
 | 1–4 | Poderes desbloqueados en el altar |
 | C | Armadura, disponible desde el rango Real |
 | R / T | Descansar / antorcha |
+| F / clic sobre una persona | Ficha, dones, experiencia y cambio de oficio |
 | Tab / Escape | Ejército / pausa |
 | F5 / F9 | Guardar / cargar |
 | F11 | Pantalla completa |
@@ -36,7 +37,21 @@ La bolsa admite 24 reales. El rescate cuesta 8 del cofre y entrega 3 en la bolsa
 
 ## Guardado
 
-La versión 2 del formato conserva el estado completo: tropas y daño, edificios, rangos, habilidades, haciendas, recursos, árboles, monturas, oleadas y progreso político. Se mantiene una copia local y se usa la más reciente entre navegador y servidor. Los guardados antiguos se migran al cargar; solo es posible recuperar los datos que la versión antigua llegó a guardar.
+La versión 3 del formato conserva el estado completo: tropas y daño, edificios, rangos, habilidades, haciendas, recursos, árboles, monturas, oleadas, cartas, mensajeros y progreso político. También guarda nombres, atributos, dones, experiencias por oficio, heridas, miedo, cansancio y cambios de profesión pendientes. Se mantiene una copia local y se usa la más reciente entre navegador y servidor. Las versiones 1 y 2 se migran al cargar; solo es posible recuperar los datos que la versión antigua llegó a guardar. Las partidas anteriores reciben el nuevo puesto de hachas sin sustituir su inventario existente.
+
+## Personas y oficios
+
+Cada persona tiene cinco atributos (fuerza, resistencia, percepción, destreza y cultivo), un don, un temperamento y una preferencia. Su afinidad influye en el trabajo, la caza y el combate; la resistencia también mejora su salud. Los habitantes libres eligen herramientas considerando sus capacidades, su preferencia, la necesidad del palenque y la disponibilidad.
+
+Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro oficio o respetar su preferencia. Un soldado con buen ojo puede aprender caza; alguien del campo con fuerza y resistencia puede entrenar como lancero. El cambio necesita equipo del puesto y un trayecto seguro. Devuelve el equipo anterior cuando hay espacio, mantiene su identidad y experiencia por profesión, y conserva la proporción de salud para impedir curaciones gratuitas.
+
+Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
+
+## Caminos de campaña
+
+La primera patrulla consta de dos hombres y llega escalonada desde un puesto de entrada visible. Las expediciones crecen con los días y las unidades avanzadas aparecen más tarde. Los vigías dan pistas antes del anochecer. Un emisario no combatiente recorre el camino de Cartagena, espera con estandarte blanco y entrega su propuesta al pulsar **E**. Las cartas no leídas permanecen en el menú de campaña.
+
+El Heraldo tiene un aviso previo de 35 segundos; el gobernador final parte después de perder ambas haciendas y se anuncia 45 segundos antes de cruzar la frontera. Estos avisos preceden la entrada al mapa: después los enemigos todavía deben recorrer el camino. Los refuerzos también usan las entradas, en lugar de aparecer junto al jefe.
 
 Una nueva campaña genera un nuevo registro de servidor; cargar una campaña permite actualizar el mismo registro. El guardado informa si se realizó en MySQL o solo en el navegador. La aplicación es una instalación **local de un solo jugador**: la API no incorpora cuentas ni autenticación para ofrecerla como servicio público.
 
@@ -71,6 +86,8 @@ js/world-state.js         Estado inicial del mundo
 js/game.js                Coordinación, economía e interacciones
 js/simulation.js          Simulación y combate a 60 pasos por segundo
 js/ai.js                  Selección y reserva de trabajos
+js/people.js              Personas, dones, profesiones y reacciones
+js/campaign.js            Expediciones, caminos, avisos y mensajeros
 js/renderer.js            Personajes, mundo y reflejo
 js/terrain.js             Paisaje, construcciones y señales de combate
 js/audio.js               Motor de tambores y efectos

@@ -3,7 +3,7 @@ export const WORLD_MIN_X = -1650;
 export const WORLD_MAX_X = 1650;
 export const WATER_LINE_Y = 268;
 export const BALANCE = Object.freeze({
-  bagCapacity: 24, dayDuration: 180, baseWaveSize: 4,
+  bagCapacity: 24, dayDuration: 180, baseWaveSize: 2,
   rescueCost: 8, rescueGrant: 3, fixedStep: 1 / 60,
   tierCosts: [0, 6, 8], farmCapacity: 2, mineCapacity: 2
 });
@@ -14,13 +14,13 @@ export const SKILLS = Object.freeze([
   { id:'roar', level:4, name:'Rugido del Magdalena', cost:10, spiritCost:30, unlocked:false },
   { id:'jaguar', level:5, name:'Espíritu Jaguar Negro', cost:14, spiritCost:40, unlocked:false }
 ]);
-export const TOOL_COSTS = Object.freeze({ AGRICULTOR:1, MINERO:2, CAZADOR:2, ARQUERO:2, GUERRERO:3, ESPADACHIN:4, CABALLERO_ALIADO:5 });
+export const TOOL_COSTS = Object.freeze({ LENADOR:2, AGRICULTOR:1, MINERO:2, CAZADOR:2, ARQUERO:2, GUERRERO:3, ESPADACHIN:4, CABALLERO_ALIADO:5 });
 export const ALLY_COMBAT = Object.freeze({
   GUERRERO:{ damage:20, speed:68, cooldown:.8 }, ESPADACHIN:{ damage:24, speed:76, cooldown:.7 },
   CABALLERO_ALIADO:{ damage:28, speed:96, cooldown:.85 }, CAMPEON_REAL:{ damage:32, speed:76, cooldown:.8 }
 });
 export const UNIT_HP = Object.freeze({
-  FUGITIVO: 80, ALDEANO: 80, AGRICULTOR: 80, MINERO: 80,
+  FUGITIVO: 80, ALDEANO: 80, LENADOR:95, AGRICULTOR: 80, MINERO: 80,
   CAZADOR: 80, ARQUERO: 80, GUERRERO: 115, ESPADACHIN: 115,
   CABALLERO_ALIADO: 150, CAMPEON_REAL: 260
 });

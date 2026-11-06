@@ -28,6 +28,8 @@ const state = {
   holdPayTimer: 0,
   activeNodeId: null,
   useRealSprites: true,
+  messengers: [],
+  campaign: { version:1, orders:[], letters:[], warnedDays:[], sentDays:[], bossAnnouncements:[], defeatedBosses:[], lastRaidDay:0, heraldDefeated:false, governorDefeated:false },
 
   benkos: {
     x: -20,
@@ -62,6 +64,7 @@ const state = {
   skills: SKILLS.map(skill => ({ ...skill })),
 
   toolRacks: [
+    { id:'rack_axe', role:'LENADOR', x:-420, label:'Hachas del monte', icon:'', stock:1, maxStock:3, filledSlots:0 },
     { id: 'rack_hoe',   role: 'AGRICULTOR', x: -200, label: 'Azadones y Cestos', icon: '', cost: 1, stock: 1, maxStock: 4, filledSlots: 0 },
     { id: 'rack_pick',  role: 'MINERO',     x: -145, label: 'Picos de Minero',   icon: '', cost: 2, stock: 1, maxStock: 4, filledSlots: 0 },
     { id: 'rack_hunt',  role: 'CAZADOR',    x: -95,  label: 'Redes y Jabalinas', icon: '', cost: 2, stock: 1, maxStock: 4, filledSlots: 0 },

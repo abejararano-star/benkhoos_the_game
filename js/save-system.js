@@ -1,5 +1,7 @@
 import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js';
-export const SAVE_VERSION = 2;
+import { ensurePerson } from './people.js';
+import { ensureCampaign } from './campaign.js';
+export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback;
@@ -25,7 +27,7 @@ export function restoreSave(save, defaults) {
   if (save.save_version > SAVE_VERSION) throw new Error('Esta partida necesita una versión más reciente del juego.');
   const next = clone(defaults);
   let source = save.snapshot?.state;
-  if (save.save_version === SAVE_VERSION && (!source || typeof source !== 'object' || Array.isArray(source))) {
+  if (save.save_version >= 2 && (!source || typeof source !== 'object' || Array.isArray(source))) {
     throw new Error('La partida está incompleta.');
   }
   if (!source) {
@@ -62,12 +64,13 @@ export function restoreSave(save, defaults) {
   for (const key of Object.keys(next)) {
     if (key === 'benkos' || key === 'skills') continue;
     if (Array.isArray(next[key])) {
+      if (key === 'messengers' && save.save_version < 3 && source[key] === undefined) continue;
       if (!Array.isArray(source[key]) || source[key].length > 5000) throw new Error(`Datos inválidos: ${key}`);
       next[key] = clone(source[key]);
     } else if (source[key] !== undefined && source[key] !== null && typeof source[key] === typeof next[key]) next[key] = source[key];
   }
   const validEntity = e => e && typeof e === 'object' && !Array.isArray(e) && typeof e.x === 'number' && Number.isFinite(e.x);
-  for (const key of ['units','enemies','walls','farms','mines','trees','toolRacks','haciendas','horses','wildlife','droppedCoins','corpses','projectiles','particles','waterRipples','floatingTexts']) {
+  for (const key of ['units','enemies','walls','farms','mines','trees','toolRacks','haciendas','horses','wildlife','droppedCoins','corpses','projectiles','particles','waterRipples','floatingTexts','messengers']) {
     if (next[key].some(e => !validEntity(e))) throw new Error(`Entidades dañadas: ${key}`);
   }
   if (!source.benkos || typeof source.benkos.x !== 'number' || !Number.isFinite(source.benkos.x)) throw new Error('Posición del jugador inválida.');
@@ -94,6 +97,12 @@ export function restoreSave(save, defaults) {
   if (!['playing', 'victory', 'defeat'].includes(next.status)) next.status = 'playing';
   if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= 0.68 ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
+  next.units.forEach(ensurePerson);
+  // Add new tool stations to old worlds without replacing their existing stocks.
+  for (const rack of defaults.toolRacks) if (!next.toolRacks.some(r=>r.id===rack.id)) next.toolRacks.push(clone(rack));
+  const campaign = ensureCampaign(next);
+  if (!Array.isArray(campaign.orders) || !Array.isArray(campaign.letters) || campaign.orders.some(o => !ENEMY_CATALOG[o.type] || !Number.isFinite(o.eta) || ![-1,1].includes(o.side))) throw new Error('La ruta de campaña está dañada.');
+  if (save.save_version < 3 && next.timeOfDay >= .68) campaign.lastRaidDay = next.day;
   const checkNumbers = value => {
     if (typeof value === 'number' && !Number.isFinite(value)) throw new Error('La partida contiene números inválidos.');
     if (value && typeof value === 'object') Object.values(value).forEach(checkNumbers);

@@ -44,7 +44,7 @@ async function loadState(mutator){const s=inspect().state;mutator(s);saved=makeS
 test('real runtime: campaign, controls, pause, progression, save/load, combat and end states',async()=>{
   assert.equal(inspect().mode,'menu');
   elements.get('btnNewGame').click(); assert.equal(inspect().mode,'playing');
-  assert.equal(inspect().state.units.length,8); assert.equal(inspect().state.benkos.royalArmor,false);
+  assert.equal(inspect().state.units.length,9); assert.equal(inspect().state.benkos.royalArmor,false);
   await loadState(s=>{s.benkos.x=510;s.benkos.vx=0;});key('KeyS');advance(.3);key('KeyS',true);
   assert.ok(inspect().state.fugitivesFreed>=1);assert.equal(inspect().state.trees.find(t=>t.x===535).markedForChop,false);
   key('KeyC');assert.equal(inspect().state.benkos.royalArmor,false);
@@ -54,6 +54,10 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().mode,'paused');key('Escape');advance(.5);assert.ok(Math.abs(inspect().state.benkos.vx)<1);
   const positionBeforeMenu=inspect().state.benkos.x;key('Escape');elements.get('btnMainMenu').click();
   assert.equal(inspect().mode,'menu');elements.get('btnContinue').click();assert.equal(inspect().mode,'playing');assert.equal(inspect().state.benkos.x,positionBeforeMenu);
+  key('KeyF');assert.equal(elements.get('peopleDialog').open,true);assert.ok(elements.get('personName').textContent);
+  const selectedId=Number(elements.get('personSelect').value);elements.get('personNewRole').value='MINERO';elements.get('btnAssignProfession').click();
+  assert.equal(inspect().state.units.find(u=>u.id===selectedId).requestedRole,'MINERO');
+  elements.get('btnClosePeople').click();key('Escape');
   // Pay for two upgrades through the normal S interaction at the totem.
   await loadState(s=>{s.benkos.x=-48;s.benkos.vx=0;s.coins=24;s.armyTier=1;});
   key('KeyS');advance(3.4);key('KeyS',true);
@@ -69,7 +73,8 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   elements.get('btnCloseGuide').click();key('Escape');
   // Waves originate at haciendas, not next to the player.
   await loadState(s=>{s.day=1;s.timeOfDay=.67999;s.enemies=[];s.benkos.x=0;});
-  advance(.02);assert.ok(inspect().state.enemies.length>=4);assert.ok(inspect().state.enemies.every(e=>Math.abs(e.x)>1200));
+  advance(.02);assert.equal(inspect().state.enemies.length,0);assert.equal(inspect().state.campaign.orders.length,2);
+  advance(6.2);assert.equal(inspect().state.enemies.length,2);assert.ok(inspect().state.enemies.every(e=>Math.abs(e.x)>1200));
   advance(5);assert.ok(inspect().state.enemies.every(e=>Number.isFinite(e.x)));
   // A telegraphed enemy attack spends reserves rather than minting free money.
   const enemy=()=>({id:500,type:'SOLDADO_ESPANOL',...ENEMY_CATALOG.SOLDADO_ESPANOL,maxHp:75,x:0,y:268,vx:0,facing:1,phase:1,attackCooldown:0,attackAnimTimer:0,tauntTimer:0,appearTimer:0,stunTimer:0,nettedTimer:0,bleedTimer:0,animTime:0,stolenCoins:0,muzzleFlash:0,trumpetRing:0});

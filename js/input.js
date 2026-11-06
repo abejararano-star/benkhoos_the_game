@@ -1,4 +1,4 @@
-export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleArmor, togglePause, save, load, toggleArmy, toggleFullscreen, rest, torch }) {
+export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleArmor, togglePause, save, load, toggleArmy, toggleFullscreen, rest, torch, inspectNpc }) {
   const clear = () => { for (const key of Object.keys(keys)) delete keys[key]; };
   const down = e => {
     const globalKeys = ['F5', 'F9', 'F11', 'Escape'];
@@ -16,6 +16,7 @@ export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleA
     if (['Space', 'KeyJ'].includes(e.code)) attack();
     if (['KeyE', 'KeyW', 'ArrowUp'].includes(e.code)) interact();
     if (e.code === 'KeyC') toggleArmor();
+    if (e.code === 'KeyF') inspectNpc?.();
     if (e.code === 'KeyR') rest();
     if (e.code === 'KeyT') torch();
     if (/^Digit[1-4]$/.test(e.code)) useSkill(['dash', 'ceiba', 'roar', 'jaguar'][Number(e.code.slice(-1)) - 1]);

@@ -96,3 +96,26 @@ export function drawMarker(g, x, ground, entity, enemy = false) {
     g.fillStyle = enemy ? '#d18c72' : '#8ebe98'; g.fillRect(x - 12, y, Math.max(0, 24 * entity.hp / entity.maxHp), 2);
   }
 }
+
+export function drawRoadGate(g,x,ground,side,active=false){
+  g.fillStyle='#6d5b43';g.fillRect(x-28,ground-64,10,64);g.fillRect(x+18,ground-64,10,64);
+  g.fillStyle='#a28d61';g.fillRect(x-31,ground-68,62,9);
+  g.fillStyle='#18231d';g.fillRect(x-18,ground-57,36,57);
+  g.fillStyle='#776242';g.fillRect(x-12,ground-2,24,2);
+  g.fillStyle=active?'#cf8460':'#8d947b';g.fillRect(x+side*29,ground-89,side*18,11);
+  g.fillStyle='#ad9c70';g.fillRect(x+side*28,ground-91,2,29);
+  g.fillStyle='#8f8a6a';g.font='6px monospace';g.textAlign='center';g.fillText(side<0?'A CARTAGENA':'CAMINO ORIENTAL',x,ground-75);
+}
+
+export function drawPersonStory(g,x,ground,unit,showSpeech=false){
+  const colors={strength:'#d4a575',endurance:'#a4bd85',perception:'#91b9b0',dexterity:'#b7a4ce',cultivation:'#89b87b'};
+  g.fillStyle=colors[unit.gift]??'#b1b69b';g.fillRect(x-1,ground+2,3,2);
+  if(unit.tier>1){g.fillStyle=unit.tier===3?'#e6c486':'#b5c4c2';g.fillRect(x-3,ground+5,6,1);}
+  if(showSpeech&&unit.speechTimer>0){
+    const line=unit.speech.slice(0,38),width=Math.min(220,g.measureText(line).width+12);
+    g.fillStyle='#0c1b17ed';g.fillRect(x-width/2,ground-72,width,16);
+    g.fillStyle='#d5c6a3';g.font='7px monospace';g.textAlign='center';g.fillText(line,x,ground-61);
+  }else if(showSpeech&&unit.name){
+    g.fillStyle='#e2d3b0';g.font='7px monospace';g.textAlign='center';g.fillText(unit.name,x,ground-52);
+  }
+}

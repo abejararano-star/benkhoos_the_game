@@ -1,5 +1,5 @@
 """Phase 2: crop every detected frame, remove background, pack one atlas PNG per sheet + atlas.json"""
-import json, os, sys
+import json, os, sys, hashlib
 from pathlib import Path
 import numpy as np
 from PIL import Image
@@ -85,13 +85,14 @@ def crop_rgba(a, fg, f, bg):
     edge = sub & ndi.binary_dilation(~sub, iterations=1)
     halo = edge & (rgb.min(axis=2) > 205)
     sub = sub & ~halo
-    # enclosed pure-white background pockets (between legs, under arms) -> transparent
-    white = sub & (rgb.min(axis=2) >= 246)
+    # Per-frame background keying: tiny enclosed white pockets used to survive the
+    # size threshold and become visible white flecks at game scale.
+    white = sub & (rgb.min(axis=2) >= 242) & (rgb.max(axis=2).astype(np.int16) - rgb.min(axis=2) < 18)
     wl, wn = ndi.label(white)
     if wn:
         wsz = ndi.sum(white, wl, range(1, wn + 1))
         for i, sz in enumerate(wsz):
-            if sz >= 30: sub = sub & ~(wl == i + 1)
+            sub = sub & ~(wl == i + 1)
     alpha = (sub * 255).astype(np.uint8)
     # keep only the biggest-ish connected pieces (drops stray speckle)
     lab, n = ndi.label(sub)
@@ -207,7 +208,11 @@ def main():
         for anim in sp['anims'].values(): anim.sort(key=lambda d: d['i'])
         ref_anim = sp['anims'].get('idle') or sp['anims'].get('seq') or list(sp['anims'].values())[0]
         sp['ref'] = int(np.median([d['h'] for d in ref_anim[:3]]))
-    json.dump(dict(version=1, sprites=sprites), open(OUT / 'atlas.json', 'w', encoding='utf-8'), separators=(',', ':'))
+    from build_people_atlas import import_people
+    sprites.update(import_people(OUT))
+    digest = hashlib.sha256()
+    for sheet in sorted({sp['sheet'] for sp in sprites.values()}): digest.update((OUT / (sheet + '.png')).read_bytes())
+    json.dump(dict(version=2, build=digest.hexdigest()[:16], sprites=sprites), open(OUT / 'atlas.json', 'w', encoding='utf-8'), separators=(',', ':'))
     print('classes:', len(sprites))
 
 if __name__ == '__main__':

@@ -2,14 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../js/world-state.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
+import { ensurePerson } from '../js/people.js';
 
-test('v2 restores the complete world, including zero values, tier 3, damage and unlocks', () => {
+test('v3 restores the complete world, including zero values, tier 3, damage and unlocks', () => {
   const s = createInitialState();
   Object.assign(s, { day: 7, armyTier: 3, coins: 0, treasuryCoins: 0, timeOfDay: 0, armorUnlocked: true, bossesDefeated: 1, politicalEventSeen: true });
   s.benkos.x = 0; s.benkos.spirit = 0; s.benkos.mounted = true;
   s.walls[0].hp = 23; s.farms[0].cropProgress = .73; s.haciendas[0].destroyed = true; s.trees[0].chopped = true;
   s.skills[1].unlocked = true;
   s.units = [{ id: 77, role:'GUERRERO', tier:3, x:12, hp:13, maxHp:213, carryingSack:false }];
+  s.units.forEach(ensurePerson);
   const loaded = restoreSave(JSON.parse(JSON.stringify(makeSave(s, 93))), createInitialState());
   assert.equal(loaded.nextEntityId, 93);
   for (const key of ['day','armyTier','coins','treasuryCoins','timeOfDay','armorUnlocked','bossesDefeated','politicalEventSeen','walls','farms','haciendas','trees','skills','units','horses']) assert.deepEqual(loaded.state[key], s[key], key);

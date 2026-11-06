@@ -1,3 +1,4 @@
+import { affinity } from './people.js';
 export function nearest(entity, candidates, predicate = () => true) {
   let best = null, distance = Infinity;
   for (const item of candidates) {
@@ -16,13 +17,14 @@ export function chooseDefenseSide(x, units) {
 
 export function chooseToolRack(unit, state) {
   // Reserve the last tool for an approaching worker rather than sending everyone to it.
-  const demand = { AGRICULTOR: 2, MINERO: 2, CAZADOR: 2, ARQUERO: 4, GUERRERO: 4, ESPADACHIN: 3, CABALLERO_ALIADO: 2 };
+  const demand = { LENADOR:2, AGRICULTOR: 2, MINERO: 2, CAZADOR: 2, ARQUERO: 4, GUERRERO: 4, ESPADACHIN: 3, CABALLERO_ALIADO: 2 };
   const candidates = state.toolRacks.filter(r => r.stock > 0 &&
     (state.armyTier >= 2 || !['ESPADACHIN', 'CABALLERO_ALIADO'].includes(r.role)));
   const score = r => {
     const population = state.units.filter(u => u.role === r.role).length;
     const reservations = state.units.filter(u => u !== unit && u.role === 'ALDEANO' && u.rackId === r.id).length;
-    return Math.abs(r.x - unit.x) + (population / demand[r.role]) * 140 + (reservations >= r.stock ? 10000 : reservations * 60);
+    return Math.abs(r.x - unit.x)*.5 + (population / demand[r.role]) * 100 + (reservations >= r.stock ? 10000 : reservations * 60)
+      - (affinity(unit,r.role)-3)*100 - (unit.preferredRole===r.role?110:0);
   };
   candidates.sort((a, b) => score(a) - score(b));
   const rack = candidates[0];

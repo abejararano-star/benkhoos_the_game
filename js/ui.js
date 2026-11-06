@@ -1,4 +1,6 @@
 import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js';
+import { arrivalHint } from './campaign.js';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -23,7 +25,7 @@ export function createUI({ state, session, settings, actions }) {
   function togglePause() {
     if (session.mode === 'menu' && $('menuDialog').open) return;
     if (session.mode === 'victory' || session.mode === 'defeat') return;
-    if ($('modalGuide').open || $('modalLeaderboard').open || $('debugDialog').open) { open(returnDialog); return; }
+    if ($('modalGuide').open || $('modalLeaderboard').open || $('debugDialog').open || $('peopleDialog').open || $('campaignDialog').open) { open(returnDialog); return; }
     if ($('modalPolitics').open) return;
     if ($('pauseDialog').open) resume();
     else { session.mode = 'paused'; open('pauseDialog'); }
@@ -64,7 +66,7 @@ export function createUI({ state, session, settings, actions }) {
     text('hudArmyTierBadge', `Rango ${['I', 'II', 'III'][state.armyTier - 1]} · ${ranks[state.armyTier - 1]}`);
     text('hudNextTierHint', state.armyTier < 3 ? `Tótem al oeste del altar · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Ejército Real · Armadura desbloqueada.');
     const count = role => state.units.filter(u => u.role === role).length;
-    for (const [suffix, role] of Object.entries({ Aldeano:'ALDEANO', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
+    for (const [suffix, role] of Object.entries({ Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
     const pct = (state.benkos.x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X) * 100;
     $('minimapBenkos').style.left = `${pct}%`;
     state.haciendas.forEach((h, i) => { $(`minimapHacienda${i ? 'R' : 'L'}`).style.background = h.destroyed ? '#91c9a2' : '#dc8264'; });
@@ -89,13 +91,16 @@ export function createUI({ state, session, settings, actions }) {
     } else if (state.armyTier < 3) {
       text('objectiveTitle', 'Fortalece la Matuna'); text('objectiveText', 'Invierte en las defensas y asciende a tu ejército en el tótem. La armadura se gana con el rango Real.');
     } else {
-      text('objectiveTitle', 'Recupera el territorio'); text('objectiveText', `Haciendas destruidas: ${destroyed}/2. Gobernadores derrotados: ${state.bossesDefeated}/2. Avanza hacia los extremos del territorio.`);
+      text('objectiveTitle', 'Recupera el territorio'); text('objectiveText', `Haciendas: ${destroyed}/2. Gobernador: ${state.campaign.governorDefeated?'derrotado':'pendiente'}. Los mensajeros anuncian los siguientes movimientos.`);
     }
     $('objectiveProgress').style.width = `${Math.min(100, (Math.min(2, state.fugitivesFreed) + state.armyTier - 1 + destroyed + Math.min(2, state.bossesDefeated)) / 8 * 100)}%`;
     const armor = $('btnToggleRoyalArmor'); armor.disabled = !state.armorUnlocked;
     armor.title = state.armorUnlocked ? 'Alternar armadura · C' : 'Alcanza el rango Real para desbloquearla';
     text('btnChoiceAccept', `Aceptar tregua · 15 reales (${state.coins} disponibles)`);
     $('btnChoiceAccept').disabled = state.coins < 15;
+    text('campaignNotice', arrivalHint(state));
+    const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
+    text('contextHint', messenger ? 'E · Escuchar al mensajero de Cartagena' : 'F · Conocer a una persona cercana · También puedes hacer clic sobre ella');
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   // Escape is managed centrally; let form controls keep normal focus navigation.
@@ -109,6 +114,22 @@ export function createUI({ state, session, settings, actions }) {
   on('btnOpenGuide', guide); on('btnGuidePause', guide); on('btnCloseGuide', () => open(returnDialog));
   on('btnArmy', () => $('armyPanel').classList.toggle('hidden'));
   on('btnCloseArmy', () => $('armyPanel').classList.add('hidden'));
+  on('btnOpenPeople', () => actions.inspectNpc());
+  on('btnPeoplePause', () => actions.inspectNpc());
+  on('btnClosePeople', () => open('pauseDialog'));
+  on('btnOpenCampaign', () => {
+    returnDialog='pauseDialog';open('campaignDialog');
+    const list=$('campaignLetters');list.replaceChildren();
+    const letters=state.campaign.letters;
+    if(!letters.length){const p=document.createElement('p');p.textContent='Los mensajeros aún no han traído cartas. Observa los caminos y las señales de los vigías.';list.append(p);}
+    for(const letter of [...letters].reverse()){
+      const article=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p');
+      h.textContent=`Día ${letter.day} · ${letter.title}`;p.textContent=letter.text;article.append(h);article.append(p);list.append(article);letter.read=true;
+    }
+    $('btnLetterTreaty').classList.toggle('hidden',state.politicalEventSeen||!letters.some(l=>String(l.id??'').startsWith('letter_')&&String(l.text??'').includes('tregua')));
+  });
+  on('btnLetterTreaty', () => open('modalPolitics'));
+  on('btnCloseCampaign', () => open('pauseDialog'));
   on('btnToggleRoyalArmor', actions.toggleArmor); on('btnFullscreen', actions.fullscreen);
   document.querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => actions.useSkill(b.dataset.skill)));
   $('audioEnabled').addEventListener('change', e => actions.settings({ audio_enabled: e.target.checked }));
@@ -148,7 +169,40 @@ export function createUI({ state, session, settings, actions }) {
     $('reduceMotion').checked = settings.reduce_motion;
     document.body.classList.toggle('reduce-motion', settings.reduce_motion);
   }
-  return { update, banner, open, closeAll, resume, menu, result, togglePause, applySettings,
+  let selectedPersonId=null;
+  function renderPerson(){
+    const u=state.units.find(n=>n.id===selectedPersonId);if(!u)return;
+    ensurePerson(u);
+    text('personName',u.name);text('personRole',`${ROLE_NAMES[u.role]} · Rango ${u.tier}`);
+    text('personTemperament',`${TEMPERAMENTS[u.temperament]} · ${u.mood}`);
+    text('personGift',GIFT_NAMES[u.gift]);
+    text('personPreference',`Prefiere: ${ROLE_NAMES[u.preferredRole]} · Salud ${Math.ceil(u.hp)}/${u.maxHp}`);
+    text('personExperience',`Afinidad con su oficio: ${affinity(u,u.role).toFixed(1)}/5 · Eficacia ${Math.round(proficiency(u)*100)}% · Experiencia ${Math.floor(u.experience[u.role]??0)}`);
+    text('personCondition',`Miedo ${Math.round(u.fear)}% · Cansancio ${Math.round(u.fatigue)}%${u.requestedRole?' · Preparando cambio a '+ROLE_NAMES[u.requestedRole]:''}`);
+    const attributes=$('personAttributes');attributes.replaceChildren();
+    for(const [key,label]of Object.entries(ATTRIBUTES)){
+      const row=document.createElement('div'),name=document.createElement('span'),bar=document.createElement('i'),value=document.createElement('b');
+      row.className='attribute-row';name.textContent=label;bar.style.width=`${u.attributes[key]/5*100}%`;value.textContent=`${u.attributes[key]}/5`;
+      row.append(name);row.append(bar);row.append(value);attributes.append(row);
+    }
+    const role=$('personNewRole');role.replaceChildren();
+    for(const key of WORK_ROLES){const option=document.createElement('option');option.value=key;option.textContent=`${ROLE_NAMES[key]} · afinidad ${affinity(u,key).toFixed(1)}/5`;option.disabled=!roleAvailable(key,state.armyTier);role.append(option);}
+    role.value=u.requestedRole??u.preferredRole;
+    $('btnAssignProfession').disabled=['FUGITIVO','CAMPEON_REAL'].includes(u.role);
+    $('btnPersonAuto').disabled=['FUGITIVO','CAMPEON_REAL'].includes(u.role);
+    const portrait=$('personPortrait').getContext('2d');portrait.clearRect(0,0,128,160);portrait.save();portrait.scale(2.5,2.5);
+    window.SpriteManager?.drawAlly?.(portrait,25,60,1,{...u,vx:0,hurtTimer:0,activity:'IDLE',animSeed:0,carryingSack:false},0);portrait.restore();
+  }
+  function openPeople(id){
+    returnDialog='pauseDialog';selectedPersonId=Number(id);open('peopleDialog');
+    const select=$('personSelect');select.replaceChildren();
+    for(const u of state.units){ensurePerson(u);const option=document.createElement('option');option.value=u.id;option.textContent=`${u.name} · ${ROLE_NAMES[u.role]}`;select.append(option);}
+    select.value=selectedPersonId;renderPerson();text('personFeedback','El don permanece cuando cambia de oficio. Se conserva la experiencia y la proporción de salud.');
+  }
+  $('personSelect').addEventListener('change',e=>{selectedPersonId=Number(e.target.value);renderPerson();});
+  on('btnAssignProfession',()=>{const res=actions.assignRole(selectedPersonId,$('personNewRole').value);renderPerson();text('personFeedback',res.message);});
+  on('btnPersonAuto',()=>{actions.autoRole(selectedPersonId);renderPerson();text('personFeedback','Elegirá su oficio preferido cuando haya herramientas y el camino sea seguro.');});
+  return { update, banner, open, closeAll, resume, menu, result, togglePause, applySettings, openPeople,
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),
     connection: connected => { text('dbStatusLabel', connected ? 'Guardado en servidor' : 'Guardado local'); $('dbDot').classList.toggle('connected', connected); },

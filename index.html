@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/game.css">
 <script src="js/db.js" defer>
 </script>
-<script src="js/sprite_manager.js" defer>
+<script src="js/sprite_manager.js?v=5" defer>
 </script>
 <script type="module" src="js/game.js">
 </script>
@@ -107,7 +107,9 @@
 <h2>Gente del palenque</h2>
 <button id="btnCloseArmy" aria-label="Cerrar ejército">×</button>
 </div>
+<button id="btnOpenPeople" class="people-link">Conocer a mi gente <kbd>F</kbd></button>
 <div class="army-grid">
+<span>Leñadores <b id="popLenador">0</b></span>
 <span>Personas libres <b id="popAldeano">0</b>
 </span>
 <span>Agricultores <b id="popAgricultor">0</b>
@@ -159,6 +161,8 @@
 <strong id="loreBannerMain">
 </strong>
 </div>
+<div id="campaignNotice" class="campaign-notice" aria-live="polite"></div>
+<div id="contextHint" class="context-hint"></div>
 <footer class="bottom-bar">
 <div class="player-panel">
 <div class="spirit-label">
@@ -253,6 +257,8 @@
 </button>
 <button id="btnQuickLoad">Cargar partida <kbd>F9</kbd>
 </button>
+<button id="btnPeoplePause">Mi gente · dones y oficios</button>
+<button id="btnOpenCampaign">Cartas y caminos de campaña</button>
 <button id="btnGuidePause">Guía y controles</button>
 <button id="btnOpenLeaderboard">Crónica de campañas</button>
 <button id="btnFullscreen">Pantalla completa <kbd>F11</kbd>
@@ -301,7 +307,7 @@
 </article>
 </div>
 <p>
-<strong>Objetivo:</strong> destruye las dos haciendas y derrota a sus gobernadores para asegurar la libertad de la Matuna.</p>
+<strong>Objetivo:</strong> recupera las dos haciendas y derrota al gobernador, anunciado por sus mensajeros para asegurar la libertad de la Matuna.</p>
 <div class="controls-grid">
 <span>
 <kbd>A / D</kbd> Mover · mantén para correr</span>
@@ -397,6 +403,10 @@
 </div>
 </div>
 </dialog>
+
+<dialog id="peopleDialog" aria-labelledby="personName"><div class="dialog-content people-content"><div class="panel-heading"><div><span class="eyebrow">CADA VIDA TIENE SU HISTORIA</span><h2 id="personName">Gente de la Matuna</h2></div><button id="btnClosePeople" aria-label="Cerrar ficha">×</button></div><label class="person-picker" for="personSelect">Conocer a <select id="personSelect"></select></label><div class="person-profile"><canvas id="personPortrait" width="128" height="160" aria-label="Retrato de la persona"></canvas><div><h3 id="personRole"></h3><p id="personTemperament"></p><span class="eyebrow">DON NATURAL</span><strong id="personGift"></strong><p id="personPreference"></p></div></div><div id="personAttributes" class="person-attributes"></div><p id="personExperience" class="muted"></p><p id="personCondition" class="muted"></p><fieldset><legend>Un nuevo camino</legend><label for="personNewRole">Oficio que aprenderá <select id="personNewRole"></select></label><div class="profession-actions"><button id="btnAssignProfession" class="primary">Proponer este oficio</button><button id="btnPersonAuto">Respetar su preferencia</button></div><p id="personFeedback" role="status"></p></fieldset><p class="muted">Cambiar de oficio necesita herramientas del puesto. La persona caminará hasta allí; si hay peligro, buscará refugio antes de entrenar. El don mejora su eficacia y la experiencia se conserva por oficio.</p></div></dialog>
+<dialog id="campaignDialog" aria-labelledby="campaignTitle"><div class="dialog-content wide"><div class="panel-heading"><div><span class="eyebrow">LOS CAMINOS HABLAN</span><h2 id="campaignTitle">Cartas de Cartagena</h2></div><button id="btnCloseCampaign" aria-label="Cerrar cartas">×</button></div><p class="muted">Los emisarios llegan por los caminos con estandarte blanco. No son combatientes. Habla con ellos con E; las cartas no leídas quedan aquí.</p><div id="campaignLetters"></div><button id="btnLetterTreaty" class="hidden">Responder a la propuesta de tregua</button></div></dialog>
+
 <noscript>Activa JavaScript para jugar a Benkhoos.</noscript>
 </body>
 </html>
