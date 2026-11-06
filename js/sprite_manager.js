@@ -10,6 +10,7 @@ class BenkosSpriteManager {
     this.atlas = null;
     this.sheets = {};
     this.ready = false;
+    this.animationClocks = new WeakMap();
     this.init();
   }
 
@@ -79,6 +80,13 @@ class BenkosSpriteManager {
     return true;
   }
 
+  // Each activity starts on its first pose, independently of the world clock.
+  animationTime(entity, state, time) {
+    let clock=this.animationClocks.get(entity);
+    if(!clock||clock.state!==state||time<clock.last){clock={state,start:time,last:time};this.animationClocks.set(entity,clock);}
+    clock.last=time;return Math.max(0,time-clock.start);
+  }
+
   // =========================================================================
   // Benkos Biohó Player Rendering
   // =========================================================================
@@ -97,7 +105,7 @@ class BenkosSpriteManager {
       ctx.globalAlpha = 0.35;
       const d1 = x - facing * 18;
       const d2 = x - facing * 32;
-      const shadowCls = isMounted ? 'real_caballero' : (royal ? 'campeon' : 'benkos');
+      const shadowCls = isMounted ? 'real_caballero' : (royal ? 'campeon' : 'motion_hero');
       this.draw(ctx, shadowCls, ['run', 'walk'], d1, y, facing, isMounted ? 54 : 44, t, 12);
       ctx.globalAlpha = 0.18;
       this.draw(ctx, shadowCls, ['run', 'walk'], d2, y, facing, isMounted ? 54 : 44, t, 12);
@@ -109,7 +117,7 @@ class BenkosSpriteManager {
       ctx.save();
       ctx.globalAlpha = 0.35;
       const trailX = x - facing * (isMoving ? 16 : 0);
-      const trailCls = isMounted ? 'real_caballero' : (royal ? 'campeon' : 'benkos');
+      const trailCls = isMounted ? 'real_caballero' : (royal ? 'campeon' : 'motion_hero');
       this.draw(ctx, trailCls, isRunning ? ['run'] : ['walk'], trailX, y, facing, isMounted ? 54 : 44, t + 0.08, 12);
 
       // Resplandor felino
@@ -152,6 +160,11 @@ class BenkosSpriteManager {
       } else {
         drawn = this.draw(ctx, 'campeon', ['idle'], x, y, facing, h, t, 3);
       }
+    } else if (this.has('motion_hero')) {
+      const anim=b.hurtKneelTimer>0?'rest':b.hurtTimer>0?'hurt':isAttacking?(b.weaponMode==='SPEAR'?'spear':'sword'):(b.payTimer??0)>0?'pay':b.resting?'rest':isMoving?(isRunning?'run':'walk'):'idle';
+      const local=this.animationTime(b,anim,t);
+      const progress=isAttacking?1-b.attackTimer/.26:anim==='hurt'?Math.min(1,local/.4):anim==='pay'?1-b.payTimer/.35:anim==='rest'?.45:null;
+      drawn=this.draw(ctx,'motion_hero',[anim],x,y,facing,48,local,anim==='idle'?5:isRunning?12:9,progress);
     } else if (this.has('benkos')) {
       const h = 42;
       if (isAttacking) {
@@ -262,11 +275,13 @@ class BenkosSpriteManager {
     }
   }
 
-  personClass(role) {
-    return ({ALDEANO:'people_civil',LENADOR:'people_woodcutter',AGRICULTOR:'people_farmer',MINERO:'people_miner',CAZADOR:'people_hunter',GUERRERO:'people_spearman',ARQUERO:'people_archer'})[role];
+  personClass(role,tier=1) {
+    const military={GUERRERO:'spearman',ARQUERO:'archer',ESPADACHIN:'swordsman'}[role];
+    if(tier>=2&&military)return 'motion_'+(tier>=3?'royal_':'elite_')+military;
+    return ({ALDEANO:'motion_civil',LENADOR:'motion_woodcutter',AGRICULTOR:'motion_farmer',MINERO:'motion_miner',CAZADOR:'motion_hunter',CONSTRUCTOR:'motion_builder',GUERRERO:'people_spearman',ARQUERO:'motion_archer'})[role];
   }
   drawMessenger(ctx,x,y,m,time) {
-    return this.draw(ctx,'people_messenger',m.state === 'WAIT' ? ['work','idle'] : ['walk'],x,y,m.facing,43,m.animTime??time,5);
+    return this.draw(ctx,'motion_messenger',m.state === 'WAIT' ? ['work','idle'] : ['walk'],x,y,m.facing,43,m.animTime??time,5);
   }
   drawAlly(ctx, x, y, facing, u, time) {
     if (!this.ready) return false;
@@ -274,10 +289,16 @@ class BenkosSpriteManager {
     const isMoving = Math.abs(u.vx || 0) > 8;
     const isAttacking = (u.attackAnimTimer || 0) > 0;
     const tier = u.tier || 1;
-    const person = this.personClass(u.role);
+    const person = this.personClass(u.role,tier);
     if (person && this.has(person)) {
-      const animation = u.hurtTimer > 0 ? ['hurt'] : u.activity === 'FLEE' ? ['escape','run'] : ['REST','RECOVER'].includes(u.activity) && !isMoving ? ['rest'] : isAttacking ? ['attack'] : ['WORK','CHOP'].includes(u.activity) ? ['work'] : isMoving ? ['walk'] : ['idle'];
-      return this.draw(ctx,person,animation,x,y,facing,42,t,animation[0] === 'work' ? 4 : 7);
+      const animation = u.hurtTimer>0?'hurt':u.activity==='FLEE'?'run':['REST','RECOVER'].includes(u.activity)&&!isMoving?'rest':isAttacking?'attack':['WORK','CHOP','BUILD'].includes(u.activity)?'work':u.carryingSack||u.activity==='DELIVER'?'carry':isMoving?'walk':'idle';
+      const local=this.animationTime(u,animation,t);
+      if(animation==='rest'){
+        const old=({LENADOR:'woodcutter',AGRICULTOR:'farmer',MINERO:'miner',CAZADOR:'hunter',GUERRERO:'spearman',ARQUERO:'archer'})[u.role]??'civil';
+        return this.draw(ctx,'people_'+old,['rest','idle'],x,y,facing,46,local,2);
+      }
+      const progress=animation==='attack'?Math.min(1,local/.32):animation==='hurt'?Math.min(1,local/.4):null;
+      return this.draw(ctx,person,[animation,'walk','idle'],x,y,facing,46,local,animation==='work'?7:animation==='idle'?3:9,progress);
     }
 
     // 1. Fugitivo / Esclavizado con cadenas
@@ -323,7 +344,7 @@ class BenkosSpriteManager {
   // =========================================================================
   drawEnemy(ctx, x, y, facing, en, time) {
     if (!this.ready) return false;
-    const t = en.animTime ?? time;
+    const t = this.animationTime(en,en.attackAnimTimer>0?'attack':en.isMoving?'walk':'idle',en.animTime??time);
     const isMoving = !!en.isMoving;
     const isAttacking = (en.attackAnimTimer || 0) > 0;
     let cls;

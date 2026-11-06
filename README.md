@@ -28,6 +28,7 @@ Los valores predeterminados de XAMPP son `127.0.0.1`, usuario `root`, contraseñ
 | 1–4 | Poderes desbloqueados en el altar |
 | C | Armadura, disponible desde el rango Real |
 | R / T | Descansar / antorcha |
+| B | Obras, materiales y vista previa de evoluciones |
 | F / clic sobre una persona | Ficha, dones, experiencia y cambio de oficio |
 | Tab / Escape | Ejército / pausa |
 | F5 / F9 | Guardar / cargar |
@@ -37,7 +38,7 @@ La bolsa admite 24 reales. El rescate cuesta 8 del cofre y entrega 3 en la bolsa
 
 ## Guardado
 
-La versión 3 del formato conserva el estado completo: tropas y daño, edificios, rangos, habilidades, haciendas, recursos, árboles, monturas, oleadas, cartas, mensajeros y progreso político. También guarda nombres, atributos, dones, experiencias por oficio, heridas, miedo, cansancio y cambios de profesión pendientes. Se mantiene una copia local y se usa la más reciente entre navegador y servidor. Las versiones 1 y 2 se migran al cargar; solo es posible recuperar los datos que la versión antigua llegó a guardar. Las partidas anteriores reciben el nuevo puesto de hachas sin sustituir su inventario existente.
+La versión 3 del formato conserva el estado completo: tropas y daño, edificios, rangos, habilidades, haciendas, recursos, árboles, monturas, oleadas, cartas, mensajeros y progreso político. También guarda nombres, atributos, dones, experiencias por oficio, heridas, miedo, cansancio y cambios de profesión pendientes. Se mantiene una copia local y se usa la más reciente entre navegador y servidor. Las versiones 1 y 2 se migran al cargar; solo es posible recuperar los datos que la versión antigua llegó a guardar. Las partidas anteriores reciben los puestos de hachas y martillos sin sustituir su inventario existente. También reciben la casa central y materiales iniciales; los nuevos constructores se asignan desde F.
 
 ## Personas y oficios
 
@@ -46,6 +47,18 @@ Cada persona tiene cinco atributos (fuerza, resistencia, percepción, destreza y
 Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro oficio o respetar su preferencia. Un soldado con buen ojo puede aprender caza; alguien del campo con fuerza y resistencia puede entrenar como lancero. El cambio necesita equipo del puesto y un trayecto seguro. Devuelve el equipo anterior cuando hay espacio, mantiene su identidad y experiencia por profesión, y conserva la proporción de salud para impedir curaciones gratuitas.
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
+
+## Evolución del palenque · edición 6
+
+La tecla **B** abre las obras y un catálogo visual de los cinco niveles. La casa central evoluciona de palma a madera, bahareque, piedra con teja y cantería tallada. Cada nivel permite mejorar las tres viviendas y el cuartel hasta ese mismo nivel. Las viviendas añaden un 15% de recuperación adicional por nivel a quienes descansan o se recuperan en el poblado; el cuartel añade un 6% de daño por nivel a las tropas. Casa central y cuartel de nivel IV/V permiten mejorar las murallas a esos niveles; sus materiales y siluetas cambian.
+
+Cada obra descuenta reales de la bolsa, madera y piedra una sola vez. Un constructor debe caminar al edificio y trabajar: con amenazas o heridas se refugia y la obra queda pendiente. Las partidas nuevas empiezan con un constructor; en una partida anterior, propón este oficio a alguien desde **F** y equipa su puesto de martillos si hace falta. Se conserva el progreso de las obras al guardar.
+
+Los leñadores entregan entre 4 y 6 unidades de madera por árbol, según su fuerza; los mineros entregan 2 de piedra por viaje además de la plata. La carga se lleva físicamente al cofre. Los árboles talados vuelven a crecer tres días después. Para cambiar de oficio, una persona termina primero su entrega.
+
+Hay **264 nuevos fotogramas de personajes** y **15 diseños de edificios**. Benkos tiene ocho poses por secuencia de reposo, caminar, correr, lanza, espada, daño, pago y descanso. Los oficios tienen ciclos propios de trabajo y transporte; las tropas Élite y Reales usan equipo diferente. Las acciones empiezan en su primer fotograma. El importador identifica los espacios entre filas para evitar recortes de pies y fragmentos de otras secuencias. Se añadieron andamios, humo, macetas, madera apilada, herramientas reconocibles, cultivos al viento, corteza y follaje.
+
+Las hojas y sus prompts se generaron con la herramienta de imágenes integrada y están en `art/source/`: `hero_v4.png`, `workers_v3.png`, `military_v3.png` y `settlement_v3.png`, con sus archivos `.prompt.txt`. `hero_v3.png` conserva la referencia previa al ajuste. El juego consume las cuatro hojas empaquetadas de `assets/atlas/`; `tools/import_expansion.py` forma parte de la exportación reproducible.
 
 ## Caminos de campaña
 
@@ -88,6 +101,7 @@ js/simulation.js          Simulación y combate a 60 pasos por segundo
 js/ai.js                  Selección y reserva de trabajos
 js/people.js              Personas, dones, profesiones y reacciones
 js/campaign.js            Expediciones, caminos, avisos y mensajeros
+js/settlement.js          Materiales, evoluciones y trabajo de construcción
 js/renderer.js            Personajes, mundo y reflejo
 js/terrain.js             Paisaje, construcciones y señales de combate
 js/audio.js               Motor de tambores y efectos

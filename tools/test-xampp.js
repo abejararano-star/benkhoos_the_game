@@ -19,6 +19,9 @@ try {
   s.units=[{id:44,role:'GUERRERO',tier:3,hp:17,maxHp:213,x:0,y:268}];
   s.units.push({id:45,role:'LENADOR',tier:1,hp:40,maxHp:95,x:-405,y:268});s.units.forEach(ensurePerson);
   s.units[0].requestedRole='CAZADOR';
+  s.units.push({id:46,role:'CONSTRUCTOR',tier:1,hp:90,maxHp:90,x:0,y:268});ensurePerson(s.units[2]);
+  s.units[1].carryingSack=true;s.units[1].cargoWood=6;s.resources={wood:11,stone:7};
+  s.settlement.level=3;s.settlement.barracks.level=2;s.settlement.projects.push({id:'hq_4',kind:'hq',targetId:'hq',targetLevel:4,x:0,duration:23,progress:.42});
   s.campaign.orders.push({id:'warning',type:'HERALDO_ALADO',side:1,eta:25,kind:'boss'});
   s.campaign.letters.push({id:'message',day:1,title:'Un mensajero',text:'La patrulla viene del camino este.',read:false});
   const payload={jugador_nombre:player,...makeSave(s,80)};
@@ -34,7 +37,7 @@ try {
   const origin=await request('save.php',payload,{Origin:'https://example.org'});assert.equal(origin.status,403);
   const legacy=await request('save.php',{jugador_nombre:player,dia_actual:2,tropas:[],construcciones:[]});assert.equal(legacy.data.success,true);
   const legacyLoad=await request(`load.php?jugador=${player}&partida_id=${legacy.data.partida_id}`);assert.equal(legacyLoad.data.partida.save_version,1);
-  console.log('XAMPP OK: full snapshot, zero values, tier 3, damage, update ID, profile isolation, input validation, origin checks and legacy saves.');
+  console.log('XAMPP OK: materials, cargo, unfinished buildings, builder, full snapshot, zero values, tier 3, damage, update ID, profile isolation, input validation, origin checks and legacy saves.');
 } finally {
   const cleanup=fileURLToPath(new URL('./test-db-cleanup.php',import.meta.url));
   execFileSync(process.env.BENKHOOS_PHP ?? 'C:/xampp/php/php.exe',[cleanup,player],{stdio:'inherit'});

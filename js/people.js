@@ -1,10 +1,10 @@
 import { getUnitMaxHp } from './config.js';
 
-export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
+export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
 export const GIFT_NAMES = Object.freeze({ strength:'Brazos de ceiba', endurance:'Pulso incansable', perception:'Ojo del monte', dexterity:'Manos certeras', cultivation:'Manos de tierra' });
 export const TEMPERAMENTS = Object.freeze({ BRAVE:'Valiente', CAUTIOUS:'Prudente', CARING:'Solidario', CALM:'Sereno', RESTLESS:'Inquieto' });
-export const WORK_ROLES = ['LENADOR','AGRICULTOR','MINERO','CAZADOR','ARQUERO','GUERRERO','ESPADACHIN','CABALLERO_ALIADO'];
+export const WORK_ROLES = ['LENADOR','AGRICULTOR','MINERO','CAZADOR','ARQUERO','GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CONSTRUCTOR'];
 export const MILITARY = ['GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CAMPEON_REAL'];
 const names=['Amara','Badu','Juana','Mateo','Nala','Kofi','Inés','Domingo','Amina','Manuel','Sira','Tomás','Adama','María','Lemba','Lucía','Samba','Ana','Binta','Gaspar','Dalia','Antonio','Zuri','Baltasar'];
 const surnames=['del Monte','de la Ceiba','del Río','de la Matuna','del Sendero','del Manglar'];
@@ -13,7 +13,7 @@ function random(seed){let n=(seed|0)||1;return ()=>{n=Math.imul(n^n>>>15,1|n);n^
 
 export function affinity(unit,role){
   const a=unit.attributes??{strength:3,endurance:3,perception:3,dexterity:3,cultivation:3};
-  const weights={ LENADOR:[.65,.35,0,0,0], AGRICULTOR:[0,.25,0,.1,.65], MINERO:[.5,.5,0,0,0], CAZADOR:[0,.1,.65,.25,0], ARQUERO:[0,.1,.35,.55,0], GUERRERO:[.55,.45,0,0,0], ESPADACHIN:[.35,.15,0,.5,0], CABALLERO_ALIADO:[.15,.5,.15,.2,0] }[role]??[.2,.2,.2,.2,.2];
+  const weights={ CONSTRUCTOR:[.4,.2,0,.4,0], LENADOR:[.65,.35,0,0,0], AGRICULTOR:[0,.25,0,.1,.65], MINERO:[.5,.5,0,0,0], CAZADOR:[0,.1,.65,.25,0], ARQUERO:[0,.1,.35,.55,0], GUERRERO:[.55,.45,0,0,0], ESPADACHIN:[.35,.15,0,.5,0], CABALLERO_ALIADO:[.15,.5,.15,.2,0] }[role]??[.2,.2,.2,.2,.2];
   return Object.values(ATTRIBUTES).reduce((sum,_,i)=>sum+a[Object.keys(ATTRIBUTES)[i]]*weights[i],0);
 }
 export function ensurePerson(unit){
@@ -73,7 +73,7 @@ export function completeProfession(unit,rack,state){
 }
 
 // Returns true when safety, rest or retraining takes priority over normal work.
-export function updatePerson(unit,state,dt){
+export function updatePerson(unit,state,dt,recoveryMultiplier=1){
   ensurePerson(unit);
   unit.speechTimer=Math.max(0,unit.speechTimer-dt);unit.speechCooldown=Math.max(0,unit.speechCooldown-dt);
   const enemy=state.enemies.filter(e=>e.hp>0&&e.appearTimer<=0).sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x))[0];
@@ -108,10 +108,10 @@ export function updatePerson(unit,state,dt){
   if(unit.fear>35&&distance>200||critical&&distance>180){
     unit.activity='RECOVER';unit.mood='Recuperándose';unit.vx=0;
     if(Math.abs(unit.x)>150){unit.vx=-Math.sign(unit.x)*58;unit.facing=Math.sign(unit.vx);unit.x+=unit.vx*dt;}
-    else unit.hp=Math.min(unit.maxHp,unit.hp+dt*(1+(unit.attributes.endurance??3)*.3));
+    else unit.hp=Math.min(unit.maxHp,unit.hp+dt*(1+(unit.attributes.endurance??3)*.3)*recoveryMultiplier);
     return true;
   }
-  if(unit.requestedRole){
+  if(unit.requestedRole&&!unit.carryingSack){
     const rack=state.toolRacks.find(r=>r.role===unit.requestedRole);
     if(rack&&distance>180){
       unit.activity='TRAINING';unit.mood=rack.stock?'Cambiando de oficio':'Esperando herramientas';
@@ -122,10 +122,11 @@ export function updatePerson(unit,state,dt){
     }
   }
   const safe=distance>220;
-  const working=['WORK','ATTACK','CHOP','HUNT'].includes(unit.activity);
+  const working=['WORK','ATTACK','CHOP','HUNT','BUILD'].includes(unit.activity);
   unit.fatigue=clamp(unit.fatigue+dt*(working?.18:-.22),0,100);
   if(safe&&(unit.fatigue>75||unit.restTimer>0)){
     unit.activity='REST';unit.mood='Tomando un respiro';unit.vx=0;unit.fatigue=Math.max(0,unit.fatigue-dt*8);
+    unit.hp=Math.min(unit.maxHp,unit.hp+dt*.5*recoveryMultiplier);
     unit.restTimer=(unit.restTimer??0)+dt;
     if(unit.restTimer<4)return true;
     unit.restTimer=0;unit.fatigue=45;

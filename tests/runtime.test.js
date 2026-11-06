@@ -44,7 +44,7 @@ async function loadState(mutator){const s=inspect().state;mutator(s);saved=makeS
 test('real runtime: campaign, controls, pause, progression, save/load, combat and end states',async()=>{
   assert.equal(inspect().mode,'menu');
   elements.get('btnNewGame').click(); assert.equal(inspect().mode,'playing');
-  assert.equal(inspect().state.units.length,9); assert.equal(inspect().state.benkos.royalArmor,false);
+  assert.equal(inspect().state.units.length,10); assert.equal(inspect().state.benkos.royalArmor,false);
   await loadState(s=>{s.benkos.x=510;s.benkos.vx=0;});key('KeyS');advance(.3);key('KeyS',true);
   assert.ok(inspect().state.fugitivesFreed>=1);assert.equal(inspect().state.trees.find(t=>t.x===535).markedForChop,false);
   key('KeyC');assert.equal(inspect().state.benkos.royalArmor,false);
@@ -58,6 +58,14 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   const selectedId=Number(elements.get('personSelect').value);elements.get('personNewRole').value='MINERO';elements.get('btnAssignProfession').click();
   assert.equal(inspect().state.units.find(u=>u.id===selectedId).requestedRole,'MINERO');
   elements.get('btnClosePeople').click();key('Escape');
+  key('KeyB');assert.equal(elements.get('settlementDialog').open,true);
+  const beforeBuild=inspect().state.coins;elements.get('buildingCards').children[0].children.find(c=>c.listeners.click)?.click();
+  assert.equal(inspect().state.coins,beforeBuild-6);assert.equal(inspect().state.settlement.projects.length,1);
+  const buildingTime=inspect().state.timeOfDay;advance(1);assert.equal(inspect().state.timeOfDay,buildingTime);
+  elements.get('btnResumeConstruction').click();advance(15);assert.equal(inspect().state.settlement.level,2);
+  await loadState(s=>{s.enemies=[];s.resources={wood:0,stone:0};s.units=['LENADOR','MINERO'].map(role=>s.units.find(u=>u.role===role));for(const u of s.units){u.x=48;u.vx=0;u.carryingSack=true;u.requestedRole=null;if(u.role==='LENADOR')u.cargoWood=6;}});
+  advance(.05);assert.equal(inspect().state.resources.wood,6);assert.equal(inspect().state.resources.stone,2);
+  assert.ok(inspect().state.units.every(u=>!u.carryingSack));
   // Pay for two upgrades through the normal S interaction at the totem.
   await loadState(s=>{s.benkos.x=-48;s.benkos.vx=0;s.coins=24;s.armyTier=1;});
   key('KeyS');advance(3.4);key('KeyS',true);

@@ -1,4 +1,5 @@
 import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y } from './config.js';
+import { initialSettlement } from './settlement.js';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -14,6 +15,8 @@ const state = {
   coins: 16,
   maxCoins: BALANCE.bagCapacity,
   treasuryCoins: 12,
+  resources: {wood:8,stone:4},
+  settlement: initialSettlement(),
   morale: 100,
   day: 1,
   timeOfDay: 0.18,
@@ -50,6 +53,8 @@ const state = {
     roarWave: 0,
     invulnTimer: 0,
     hurtKneelTimer: 0,
+    hurtTimer:0,
+    payTimer:0,
     resting: false,
     torchManual: false,
     sprintHoldTime: 0,
@@ -64,6 +69,7 @@ const state = {
   skills: SKILLS.map(skill => ({ ...skill })),
 
   toolRacks: [
+    { id:'rack_hammer', role:'CONSTRUCTOR', x:125, label:'Martillos y planos', stock:1, maxStock:3, filledSlots:0 },
     { id:'rack_axe', role:'LENADOR', x:-420, label:'Hachas del monte', icon:'', stock:1, maxStock:3, filledSlots:0 },
     { id: 'rack_hoe',   role: 'AGRICULTOR', x: -200, label: 'Azadones y Cestos', icon: '', cost: 1, stock: 1, maxStock: 4, filledSlots: 0 },
     { id: 'rack_pick',  role: 'MINERO',     x: -145, label: 'Picos de Minero',   icon: '', cost: 2, stock: 1, maxStock: 4, filledSlots: 0 },

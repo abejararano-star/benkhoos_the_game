@@ -1,3 +1,4 @@
+import { requestBuilding } from './settlement.js';
 import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js';
 import { AfroColombianAudioEngine } from './audio.js';
 import { createInitialState } from './world-state.js';
@@ -28,7 +29,7 @@ const ui = createUI({ state, session, settings, actions: {
   continueGame: () => session.hasCampaign && state.status === 'playing' ? ui.resume() : loadGameFromMySQL(),
   clearInput: () => input?.clear(), fullscreen: toggleFullscreen,
   settings: changeSettings, volume: v => audio.setVolume(v), politics: choosePolitics,
-  leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction, inspectNpc, assignRole, autoRole
+  leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction, inspectNpc, assignRole, autoRole, node:()=>getNearestInteractiveNode(state.benkos.x), build: (kind,id)=>requestBuilding(state,kind,id)
 }});
 function updateHUD() { ui.update(); }
 
@@ -284,7 +285,7 @@ function getNearestInteractiveNode(bx) {
 
   state.walls.forEach((w) => {
     const isDamaged = w.level > 0 && w.hp < w.maxHp * 0.8;
-    if (w.level < 3 || isDamaged) {
+    if (w.level < Math.max(3,Math.min(state.settlement.level,state.settlement.barracks.level)) || isDamaged) {
       const cost = w.level === 0 ? 2 : (isDamaged ? 2 : w.level * 2 + 1);
       const label = w.level === 0
         ? ' Levantar Empalizada'
@@ -563,7 +564,7 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
     return;
   }
 
-  b.invulnTimer = 0.65;
+  b.invulnTimer = 0.65; b.hurtTimer=.4;
   b.vx = (knockDir || -b.facing) * 115;
   state.screenShake = 5;
 
@@ -625,7 +626,7 @@ function newGame() {
   Object.assign(state, createInitialState()); nextEntityId = 1;
   session.hasCampaign = true;
   window.BenkosDB.currentSaveId = null;
-  for (const [role, x] of [['ALDEANO',-35],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340],['FUGITIVO',-490],['FUGITIVO',510]]) spawnCimarron(role, x, 1);
+  for (const [role, x] of [['ALDEANO',-35],['CONSTRUCTOR',65],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340],['FUGITIVO',-490],['FUGITIVO',510]]) spawnCimarron(role, x, 1);
   spawnWildlife(-560); spawnWildlife(560);
   state.cameraX = state.benkos.x; stepper.reset();
   ui.resume(); updateHUD(); audio.init();
@@ -705,7 +706,7 @@ function debugAction(id) {
   if (id === 'btnSpawnGovernor') spawnEnemy('GOBERNADOR_GIRON', 1, state.benkos.x + 220);
   if (id === 'btnToggleSpriteMode') state.useRealSprites = !state.useRealSprites;
 }
-input = bindInput({ keys, isPlaying, inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
+input = bindInput({ keys, isPlaying, openSettlement:()=>ui.openSettlement(), inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
   toggleArmor, togglePause: ui.togglePause, save: () => saveGameToMySQL(), load: loadGameFromMySQL,
   toggleArmy: ui.toggleArmy, toggleFullscreen, rest: () => { state.benkos.resting = !state.benkos.resting; },
   torch: () => { state.benkos.torchManual = !state.benkos.torchManual; } });

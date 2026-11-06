@@ -1,5 +1,6 @@
 import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js';
 import { ensurePerson } from './people.js';
+import { ensureSettlement } from './settlement.js';
 import { ensureCampaign } from './campaign.js';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -98,6 +99,7 @@ export function restoreSave(save, defaults) {
   if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= 0.68 ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);
+  ensureSettlement(next);
   // Add new tool stations to old worlds without replacing their existing stocks.
   for (const rack of defaults.toolRacks) if (!next.toolRacks.some(r=>r.id===rack.id)) next.toolRacks.push(clone(rack));
   const campaign = ensureCampaign(next);

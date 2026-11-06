@@ -1,3 +1,4 @@
+import { workConstruction, homeRecovery } from './settlement.js';
 import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js';
 import { ensureCampaign } from './campaign.js';
 import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js';
@@ -33,6 +34,7 @@ return function updateSimulation(dt) {
     state.timeOfDay = 0;
     state.day++;
 
+    state.trees.forEach(t=>{if(t.chopped&&t.regrowDay<=state.day){t.chopped=false;t.chopProgress=0;t.regrowDay=null;}});
     state.phase = 'DAY_EXPLORE';
     state.alertLevel = Math.min(100, state.alertLevel + 8);
     if (state.wildlife.length < 4) {
@@ -52,12 +54,15 @@ return function updateSimulation(dt) {
   audio.update(dt, state.phase);
 
   b.animTime += dt;
+  b.payTimer=Math.max(0,(b.payTimer??0)-dt);
+  if(Math.abs(b.vx)>60){b.stepDust=(b.stepDust??0)+dt;if(b.stepDust>.18){b.stepDust=0;addParticles(b.x,WATER_LINE_Y-22,1,'#ac9670',12);}}
   if (b.attackTimer > 0) b.attackTimer -= dt;
   if (b.attackCooldown > 0) b.attackCooldown -= dt;
   if (b.dashTimer > 0) b.dashTimer -= dt;
   if (b.ceibaTimer > 0) b.ceibaTimer -= dt;
   if (b.jaguarTimer > 0) b.jaguarTimer -= dt;
   if (b.invulnTimer > 0) b.invulnTimer -= dt;
+  b.hurtTimer=Math.max(0,(b.hurtTimer??0)-dt);
   if (b.hurtKneelTimer > 0) b.hurtKneelTimer -= dt;
   if (b.roarWave > 0) b.roarWave = Math.max(0, b.roarWave - dt * 2.2);
   b.spirit = Math.min(b.maxSpirit, b.spirit + dt * (b.resting ? 8.0 : 2.5));
@@ -101,7 +106,7 @@ return function updateSimulation(dt) {
       if (state.holdPayTimer >= 0.22) {
         state.holdPayTimer = 0;
         if (state.coins > 0) {
-          state.coins--;
+          state.coins--; b.payTimer=.35;
           const filled = activeNode.getFilled() + 1;
           activeNode.setFilled(filled);
           audio.playSlotDing(filled - 1);
@@ -210,11 +215,16 @@ return function updateSimulation(dt) {
       continue;
     }
 
-    if (updatePerson(u, state, dt)) continue;
+    if(updatePerson(u,state,dt,Math.abs(u.x)<600?homeRecovery(state):1))continue;
     const fitMult = proficiency(u);
-    const tierMult = (u.tier === 3 ? 1.75 : (u.tier === 2 ? 1.35 : 1.0)) * fitMult;
+    const combatBonus=['GUERRERO','ARQUERO','CAZADOR','ESPADACHIN','CABALLERO_ALIADO','CAMPEON_REAL'].includes(u.role)?1+(state.settlement.barracks.level-1)*.06:1;
+    const tierMult = combatBonus * (u.tier === 3 ? 1.75 : (u.tier === 2 ? 1.35 : 1.0)) * fitMult;
 
-    if (u.role === 'FUGITIVO') {
+    if (u.role === 'CONSTRUCTOR') {
+      const done=workConstruction(u,state,dt);
+      if(u.activity==='BUILD'&&Math.random()<dt*3)addParticles(u.x,WATER_LINE_Y-38,2,'#c9ab75',30);
+      if(done){addFloatingText(done.x,WATER_LINE_Y-95,'Obra terminada · nivel '+done.targetLevel,'#d6c78e');updateHUD();}
+    } else if (u.role === 'FUGITIVO') {
       const dangerEnemy = state.enemies.find((en) => Math.abs(en.x - u.x) < 90);
       const nearCoin = state.droppedCoins.find((c) => !c.fallsInRiver && Math.abs(c.x - u.x) < 120);
       if (dangerEnemy) {
@@ -239,6 +249,12 @@ return function updateSimulation(dt) {
         else { u.vx = 0; if (completeProfession(u, rack, state)) { audio.playSfx('coinPickup'); updateHUD(); } }
       } else { u.vx = 0; }
     } else if (u.role === 'LENADOR') {
+      if(u.carryingSack&&u.cargoWood){
+        const dx=48-u.x;u.activity='DELIVER';
+        if(Math.abs(dx)>12){u.vx=Math.sign(dx)*54;u.facing=Math.sign(dx);u.x+=u.vx*dt;}
+        else{state.resources.wood+=u.cargoWood;addFloatingText(48,WATER_LINE_Y-55,'+'+u.cargoWood+' madera','#d4ba83');u.cargoWood=0;u.carryingSack=false;u.vx=0;updateHUD();}
+        continue;
+      }
       const tree = nearest(u, state.trees, t => t.markedForChop && !t.chopped);
       if (tree) {
         const dx = tree.x - u.x;
@@ -248,7 +264,7 @@ return function updateSimulation(dt) {
           tree.chopProgress = (tree.chopProgress || 0) + dt * .24 * fitMult;
           if (Math.random() < dt * 3) { audio.playSfx('pickaxe'); addParticles(tree.x, WATER_LINE_Y - 15, 2, '#b88a54', 35); }
           if (tree.chopProgress >= 1) {
-            tree.markedForChop = false; tree.chopped = true; u.carryingSack = true;
+            tree.markedForChop = false; tree.chopped = true; tree.regrowDay=state.day+3; u.carryingSack = true; u.cargoWood=4+Math.floor((u.attributes.strength??3)/2);
             spawnPhysicalCoin(tree.x, WATER_LINE_Y - 20, 20, -90, true, false);
             spawnPhysicalCoin(tree.x, WATER_LINE_Y - 20, -20, -90, true, false);
             addFloatingText(tree.x, WATER_LINE_Y - 40, '+2 reales · madera', '#c6bb86'); updateHUD();
@@ -299,10 +315,11 @@ return function updateSimulation(dt) {
         } else {
           u.carryingSack = false;
           const oreCoins = u.tier >= 2 ? 2 : 1;
+          state.resources.stone+=2;updateHUD();
           for (let c = 0; c < oreCoins; c++) {
             spawnPhysicalCoin(48, WATER_LINE_Y - 20, (Math.random() - 0.5) * 55, -115, true, false);
           }
-          addFloatingText(48, WATER_LINE_Y - 44, ` +${oreCoins} reales  Plata de Mina`, '#38bdf8');
+          addFloatingText(48, WATER_LINE_Y - 44, ` +${oreCoins} reales · +2 piedra`, '#38bdf8');
         }
       } else {
         const mine = chooseWorksite(u, state.mines, state.units, 'MINERO', BALANCE.mineCapacity);

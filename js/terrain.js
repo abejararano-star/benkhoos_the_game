@@ -34,25 +34,67 @@ export function drawLandscape(g, width, ground, camera, night, time) {
   }
 }
 
-export function drawVillage(g, toScreen, ground, night, time) {
-  for (const [worldX, size] of [[-255,1],[185,.85],[420,.7]]) {
-    const x = toScreen(worldX), w = Math.round(43 * size), h = Math.round(31 * size);
-    g.fillStyle = night ? '#413826' : '#a27a48';
-    g.fillRect(x - w / 2, ground - h, w, h);
-    g.fillStyle = night ? '#272b20' : '#5b6c3d';
-    for (let k = 0; k < 8; k++) g.fillRect(x - w / 2 - 6 + k * 2, ground - h - k * 2, w + 12 - k * 4, 3);
-    g.fillStyle = '#332c20'; g.fillRect(x - 5, ground - 18 * size, 10, 18 * size);
-    g.fillStyle = night ? '#d5a85e' : '#d8b77a';
-    g.fillRect(x - w / 2 + 5, ground - h + 10, 6, 6);
-    for (let k = 0; k < 4; k++) { g.fillStyle = '#87643c'; g.fillRect(x - w / 2 + k * 10, ground - 3, 7, 2); }
-    g.fillStyle = '#65492d'; g.fillRect(x + w / 2 + 3, ground - 8, 7, 8);
-    g.fillStyle = '#c5a266'; g.fillRect(x + w / 2 + 4, ground - 10, 5, 2);
+export function drawVillage(g,toScreen,ground,night,time,settlement,reduceMotion=false) {
+  const sm=window.SpriteManager, buildings=[{kind:'hq',x:0,level:settlement.level,h:158},...settlement.homes.map(h=>({...h,kind:'home',h:98})),{...settlement.barracks,kind:'barracks',h:124}];
+  for(const b of buildings){
+    const x=toScreen(b.x),y=ground-6;
+    g.fillStyle='#14261a55';g.beginPath();g.ellipse(x,y+2,b.h*.48,5,0,0,Math.PI*2);g.fill();
+    if(!sm?.draw?.(g,`building_${b.kind}_${b.level}`,['idle'],x,y,1,b.h,0)){
+      g.fillStyle='#9b7b4c';g.fillRect(x-24,y-40,48,40);g.fillStyle='#645431';g.fillRect(x-30,y-48,60,12);
+    }
+    // Doors glow at night; smoke drifts above occupied roofs.
+    if(night){const glow=g.createRadialGradient(x,y-8,1,x,y-8,30);glow.addColorStop(0,'#e0a84d40');glow.addColorStop(1,'#e0a84d00');g.fillStyle=glow;g.fillRect(x-30,y-38,60,60);}
+    for(let i=0;i<3;i++){const phase=reduceMotion?i/3:(time*.14+i/3)%1;g.globalAlpha=(1-phase)*.16;g.fillStyle=night?'#b9bca7':'#e5d5ba';g.beginPath();g.ellipse(x+18+phase*10,y-b.h*.64-phase*27,3+phase*7,2+phase*5,0,0,Math.PI*2);g.fill();}g.globalAlpha=1;
+    // Pottery, planted beds and timber piles give every building a lived-in edge.
+    g.fillStyle='#815234';g.fillRect(x+b.h*.37,y-9,8,9);g.fillStyle='#c18c5a';g.fillRect(x+b.h*.37-1,y-9,10,2);
+    g.fillStyle='#6d8b4d';for(let k=0;k<3;k++)g.fillRect(x+b.h*.37+2+k*2,y-17+k%2*2,2,8);
+    g.fillStyle='#69452f';for(let k=0;k<3;k++)g.fillRect(x-b.h*.4+k*3,y-4-k%2*3,14,3);
   }
-  // Warm altar fire with a pixel silhouette and restrained motion.
-  const x = toScreen(0);
-  g.fillStyle = '#5b402a'; g.fillRect(x - 7, ground - 5, 14, 4);
-  g.fillStyle = '#d29a50'; g.fillRect(x - 4, ground - 12, 8, 7);
-  g.fillStyle = '#e9c77e'; g.fillRect(x - 2, ground - 16 - Math.round(Math.sin(time * 4)), 4, 9);
+  for(const job of settlement.projects){
+    const x=toScreen(job.x),w=job.kind==='hq'?115:75,h=job.kind==='hq'?95:65;
+    g.strokeStyle='#b19562';g.lineWidth=2;
+    for(const dx of [-w/2,w/2]){g.beginPath();g.moveTo(x+dx,ground);g.lineTo(x+dx,ground-h);g.stroke();}
+    for(let y=18;y<h;y+=20){g.beginPath();g.moveTo(x-w/2-4,ground-y);g.lineTo(x+w/2+4,ground-y);g.stroke();}
+    g.fillStyle='#12241d';g.fillRect(x-30,ground-h-13,60,6);g.fillStyle='#c5ad75';g.fillRect(x-29,ground-h-12,58*job.progress,4);
+    g.fillStyle='#efdcac';g.font='6px monospace';g.textAlign='center';g.fillText('EN CONSTRUCCIÓN',x,ground-h-18);
+  }
+  const x=toScreen(0);g.fillStyle='#5b402a';g.fillRect(x-7,ground-5,14,4);
+  g.fillStyle='#d29a50';g.fillRect(x-4,ground-12,8,7);g.fillStyle='#e9c77e';g.fillRect(x-2,ground-16-(reduceMotion?0:Math.round(Math.sin(time*4))),4,9);
+}
+
+export function drawToolStand(g,x,ground,rack,tier,night){
+  g.fillStyle=night?'#5e4530':'#8b603c';g.fillRect(x-17,ground-32,3,32);g.fillRect(x+14,ground-32,3,32);g.fillRect(x-19,ground-31,38,4);
+  g.fillStyle='#c09b67';g.fillRect(x-17,ground-31,1,29);g.fillRect(x-19,ground-31,38,1);
+  g.fillStyle='#423829';g.fillRect(x-19,ground-6,38,3);g.fillStyle='#a98e5d';g.fillRect(x-19,ground-8,38,2);
+  const metal=tier===3?'#d9ba67':tier===2?'#c5c9b7':'#9dafa7';
+  for(let i=0;i<Math.min(4,rack.stock);i++){
+    const tx=x-12+i*8;g.fillStyle='#c3a170';g.fillRect(tx,ground-25,2,24);g.fillStyle=metal;
+    if(['LENADOR','CONSTRUCTOR','MINERO','AGRICULTOR'].includes(rack.role)){
+      if(rack.role==='LENADOR'){g.fillRect(tx-4,ground-26,6,7);g.fillRect(tx-5,ground-24,2,4);}
+      else if(rack.role==='CONSTRUCTOR'){g.fillRect(tx-4,ground-26,9,4);g.fillStyle='#6e7164';g.fillRect(tx-4,ground-26,2,4);}
+      else if(rack.role==='MINERO'){g.fillRect(tx-5,ground-26,12,2);g.fillRect(tx-6,ground-25,2,3);g.fillRect(tx+5,ground-25,2,3);}
+      else{g.fillRect(tx-4,ground-27,5,2);g.fillRect(tx-4,ground-27,2,5);}
+    }else if(['ARQUERO','CAZADOR'].includes(rack.role)){
+      g.strokeStyle='#d1b278';g.lineWidth=1;g.beginPath();g.moveTo(tx,ground-28);g.quadraticCurveTo(tx+10,ground-15,tx,ground-3);g.stroke();g.strokeStyle='#d1c9a0';g.beginPath();g.moveTo(tx,ground-28);g.lineTo(tx,ground-3);g.stroke();
+    }else{g.beginPath();g.moveTo(tx-2,ground-25);g.lineTo(tx+1,ground-32);g.lineTo(tx+4,ground-25);g.fill();if(rack.role==='ESPADACHIN')g.fillRect(tx-2,ground-17,7,2);}
+  }
+  // An empty rack keeps its hooks, so depleted equipment remains legible.
+  if(!rack.stock){g.fillStyle='#a1a190';for(const dx of [-10,0,10])g.fillRect(x+dx,ground-29,1,4);}
+}
+
+export function drawFortification(g,x,ground,wall,night,time){
+  const h=28+wall.level*9,w=wall.level>=3?28:22,stone=wall.level>=4;
+  if(stone||wall.level===3){
+    g.fillStyle=stone?(night?'#696759':'#b5ad8c'):'#a18659';g.fillRect(x-w/2,ground-h,w,h);
+    g.strokeStyle=stone?'#696850':'#7f6540';g.lineWidth=1;
+    for(let y=8;y<h;y+=9){g.beginPath();g.moveTo(x-w/2,ground-y);g.lineTo(x+w/2,ground-y);g.stroke();for(let k=-1;k<=1;k++)g.fillRect(x+k*10+(y%2?0:4),ground-y,1,8);}
+    g.fillStyle=stone?'#d1c29a':'#705137';for(let dx=-w/2;dx<w/2;dx+=9)g.fillRect(x+dx,ground-h-5,6,6);
+  }else{
+    for(let dx=-10;dx<=10;dx+=5){g.fillStyle=night?'#61452c':'#976a3e';g.fillRect(x+dx,ground-h,4,h);g.fillStyle='#c09a60';g.fillRect(x+dx,ground-h,1,h);g.fillStyle='#bd9761';g.beginPath();g.moveTo(x+dx,ground-h);g.lineTo(x+dx+2,ground-h-5);g.lineTo(x+dx+4,ground-h);g.fill();}
+    g.fillStyle='#4b3a2c';g.fillRect(x-12,ground-h+12,26,3);if(wall.level===2)g.fillRect(x-12,ground-13,26,3);
+  }
+  if(wall.level>=2){g.fillStyle='#ad9566';g.fillRect(x+9,ground-h-24,1,25);g.fillStyle=wall.level>=5?'#dec27d':'#3e735a';for(let k=0;k<4;k++)g.fillRect(x+10+k*3,ground-h-24+Math.round(Math.sin(time*2-k*.6)),3,9);}
+  if(wall.hp/wall.maxHp<.6){g.strokeStyle='#3b332a';g.beginPath();g.moveTo(x-2,ground-h+8);g.lineTo(x+4,ground-h+20);g.lineTo(x-1,ground-h+30);g.stroke();}
 }
 
 export function drawHacienda(g, x, ground, destroyed, night) {

@@ -863,3 +863,26 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 #campaignLetters article { border-left:2px solid var(--line); padding:0 0 0 18px; margin-top:28px; }
 #campaignLetters p { color:var(--muted); font-size:12px; }
 @media(max-height:650px) { .campaign-notice { bottom:142px; font-size:9px; padding:6px 12px; } .person-profile { grid-template-columns:90px 1fr; } .person-profile canvas { width:90px; height:112px; } }
+
+/* Architecture and the material economy. */
+.material-count{display:block;color:#b7c3a4;font-size:11px;margin-top:5px;white-space:nowrap}
+.settlement-content{width:min(760px,90vw)}
+.resource-line{color:#e2c389;padding:12px 0;border-bottom:1px solid #4d563d}
+.architecture-preview{background:#1a3025;border:1px solid #586045;overflow:hidden;margin:20px 0}
+.architecture-preview canvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+.architecture-preview>div{display:flex;gap:18px;padding:14px;flex-wrap:wrap}
+.architecture-preview label{display:flex;gap:10px;align-items:center;color:#c7c6a6}
+.architecture-preview p{padding:0 14px 12px;margin:0;color:#ead2a3}
+.building-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0}
+.building-cards article{padding:16px;background:#172b22;border:1px solid #49553b}
+.building-cards h3{margin:0 0 8px;color:#e7c88d;font-size:16px}
+.building-cards p{margin:6px 0 12px}.building-cards small{display:block;margin-top:10px;color:#bdbd9e}
+.building-cards button{width:100%;font-size:12px;padding:10px}
+#buildingFeedback{color:#e4cd9b;line-height:1.6}
+@media(max-width:900px){.threat-stat{gap:8px}.threat-stat>svg{display:none}.threat-stat button{padding:9px;font-size:11px}.pouch .icon{display:none}.building-cards{grid-template-columns:1fr}}
+
+.node-hint{position:absolute;top:192px;left:50%;transform:translateX(-50%);width:min(440px,40vw);padding:12px 18px;background:#10231ef2;border:1px solid var(--line);box-shadow:0 8px 24px #07140e44;text-align:center}
+.node-hint strong{font-size:12px;color:var(--gold)}.node-hint p{font-size:10px;line-height:1.5;color:var(--muted);margin:7px 0}
+.node-slots{display:flex;justify-content:center;gap:5px}.node-slots i{width:9px;height:9px;border:1px solid #b3985a;border-radius:50%;background:#0b1813}.node-slots i.filled{background:#e6c486;box-shadow:0 0 6px #d8bc7955}
+@media(max-width:900px){.node-hint{top:150px;left:auto;right:14px;transform:none;width:240px;padding:10px}.node-hint strong{font-size:10px}}
+@media(max-height:650px){.node-hint{top:143px;padding:8px 12px}.node-hint p{margin:5px 0}}

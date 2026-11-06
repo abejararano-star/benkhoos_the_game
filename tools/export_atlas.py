@@ -210,6 +210,8 @@ def main():
         sp['ref'] = int(np.median([d['h'] for d in ref_anim[:3]]))
     from build_people_atlas import import_people
     sprites.update(import_people(OUT))
+    from import_expansion import import_expansion
+    sprites.update(import_expansion(OUT))
     digest = hashlib.sha256()
     for sheet in sorted({sp['sheet'] for sp in sprites.values()}): digest.update((OUT / (sheet + '.png')).read_bytes())
     json.dump(dict(version=2, build=digest.hexdigest()[:16], sprites=sprites), open(OUT / 'atlas.json', 'w', encoding='utf-8'), separators=(',', ':'))

@@ -28,6 +28,12 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
   const manager=sandbox.window.SpriteManager;
   for(let i=0;i<20&&!manager.ready;i++)await Promise.resolve();
   assert.equal(manager.ready,true);
+  const actor={};assert.equal(manager.animationTime(actor,'walk',10),0);assert.equal(manager.animationTime(actor,'walk',10.25),.25);
+  assert.equal(manager.animationTime(actor,'attack',10.5),0);assert.equal(manager.animationTime(actor,'attack',10.75),.25);
+  assert.notEqual(manager.personClass('GUERRERO',1),manager.personClass('GUERRERO',2));assert.notEqual(manager.personClass('ARQUERO',2),manager.personClass('ARQUERO',3));
+  for(const action of ['idle','walk','run','spear','sword','hurt','pay','rest'])assert.equal(atlas.sprites.motion_hero.anims[action].length,8);
+  for(const kind of ['hq','home','barracks'])for(let level=1;level<=5;level++)assert.ok(manager.has(`building_${kind}_${level}`));
+
   const gradient={addColorStop(){}};
   const ctx=new Proxy({drawImage:(...args)=>logs.push(args),createRadialGradient:()=>gradient},{get:(o,k)=>o[k]??(()=>{})});
   for(const tier of [1,2,3])for(const role of ROLES){

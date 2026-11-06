@@ -1,3 +1,4 @@
+import { MATERIALS, HQ_NAMES, upgradeInfo } from './settlement.js';
 import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js';
 import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js';
 import { arrivalHint } from './campaign.js';
@@ -5,6 +6,7 @@ import { arrivalHint } from './campaign.js';
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
   const text = (id, value) => { const el = $(id); if (el && el.textContent !== String(value)) el.textContent = value; };
+  let lastNodeHint='';
   let bannerTimer, returnDialog = 'pauseDialog';
   const dialogs = [...document.querySelectorAll('dialog')];
   function closeAll() {
@@ -25,7 +27,7 @@ export function createUI({ state, session, settings, actions }) {
   function togglePause() {
     if (session.mode === 'menu' && $('menuDialog').open) return;
     if (session.mode === 'victory' || session.mode === 'defeat') return;
-    if ($('modalGuide').open || $('modalLeaderboard').open || $('debugDialog').open || $('peopleDialog').open || $('campaignDialog').open) { open(returnDialog); return; }
+    if ($('modalGuide').open || $('modalLeaderboard').open || $('debugDialog').open || $('peopleDialog').open || $('campaignDialog').open || $('settlementDialog').open) { open(returnDialog); return; }
     if ($('modalPolitics').open) return;
     if ($('pauseDialog').open) resume();
     else { session.mode = 'paused'; open('pauseDialog'); }
@@ -46,7 +48,14 @@ export function createUI({ state, session, settings, actions }) {
     open('resultDialog');
   }
   function update() {
+    const node=actions.node?.();$('nodeHint').classList.toggle('hidden',!node);
+    if(node){
+      text('nodeHintTitle',node.title.trim());text('nodeHintDescription',node.sub.replaceAll('[S]','S').replaceAll(' reales ',' reales ').trim());
+      const signature=`${node.id}:${node.cost}:${node.getFilled()}`;
+      if(signature!==lastNodeHint){lastNodeHint=signature;const slots=$('nodeHintSlots');slots.replaceChildren();for(let i=0;i<node.cost;i++){const dot=document.createElement('i');dot.className=i<node.getFilled()?'filled':'';slots.append(dot);}}
+    }
     text('hudCoins', state.coins); text('hudMaxCoins', state.maxCoins); text('hudTreasury', state.treasuryCoins);
+    text('hudMaterials', `${state.resources.wood} madera · ${state.resources.stone} piedra`);
     text('hudDay', `DÍA ${state.day}`); text('hudAlertLevel', `${state.alertLevel}%`);
     const night = state.timeOfDay >= .68;
     text('hudPhaseBadge', state.phase === 'TRUCE_NIGHT' ? 'Noche de tregua' : night ? 'Defensa nocturna' : 'Exploración');
@@ -66,7 +75,7 @@ export function createUI({ state, session, settings, actions }) {
     text('hudArmyTierBadge', `Rango ${['I', 'II', 'III'][state.armyTier - 1]} · ${ranks[state.armyTier - 1]}`);
     text('hudNextTierHint', state.armyTier < 3 ? `Tótem al oeste del altar · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Ejército Real · Armadura desbloqueada.');
     const count = role => state.units.filter(u => u.role === role).length;
-    for (const [suffix, role] of Object.entries({ Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
+    for (const [suffix, role] of Object.entries({ Constructor:'CONSTRUCTOR', Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
     const pct = (state.benkos.x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X) * 100;
     $('minimapBenkos').style.left = `${pct}%`;
     state.haciendas.forEach((h, i) => { $(`minimapHacienda${i ? 'R' : 'L'}`).style.background = h.destroyed ? '#91c9a2' : '#dc8264'; });
@@ -100,7 +109,7 @@ export function createUI({ state, session, settings, actions }) {
     $('btnChoiceAccept').disabled = state.coins < 15;
     text('campaignNotice', arrivalHint(state));
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
-    text('contextHint', messenger ? 'E · Escuchar al mensajero de Cartagena' : 'F · Conocer a una persona cercana · También puedes hacer clic sobre ella');
+    text('contextHint', messenger ? 'E · Escuchar al mensajero de Cartagena' : 'B · Construir y evolucionar · F · Conocer a una persona');
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   // Escape is managed centrally; let form controls keep normal focus navigation.
@@ -169,6 +178,31 @@ export function createUI({ state, session, settings, actions }) {
     $('reduceMotion').checked = settings.reduce_motion;
     document.body.classList.toggle('reduce-motion', settings.reduce_motion);
   }
+  function previewBuilding(){
+    const level=Number($('previewLevel').value)||1,kind=$('previewKind').value||'hq',g=$('buildingPreview').getContext('2d');
+    g.clearRect(0,0,560,240);const sky=g.createLinearGradient(0,0,0,240);sky.addColorStop(0,'#253f39');sky.addColorStop(1,'#677758');g.fillStyle=sky;g.fillRect(0,0,560,240);
+    g.fillStyle='#192f23';g.fillRect(0,216,560,24);g.fillStyle='#8c8461';g.fillRect(20,216,520,2);
+    window.SpriteManager?.draw?.(g,`building_${kind}_${level}`,['idle'],280,218,1,kind==='hq'?228:210,0);
+    text('previewCaption',`Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
+  }
+  function renderBuildings(){
+    text('settlementTitle',HQ_NAMES[state.settlement.level-1]);
+    text('settlementResources',`${state.coins} reales en la bolsa · ${state.resources.wood} madera · ${state.resources.stone} piedra · ${state.units.filter(u=>u.role==='CONSTRUCTOR').length} constructores`);
+    const cards=$('buildingCards');cards.replaceChildren();
+    const entries=[['hq','hq','Casa central'],['barracks','barracks','Cuartel central'],...state.settlement.homes.map((h,i)=>['home',h.id,`Vivienda ${i+1}`])];
+    for(const [kind,id,label] of entries){
+      const info=upgradeInfo(state,kind,id),card=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p'),btn=document.createElement('button');
+      h.textContent=`${label} · ${info.target.level}/5`;p.textContent=MATERIALS[info.target.level-1];card.append(h);card.append(p);
+      const job=state.settlement.projects.find(p=>p.targetId===id);
+      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra en curso · ${Math.floor(job.progress*100)}%`:(info.next?`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de trabajo`:info.reason);card.append(cost);
+      btn.textContent=info.next?`Evolucionar a nivel ${info.next}`:'Evolución máxima';btn.disabled=!!info.reason;btn.title=info.reason||`Construir con ${MATERIALS[info.next-1]}`;
+      btn.addEventListener('click',()=>{const result=actions.build(kind,id);text('buildingFeedback',result.message);renderBuildings();update();});card.append(btn);
+      if(info.reason&&info.next){const why=document.createElement('small');why.textContent=info.reason;card.append(why);}cards.append(card);
+    }
+  }
+  function openSettlement(){returnDialog='pauseDialog';open('settlementDialog');$('previewLevel').value=String(state.settlement.level);$('previewKind').value='hq';renderBuildings();previewBuilding();text('buildingFeedback','Las obras avanzan durante la partida. Los constructores se refugian si hay peligro.');}
+  on('btnSettlement',openSettlement);on('btnSettlementPause',openSettlement);on('btnCloseSettlement',resume);on('btnResumeConstruction',resume);
+  $('previewKind').addEventListener('change',previewBuilding);$('previewLevel').addEventListener('change',previewBuilding);
   let selectedPersonId=null;
   function renderPerson(){
     const u=state.units.find(n=>n.id===selectedPersonId);if(!u)return;
@@ -202,7 +236,7 @@ export function createUI({ state, session, settings, actions }) {
   $('personSelect').addEventListener('change',e=>{selectedPersonId=Number(e.target.value);renderPerson();});
   on('btnAssignProfession',()=>{const res=actions.assignRole(selectedPersonId,$('personNewRole').value);renderPerson();text('personFeedback',res.message);});
   on('btnPersonAuto',()=>{actions.autoRole(selectedPersonId);renderPerson();text('personFeedback','Elegirá su oficio preferido cuando haya herramientas y el camino sea seguro.');});
-  return { update, banner, open, closeAll, resume, menu, result, togglePause, applySettings, openPeople,
+  return { update, banner, open, closeAll, resume, menu, result, togglePause, applySettings, openPeople, openSettlement,
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),
     connection: connected => { text('dbStatusLabel', connected ? 'Guardado en servidor' : 'Guardado local'); $('dbDot').classList.toggle('connected', connected); },

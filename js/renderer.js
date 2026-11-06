@@ -1,4 +1,4 @@
-import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory } from './terrain.js';
+import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand } from './terrain.js';
 import { ROAD_GATES } from './campaign.js';
 import { WATER_LINE_Y } from './config.js';
 export function createRenderer({ state, keys, canvas, ctx, sceneCanvas, sctx, view, settings, getNearestInteractiveNode }) {
@@ -435,7 +435,7 @@ function drawBenkosPlayer(g, sx, groundY, time) {
   }, time);
 }
 
-function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, chopped) {
+function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, chopped, time=0) {
   if (chopped) {
     // Tocón de Ceiba talada
     g.fillStyle = isNight ? '#27170e' : '#451a03';
@@ -450,10 +450,13 @@ function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, 
     return;
   }
 
-  g.fillStyle = isNight ? '#1e293b' : '#576574';
-  g.fillRect(sx - 28, groundY - 36, 40, 36);
+  g.fillStyle='#14291b66';g.beginPath();g.ellipse(sx,groundY,24,4,0,0,Math.PI*2);g.fill();
   g.fillStyle = '#3b2314';
-  g.fillRect(sx - 5, groundY - height, 10, height);
+  g.fillRect(sx-5,groundY-height,10,height);
+  g.fillStyle=isNight?'#715137':'#ab7a47';g.fillRect(sx-4,groundY-height,2,height);
+  for(let y=8;y<height;y+=13){g.fillStyle='#2c281b';g.fillRect(sx+(y%3)-1,groundY-y,2,7);}
+  g.strokeStyle=isNight?'#57402a':'#826039';g.lineWidth=3;
+  for(const side of [-1,1]){g.beginPath();g.moveTo(sx,groundY-height*.55);g.lineTo(sx+side*18,groundY-height+10);g.stroke();g.beginPath();g.moveTo(sx+side*3,groundY-12);g.lineTo(sx+side*15,groundY);g.stroke();}
 
   const cShadow = isNight ? '#0a2618' : '#1b3b1a';
   const cMid = isNight ? '#133c26' : '#355e27';
@@ -467,16 +470,17 @@ function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, 
     { dx: 0, dy: -height - 14, r: 16 }
   ];
 
-  puffs.forEach((pf) => {
-    const cx = sx + pf.dx;
-    const cy = groundY + pf.dy;
-    const r = pf.r;
-    g.fillStyle = cShadow;
-    g.fillRect(cx - r, cy - r + 4, r * 2, r * 1.6);
-    g.fillStyle = cMid;
-    g.fillRect(cx - r + 2, cy - r, r * 2 - 4, r * 1.4);
-    g.fillStyle = cLight;
-    g.fillRect(cx - r + 4, cy - r - 2, r * 2 - 8, r * 0.9);
+  puffs.forEach((pf,index)=>{
+    const wind=settings.reduce_motion?0:Math.round(Math.sin(time*1.1+height+index*.4));
+    const cx=sx+pf.dx+wind,cy=groundY+pf.dy,r=pf.r;
+    for(let dy=-r;dy<=r;dy+=3){
+      const span=Math.round(Math.sqrt(Math.max(0,r*r-dy*dy)));
+      g.fillStyle=dy>r*.35?cShadow:dy>-r*.4?cMid:cLight;
+      g.fillRect(cx-span,cy+dy,span*2,4);
+      if(span>8){g.fillStyle=dy<0?cLight:cShadow;g.fillRect(cx-span+3+(index*7+dy*dy)%Math.max(1,span),cy+dy,4,2);}
+    }
+    g.fillStyle=isNight?'#2e6040':'#80954c';
+    for(let k=0;k<5;k++){const dx=((k*13+index*7)%25)-12,dy=((k*11+index*3)%19)-12;g.fillRect(cx+dx,cy+dy,3,1);}
   });
 
   if (markedForChop) {
@@ -488,44 +492,6 @@ function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, 
 }
 
 // ==================== 10. HD-2D SCENE & REFLECTION RENDERER ====================
-function drawGhostCoinSlots(g, sx, sy, totalSlots, filledSlots, title, sub) {
-  const panelWidth = Math.min(325, view.width - 24);
-  sx = Math.max(panelWidth/2+8, Math.min(view.width-panelWidth/2-8, sx));
-  const spacing = 11;
-  const startX = sx - ((totalSlots - 1) * spacing) / 2;
-  g.fillStyle='#0e201ce8';g.fillRect(sx-panelWidth/2,sy-35,panelWidth,45);
-  g.strokeStyle='#9b885066';g.lineWidth=1;g.strokeRect(sx-panelWidth/2,sy-35,panelWidth,45);
-  g.font = '8px monospace';
-  g.textAlign = 'center';
-  g.fillStyle = '#000000';
-  g.fillText(title, sx + 1, sy - 23, panelWidth-16);
-  g.fillStyle = '#fde047';
-  g.fillText(title, sx, sy - 24, panelWidth-16);
-
-  g.font = '7px monospace';
-  g.fillStyle = '#c4c8b0';
-  g.fillText(sub.replace('Mantén [S]', 'S · Mantener').replaceAll(' reales ', ' r. '), sx, sy - 12, panelWidth-16);
-
-  for (let i = 0; i < totalSlots; i++) {
-    const cx = Math.round(startX + i * spacing);
-    g.beginPath();
-    g.arc(cx, sy, 4.2, 0, Math.PI * 2);
-    if (i < filledSlots) {
-      g.fillStyle = '#f8fafc';
-      g.fill();
-      g.strokeStyle = '#f59e0b';
-      g.lineWidth = 1.5;
-      g.stroke();
-    } else {
-      g.fillStyle = 'rgba(15, 23, 42, 0.75)';
-      g.fill();
-      g.strokeStyle = 'rgba(251, 191, 36, 0.75)';
-      g.lineWidth = 1;
-      g.stroke();
-    }
-  }
-}
-
 function renderWorldAboveWater(g, time) {
   const w = view.width;
   const h = WATER_LINE_Y;
@@ -553,10 +519,10 @@ function renderWorldAboveWater(g, time) {
 
   const sunX = Math.round(w * 0.54 + Math.cos(state.timeOfDay * Math.PI * 2 - Math.PI / 2) * (w * 0.25));
   const sunY = Math.round(78 + Math.sin(state.timeOfDay * Math.PI) * 18);
-  g.fillStyle = state.phase === 'RED_NIGHT' ? '#fca5a5' : '#fdfefc';
-  g.beginPath();
-  g.arc(sunX, sunY, 27, 0, Math.PI * 2);
-  g.fill();
+  const haze=g.createRadialGradient(sunX,sunY,12,sunX,sunY,55);haze.addColorStop(0,isNight?'#dce6cc30':'#f6e7bb70');haze.addColorStop(1,'#e8cf9800');g.fillStyle=haze;g.fillRect(sunX-55,sunY-55,110,110);
+  g.fillStyle=state.phase==='RED_NIGHT'?'#dda39a':isNight?'#dce0c8':'#f1dfad';g.beginPath();g.arc(sunX,sunY,isNight?16:19,0,Math.PI*2);g.fill();
+  g.fillStyle=isNight?'#c2d2c40a':'#f0e1c128';
+  for(let i=0;i<5;i++){const cloudX=((i*193-camX*.07+(settings.reduce_motion?0:time*.8))%(w+160)+w+160)%(w+160)-80;for(let band=0;band<3;band++)g.fillRect(Math.round(cloudX+band*7),35+i%3*25+band*4,45+band*13,3);}
 
   drawLandscape(g, w, GROUND_SURFACE_Y, camX, isNight, time);
 
@@ -569,12 +535,18 @@ function renderWorldAboveWater(g, time) {
     g.fillRect(bx, GROUND_SURFACE_Y - 2, 24, 3);
   }
 
-  drawVillage(g, toScreenX, GROUND_SURFACE_Y, isNight, time);
+  // Fine clay strata and gravel replace the uniform blocks along the riverbank.
+  for(let i=0;i<Math.ceil(w/9)+2;i++){
+    const wx=Math.floor(camX/9)+i-Math.ceil(w/18),sx=toScreenX(wx*9),seed=Math.abs((wx*71)^0x4a31);
+    g.fillStyle=isNight?'#776348':'#a48a59';g.fillRect(sx,GROUND_SURFACE_Y+3+(seed%12),1+seed%3,1);
+    if(seed%4===0){g.fillStyle='#294c2e';g.fillRect(sx,GROUND_SURFACE_Y-4,1,5);g.fillRect(sx+2,GROUND_SURFACE_Y-6,1,6);}
+  }
+  drawVillage(g, toScreenX, GROUND_SURFACE_Y, isNight, time, state.settlement, settings.reduce_motion);
 
   state.trees.forEach((tr) => {
     const sx = toScreenX(tr.x);
     if (sx < -70 || sx > w + 70) return;
-    drawKingdomClusterTree(g, sx, GROUND_SURFACE_Y, tr.height, isNight, tr.markedForChop, tr.chopped);
+    drawKingdomClusterTree(g, sx, GROUND_SURFACE_Y, tr.height, isNight, tr.markedForChop, tr.chopped, time);
   });
 
   state.mines.forEach((mn) => {
@@ -606,7 +578,9 @@ function renderWorldAboveWater(g, time) {
       const cropH = Math.round(6 + f.cropProgress * 16);
       for (let cx = -22; cx <= 22; cx += 11) {
         g.fillStyle = '#15803d';
-        g.fillRect(sx + cx - 1, GROUND_SURFACE_Y - 6 - cropH, 3, cropH);
+        const sway=settings.reduce_motion?0:Math.round(Math.sin(time*2+f.x+cx)*1.5);
+        g.fillRect(sx+cx-1,GROUND_SURFACE_Y-6-cropH,2,cropH);
+        g.fillStyle=f.cropProgress>.7?'#d0b75a':'#79a353';g.fillRect(sx+cx+sway-4,GROUND_SURFACE_Y-7-cropH,5,3);g.fillRect(sx+cx+sway,GROUND_SURFACE_Y-3-cropH,5,2);
       }
       g.fillStyle = '#a16207';
       g.fillRect(sx + 24, GROUND_SURFACE_Y - 11, 10, 11);
@@ -618,15 +592,7 @@ function renderWorldAboveWater(g, time) {
   state.toolRacks.forEach((rk) => {
     const sx = toScreenX(rk.x);
     if (sx < -50 || sx > w + 50) return;
-    g.fillStyle = '#573016';
-    g.fillRect(sx - 16, GROUND_SURFACE_Y - 26, 3, 26);
-    g.fillRect(sx + 13, GROUND_SURFACE_Y - 26, 3, 26);
-    g.fillRect(sx - 18, GROUND_SURFACE_Y - 22, 36, 3);
-    for (let i = 0; i < rk.stock; i++) {
-      const tx = sx - 11 + i * 7;
-      g.fillStyle = state.armyTier === 3 ? '#ef4444' : (state.armyTier === 2 ? '#fde047' : '#e2e8f0');
-      g.fillRect(tx, GROUND_SURFACE_Y - 20, 4, 14);
-    }
+    drawToolStand(g,sx,GROUND_SURFACE_Y,rk,state.armyTier,isNight);
   });
 
   const totemSX = toScreenX(-48);
@@ -668,11 +634,7 @@ function renderWorldAboveWater(g, time) {
     const sx = toScreenX(wall.x);
     if (sx < -50 || sx > w + 50) return;
     if (wall.level > 0 && wall.hp > 0) {
-      const wallH = 30 + wall.level * 10;
-      for (let lx = -10; lx <= 8; lx += 5) {
-        g.fillStyle = '#5c3a21';
-        g.fillRect(sx + lx, GROUND_SURFACE_Y - wallH, 4, wallH);
-      }
+      drawFortification(g,sx,GROUND_SURFACE_Y,wall,isNight,settings.reduce_motion?0:time);
     }
   });
 
@@ -778,14 +740,6 @@ function renderWorldAboveWater(g, time) {
   g.fillStyle = '#e6c486';
   g.fillRect(bsx - 3, by + 2, 6, 2);
   g.fillRect(bsx - 1, by + 4, 2, 2);
-
-  const activeNode = getNearestInteractiveNode(b.x);
-  if (activeNode) {
-    drawGhostCoinSlots(
-      g, toScreenX(activeNode.x), GROUND_SURFACE_Y - 56,
-      activeNode.cost, activeNode.getFilled(), activeNode.title, activeNode.sub
-    );
-  }
 
   state.projectiles.forEach((p) => {
     const psx = toScreenX(p.x);

@@ -17,7 +17,7 @@ export function chooseDefenseSide(x, units) {
 
 export function chooseToolRack(unit, state) {
   // Reserve the last tool for an approaching worker rather than sending everyone to it.
-  const demand = { LENADOR:2, AGRICULTOR: 2, MINERO: 2, CAZADOR: 2, ARQUERO: 4, GUERRERO: 4, ESPADACHIN: 3, CABALLERO_ALIADO: 2 };
+  const demand = { CONSTRUCTOR:2, LENADOR:2, AGRICULTOR: 2, MINERO: 2, CAZADOR: 2, ARQUERO: 4, GUERRERO: 4, ESPADACHIN: 3, CABALLERO_ALIADO: 2 };
   const candidates = state.toolRacks.filter(r => r.stock > 0 &&
     (state.armyTier >= 2 || !['ESPADACHIN', 'CABALLERO_ALIADO'].includes(r.role)));
   const score = r => {
