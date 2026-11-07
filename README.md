@@ -24,7 +24,8 @@ Los valores predeterminados de XAMPP son `127.0.0.1`, usuario `root`, contraseñ
 | A / D o flechas | Mover; mantener para correr |
 | S / abajo | Mantener para pagar o lanzar una moneda |
 | Espacio / J | Ataque con espada y lanza |
-| E / W / arriba | Montar, desmontar o retirar plata del cofre |
+| E / W / arriba | Interactuar: animales, riachuelo, montura o cofre |
+| Mayús + E | Pescar junto al riachuelo |
 | 1–4 | Poderes desbloqueados en el altar |
 | C | Armadura, disponible desde el rango Real |
 | R / T | Descansar / antorcha |
@@ -47,6 +48,20 @@ Cada persona tiene cinco atributos (fuerza, resistencia, percepción, destreza y
 Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro oficio o respetar su preferencia. Un soldado con buen ojo puede aprender caza; alguien del campo con fuerza y resistencia puede entrenar como lancero. El cambio necesita equipo del puesto y un trayecto seguro. Devuelve el equipo anterior cuando hay espacio, mantiene su identidad y experiencia por profesión, y conserva la proporción de salud para impedir curaciones gratuitas.
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
+
+## Jungla, fauna y combate · edición 8
+
+El encuadre acerca el mundo con escala entera. Dos capas de jungla con ceibas, lianas y vegetación sustituyen el fondo geométrico. Los rótulos de puestos y comentarios dejan de ocupar la escena: la ayuda aparece en una franja inferior al detenerte cerca de una interacción y se oculta durante el combate.
+
+Los seis enemigos de infantería tienen ocho poses de marcha, preparación, golpe, daño y caída. Benkos y las tropas disponen de poses de combate nuevas. Los golpes del jugador y los aliados esperan al contacto; respetan dirección y alcance, pueden fallar si el rival se aleja y se interrumpen con heridas. Durante el final de un golpe puedes pulsar otra vez para encadenar espada, lanza y remate. Una pausa reinicia la secuencia. El bandolero combate con su espada.
+
+Dos riachuelos tienen cascada, puente, agua animada, peces y vegetación. **E** permite beber para recuperar espíritu; con el espíritu lleno inicia la pesca. **Mayús + E** permite pescar directamente. Mantente cerca durante 1,6 segundos; moverte o atacar cancela la pesca. La reserva de peces se repone con el tiempo. Los arbustos próximos dan un alimento por día. Los agricultores también entregan alimentos al poblado y su contador aparece junto a madera y piedra.
+
+Hay chigüiros, venados, jabalíes, monos, guacamayas, tortugas y un jaguar. Con **E** puedes alimentar a un animal cercano y ganar su confianza. Los animales de confianza dejan de ser objetivos de caza y algunos te siguen; un mono puede traer una moneda al día y una guacamaya alimentada informa sobre las patrullas. Puedes liberar a una tortuga atrapada. Los venados huyen al sentir peligro, y un jaguar cercano o un jabalí herido pueden embestir. Alimentarlos permite calmarlos. La confianza, los rescates, los alimentos y las reservas de pesca se guardan con la campaña; las partidas antiguas incorporan la fauna al cargar.
+
+Las seis hojas se crearon con la herramienta de imágenes integrada y se conservan con sus prompts en `art/source/`: `enemy_gait_v8`, `enemy_actions_v8`, `combat_allies_v8`, `jungle_layers_v8`, `wildlife_v8` y `habitat_v8`. El importador reproducible es `tools/import_pixel_v8.py`.
+
+Para revisar sin alterar una campaña real usa `?review=1&scene=village`, `?review=1&scene=creek` o `?review=1&scene=combat` y pulsa Nueva campaña. Estas escenas son temporales: no cargan ni guardan partidas y no registran récords.
 
 ## Pixel art y fluidez · edición 7
 

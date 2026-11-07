@@ -1,18 +1,22 @@
-import { GaitClock, pixelViewport } from './visual-motion.js?v=36fd021d06a5';
-import { requestBuilding } from './settlement.js?v=36fd021d06a5';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=36fd021d06a5';
-import { AfroColombianAudioEngine } from './audio.js?v=36fd021d06a5';
-import { createInitialState } from './world-state.js?v=36fd021d06a5';
-import { makeSave, restoreSave } from './save-system.js?v=36fd021d06a5';
-import { createRenderer } from './renderer.js?v=36fd021d06a5';
-import { createSimulation } from './simulation.js?v=36fd021d06a5';
-import { FixedStepper } from './clock.js?v=36fd021d06a5';
-import { bindInput } from './input.js?v=36fd021d06a5';
-import { createUI } from './ui.js?v=36fd021d06a5';
-import { chooseDefenseSide } from './ai.js?v=36fd021d06a5';
-import { ensurePerson, personMaxHp, requestProfession, ROLE_NAMES } from './people.js?v=36fd021d06a5';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=36fd021d06a5';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=7c12c8ba03e2';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=7c12c8ba03e2';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=7c12c8ba03e2';
+import { requestBuilding } from './settlement.js?v=7c12c8ba03e2';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=7c12c8ba03e2';
+import { AfroColombianAudioEngine } from './audio.js?v=7c12c8ba03e2';
+import { createInitialState } from './world-state.js?v=7c12c8ba03e2';
+import { makeSave, restoreSave } from './save-system.js?v=7c12c8ba03e2';
+import { createRenderer } from './renderer.js?v=7c12c8ba03e2';
+import { createSimulation } from './simulation.js?v=7c12c8ba03e2';
+import { FixedStepper } from './clock.js?v=7c12c8ba03e2';
+import { bindInput } from './input.js?v=7c12c8ba03e2';
+import { createUI } from './ui.js?v=7c12c8ba03e2';
+import { chooseDefenseSide } from './ai.js?v=7c12c8ba03e2';
+import { ensurePerson, personMaxHp, requestProfession, ROLE_NAMES } from './people.js?v=7c12c8ba03e2';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=7c12c8ba03e2';
 
+const reviewMode=new URLSearchParams(location.search).get('review')==='1';
+const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const sceneCanvas = document.createElement('canvas');
@@ -67,18 +71,7 @@ function spawnCimarron(role, x, customTier) {
 }
 
 
-function spawnWildlife(x) {
-  state.wildlife.push({
-    id: nextEntityId++,
-    x,
-    y: WATER_LINE_Y,
-    vx: 0,
-    facing: Math.random() > 0.5 ? 1 : -1,
-    hp: 24,
-    nettedTimer: 0,
-    moveTimer: 1 + Math.random() * 3
-  });
-}
+function spawnWildlife(x){state.wildlife.push(createAnimal(nextEntityId++,'CAPYBARA',x));}
 
 function spawnPhysicalCoin(x, y, vx, vy, canBePickedByPlayer = false, fallsInRiver = false) {
   state.droppedCoins.push({
@@ -415,6 +408,10 @@ function handleInteractOrMount() {
     return;
   }
 
+  if(Math.abs(b.x-48)>=48){
+    const interaction=interactEcology(state,{fish:!!(keys.ShiftLeft||keys.ShiftRight)});
+    if(interaction.handled){b.attackTimer=0;b.queuedAttack=false;showBanner(interaction.message,'');updateHUD();return;}
+  }
   if (Math.abs(b.x - 48) < 48) {
     if (state.treasuryCoins <= 0) {
       addFloatingText(48, WATER_LINE_Y - 42, 'Cofre de Wiwa vacío', '#f87171');
@@ -435,28 +432,20 @@ function handleInteractOrMount() {
   }
 }
 
-function triggerBenkosAttack() {
-  const b = state.benkos;
-  if (!isPlaying() || b.attackCooldown > 0) return;
-
-  b.comboStep = (b.comboStep % 3) + 1;
-  b.weaponMode = b.comboStep === 2 ? 'SPEAR' : 'SWORD';
-  b.attackTimer = 0.26;
-  b.attackCooldown = b.jaguarTimer > 0 ? 0.14 : 0.25;
-  audio.playSfx('slash');
-  b.vx = b.facing * (b.comboStep === 3 ? 130 : 60);
-
-  const reach = b.weaponMode === 'SPEAR' ? 58 : 46;
-  const armorMult = b.royalArmor ? 1.25 : 1.0;
-  const baseDmg = (b.comboStep === 3 ? 34 : 22) * (b.jaguarTimer > 0 ? 1.8 : 1.0) * (b.mounted ? 1.25 : 1.0) * armorMult;
-
+function triggerBenkosAttack(){
+  if(!isPlaying())return;
+  if(startPlayerAttack(state.benkos))audio.playSfx('slash');
+}
+function resolveBenkosHit(){
+  const b=state.benkos,spec=PLAYER_COMBOS[(b.comboStep||1)-1];
+  const reach=spec.reach,armorMult=b.royalArmor?1.25:1;
+  const baseDmg=spec.damage*(b.jaguarTimer>0?1.8:1)*(b.mounted?1.25:1)*armorMult;
   let hitAny = false;
   state.enemies.forEach((en) => {
-    if (en.appearTimer > 0) return;
-    const dx = en.x - b.x;
-    if (Math.sign(dx) === b.facing || Math.abs(dx) < 18) {
-      if (Math.abs(dx) <= reach) {
-        en.hp -= baseDmg;
+    if(en.hp<=0||en.appearTimer>0)return;
+    if(inStrikeRange(b,en,reach,b.attackFacing)){
+      {
+        strikeEnemy(en,baseDmg,b.attackFacing);
         en.vx = b.facing * (en.isBoss ? 45 : (b.comboStep === 3 ? 120 : 65));
         en.bleedTimer = 3.0;
         hitAny = true;
@@ -466,8 +455,13 @@ function triggerBenkosAttack() {
     }
   });
 
+  for(const animal of state.wildlife){
+    if(SPECIES[animal.species]?.predator&&animal.trust===0&&(animal.aggression>0||animal.state==='CHARGE')&&inStrikeRange(b,animal,reach,b.attackFacing)){
+      animal.hp-=baseDmg;hitAny=true;addParticles(animal.x,WATER_LINE_Y-13,5,'#bd9b64',45);
+    }
+  }
   state.haciendas.forEach((hac) => {
-    if (!hac.destroyed && Math.abs(hac.x - b.x) <= reach + 25) {
+    if (!hac.destroyed&&inStrikeRange(b,hac,reach+25,b.attackFacing)) {
       damageHacienda(hac, baseDmg);
       hitAny = true;
     }
@@ -516,6 +510,7 @@ function useSkill(skillId) {
 
   b.spirit -= sk.spiritCost;
   if (skillId === 'dash') {
+    b.attackTimer=0;b.attackCooldown=0;b.queuedAttack=false;
     b.dashTimer = 0.42;
     b.vx = b.facing * 330;
     addParticles(b.x, b.y - 16, 15, '#a8a29e', 110);
@@ -565,7 +560,7 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
     return;
   }
 
-  b.invulnTimer = 0.65; b.hurtTimer=.4;
+  b.invulnTimer=.65;b.hurtTimer=.4;b.attackTimer=0;b.queuedAttack=false;b.comboWindow=0;b.attackCooldown=Math.max(b.attackCooldown,.25);
   b.vx = (knockDir || -b.facing) * 115;
   state.screenShake = 5;
 
@@ -605,7 +600,7 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
 const renderFrame = createRenderer({ state, keys, canvas, ctx, sceneCanvas, sctx, view, settings, getNearestInteractiveNode });
 const campaign = createCampaign({ state, spawnEnemy, nextId: () => nextEntityId++, showBanner, onTreaty: () => ui.open('modalPolitics') });
 const simulation = createSimulation({ state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife,
-  showBanner, saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
+  showBanner, resolveBenkosHit, triggerBenkosAttack, saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
   addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, campaign, queueReinforcement,
   nextId: () => nextEntityId++ });
 const stepper = new FixedStepper(BALANCE.fixedStep);
@@ -624,9 +619,15 @@ function newGame() {
   input?.clear();
   Object.assign(state, createInitialState()); nextEntityId = 1;
   session.hasCampaign = true;
+  state.sandbox=reviewMode;
   window.BenkosDB.currentSaveId = null;
   for (const [role, x] of [['ALDEANO',-35],['CONSTRUCTOR',65],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340],['FUGITIVO',-490],['FUGITIVO',510]]) spawnCimarron(role, x, 1);
-  spawnWildlife(-560); spawnWildlife(560);
+  seedEcology(state,()=>nextEntityId++);
+  if(reviewMode){
+    state.coins=24;state.treasuryCoins=100;state.timeOfDay=.28;
+    if(reviewScene==='creek')state.benkos.x=-850;
+    if(reviewScene==='combat'){state.benkos.x=-1130;state.units=[];spawnEnemy('SOLDADO_ESPANOL',-1,-1030);spawnEnemy('ARQUERO_COLONIAL',-1,-900);state.benkos.facing=1;}
+  }
   state.cameraX = state.benkos.x; stepper.reset();
   ui.resume(); updateHUD(); audio.init();
   showBanner('BIENVENIDO A LA MATUNA', 'Libera a los fugitivos fuera de las murallas. El cofre de Wiwa protege tu futuro.');
@@ -650,6 +651,7 @@ function changeSettings(patch) {
   return window.BenkosDB.saveConfig(settings);
 }
 async function saveGameToMySQL(automatic = false) {
+  if(reviewMode){if(!automatic)showBanner('Vista temporal: no modifica tus partidas','');return {success:true,storage:'preview'};}
   if (session.mode === 'menu' || loading || state.status !== 'playing') return;
   if (saveTask) return saveTask;
   const payload = makeSave(state, nextEntityId);
@@ -663,6 +665,7 @@ async function saveGameToMySQL(automatic = false) {
   } finally { saveTask = null; ui.busy(false); }
 }
 async function loadGameFromMySQL() {
+  if(reviewMode){newGame();return;}
   if (loading || saveTask) return;
   loading = true; input?.clear(); ui.busy(true);
   try {
@@ -707,7 +710,7 @@ function debugAction(id) {
 }
 input = bindInput({ keys, isPlaying, openSettlement:()=>ui.openSettlement(), inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
   toggleArmor, togglePause: ui.togglePause, save: () => saveGameToMySQL(), load: loadGameFromMySQL,
-  toggleArmy: ui.toggleArmy, toggleFullscreen, rest: () => { state.benkos.resting = !state.benkos.resting; },
+  toggleArmy: ui.toggleArmy, toggleFullscreen, rest:()=>{if(!state.benkos.attackTimer&&!state.benkos.interaction)state.benkos.resting=!state.benkos.resting;},
   torch: () => { state.benkos.torchManual = !state.benkos.torchManual; } });
 
 
@@ -736,8 +739,9 @@ canvas.addEventListener('click', event => {
   if (unit && y>view.waterLine-95&&y<view.waterLine+4) inspectNpc(unit.id);
 });
 
-window.BenkosDB.onStatusChange(({ connected }) => ui.connection(connected));
+window.BenkosDB.onStatusChange(({connected})=>{if(!reviewMode)ui.connection(connected);});
 async function init() {
+  if(reviewMode){document.getElementById('dbStatusLabel').textContent='Revisión temporal · sin guardar';return;}
   const cfg = await window.BenkosDB.loadConfig();
   if (cfg) Object.assign(settings, cfg);
   audio.enabled = !['0','false',false].includes(settings.audio_enabled);

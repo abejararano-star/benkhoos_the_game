@@ -86,6 +86,11 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   advance(5);assert.ok(inspect().state.enemies.every(e=>Number.isFinite(e.x)));
   // A telegraphed enemy attack spends reserves rather than minting free money.
   const enemy=()=>({id:500,type:'SOLDADO_ESPANOL',...ENEMY_CATALOG.SOLDADO_ESPANOL,maxHp:75,x:0,y:268,vx:0,facing:1,phase:1,attackCooldown:0,attackAnimTimer:0,tauntTimer:0,appearTimer:0,stunTimer:0,nettedTimer:0,bleedTimer:0,animTime:0,stolenCoins:0,muzzleFlash:0,trumpetRing:0});
+  await loadState(s=>{s.units=[];s.timeOfDay=.2;s.phase='DAY_EXPLORE';s.benkos.x=0;s.benkos.vx=0;s.benkos.facing=1;s.benkos.attackTimer=0;s.benkos.attackCooldown=0;s.benkos.comboWindow=0;s.benkos.hurtTimer=0;s.benkos.hurtKneelTimer=0;s.enemies=[{...enemy(),x:32,attackCooldown:10},{...enemy(),id:501,x:-20,attackCooldown:10}];});
+  key('Space');assert.equal(inspect().state.enemies[0].hp,75);advance(.1);assert.equal(inspect().state.enemies[0].hp,75);
+  advance(.13);assert.ok(inspect().state.enemies[0].hp<75);assert.equal(inspect().state.enemies[1].hp,75);
+  key('KeyA');advance(.05);key('KeyA',true);assert.equal(inspect().state.benkos.facing,1);
+  while(inspect().state.benkos.attackTimer>.12)advance(.02);key('Space');assert.equal(inspect().state.benkos.queuedAttack,true);advance(.2);assert.equal(inspect().state.benkos.comboStep,2);advance(1);
   await loadState(s=>{s.timeOfDay=.2;s.phase='DAY_EXPLORE';s.benkos.x=0;s.benkos.invulnTimer=0;s.benkos.ceibaTimer=0;s.benkos.dashTimer=0;s.coins=0;s.treasuryCoins=12;s.units=[];s.enemies=[enemy()];});
   advance(.2);assert.equal(inspect().state.treasuryCoins,12);assert.ok(inspect().state.enemies[0].windupTimer>0);
   advance(.3);assert.equal(inspect().state.treasuryCoins,4);assert.equal(inspect().state.coins,3);assert.equal(inspect().state.rescueCount,1);

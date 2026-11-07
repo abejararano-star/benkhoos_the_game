@@ -1,7 +1,7 @@
-import { RenderInterpolation } from './visual-motion.js?v=36fd021d06a5';
-import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand } from './terrain.js?v=36fd021d06a5';
-import { ROAD_GATES } from './campaign.js?v=36fd021d06a5';
-import { WATER_LINE_Y } from './config.js?v=36fd021d06a5';
+import { RenderInterpolation } from './visual-motion.js?v=7c12c8ba03e2';
+import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=7c12c8ba03e2';
+import { ROAD_GATES } from './campaign.js?v=7c12c8ba03e2';
+import { WATER_LINE_Y } from './config.js?v=7c12c8ba03e2';
 export function createRenderer({ state, keys, canvas, ctx, sceneCanvas, sctx, view, settings, getNearestInteractiveNode }) {
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
 const position=(e,key='x')=>interpolation.value(e,key,renderAlpha);
@@ -526,12 +526,15 @@ function renderWorldAboveWater(g, time) {
   g.fillStyle = skyGrad;
   g.fillRect(0, 0, w, h);
 
+  if(!window.SpriteManager?.has('jungle_far')){
   const sunX = Math.round(w * 0.54 + Math.cos(state.timeOfDay * Math.PI * 2 - Math.PI / 2) * (w * 0.25));
   const sunY = Math.round(78 + Math.sin(state.timeOfDay * Math.PI) * 18);
   const haze=g.createRadialGradient(sunX,sunY,12,sunX,sunY,55);haze.addColorStop(0,isNight?'#dce6cc30':'#f6e7bb70');haze.addColorStop(1,'#e8cf9800');g.fillStyle=haze;g.fillRect(sunX-55,sunY-55,110,110);
   g.fillStyle=state.phase==='RED_NIGHT'?'#dda39a':isNight?'#dce0c8':'#f1dfad';g.beginPath();g.arc(sunX,sunY,isNight?16:19,0,Math.PI*2);g.fill();
   g.fillStyle=isNight?'#c2d2c40a':'#f0e1c128';
   for(let i=0;i<5;i++){const cloudX=((i*193-camX*.07+(settings.reduce_motion?0:time*.8))%(w+160)+w+160)%(w+160)-80;for(let band=0;band<3;band++)g.fillRect(Math.round(cloudX+band*7),35+i%3*25+band*4,45+band*13,3);}
+
+  }
 
   drawLandscape(g, w, GROUND_SURFACE_Y, camX, isNight, time);
 
@@ -551,6 +554,7 @@ function renderWorldAboveWater(g, time) {
     g.fillStyle=isNight?'#776348':'#a48a59';g.fillRect(sx,GROUND_SURFACE_Y+3+(seed%12),1+seed%3,1);
     if(seed%4===0){g.fillStyle='#294c2e';g.fillRect(sx,GROUND_SURFACE_Y-4,1,5);g.fillRect(sx+2,GROUND_SURFACE_Y-6,1,6);}
   }
+  drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion);
   drawVillage(g, toScreenX, GROUND_SURFACE_Y, isNight, time, state.settlement, settings.reduce_motion);
 
   state.trees.forEach((tr) => {
@@ -629,48 +633,16 @@ function renderWorldAboveWater(g, time) {
     if(!window.SpriteManager?.draw?.(g,'currency_coin',['spin'],sx,cy,1,9,settings.reduce_motion?0:time+(Number(c.id)||0)*.17,10)){g.fillStyle='#d8d1aa';g.beginPath();g.arc(sx,cy-4,4,0,Math.PI*2);g.fill();}
   });
 
-  state.wildlife.forEach((an) => {
-    const sx = toScreenX(position(an));
-    if (sx < -30 || sx > w + 30) return;
-    g.save();
-    g.translate(sx, GROUND_SURFACE_Y);
-    g.scale(an.facing, 1);
-
-    const walkLeg = Math.sin((time + an.id) * 12) * 2;
-    // Sombra
-    g.fillStyle = 'rgba(0,0,0,0.3)';
-    g.fillRect(-10, -2, 20, 2);
-    // Patas
-    g.fillStyle = '#451a03';
-    g.fillRect(-7 + (an.vx !== 0 ? walkLeg : 0), -4, 3, 4);
-    g.fillRect(4 - (an.vx !== 0 ? walkLeg : 0), -4, 3, 4);
-    // Cuerpo redondeado
-    g.fillStyle = '#78350f';
-    g.fillRect(-9, -12, 16, 9);
-    g.fillStyle = '#92400e';
-    g.fillRect(-7, -13, 12, 3);
-    // Cabeza y hocico característico del chigüiro
-    g.fillStyle = '#78350f';
-    g.fillRect(5, -13, 7, 8);
-    g.fillStyle = '#451a03';
-    g.fillRect(9, -10, 4, 4); // hocico plano
-    g.fillStyle = '#1c1917';
-    g.fillRect(7, -12, 2, 2); // ojito
-    g.fillStyle = '#92400e';
-    g.fillRect(4, -15, 3, 3); // orejita
-
-    // Si está atrapado en la red del cazador
-    if (an.nettedTimer > 0) {
-      g.strokeStyle = '#fde047';
-      g.lineWidth = 1.5;
-      g.strokeRect(-11, -16, 24, 16);
-      g.beginPath();
-      g.moveTo(-11, -16); g.lineTo(13, 0);
-      g.moveTo(13, -16); g.lineTo(-11, 0);
-      g.stroke();
+  state.wildlife.forEach(an=>{
+    const sx=toScreenX(position(an));if(sx < -65 || sx>w+65)return;
+    const ay=GROUND_SURFACE_Y+(position(an,'y')-WATER_LINE_Y);
+    if(window.SpriteManager?.drawAnimal?.(g,sx,ay,an,time)){
+      if(an.inWater){g.fillStyle='#528d8888';g.fillRect(sx-10,GROUND_SURFACE_Y,20,4);}
+      if(an.trapped||an.nettedTimer>0){g.strokeStyle='#c2ac70';g.lineWidth=1;g.strokeRect(sx-9,ay-9,18,9);for(let i=-6;i<9;i+=4){g.beginPath();g.moveTo(sx+i,ay-9);g.lineTo(sx+i+6,ay);g.stroke();}}
+      if(an.trust>=2){g.fillStyle='#a8c984';g.fillRect(sx-1,ay+2,3,2);}
     }
-    g.restore();
   });
+  for(const corpse of state.corpses)window.SpriteManager?.drawCorpse?.(g,toScreenX(corpse.x),GROUND_SURFACE_Y,corpse);
 
   ROAD_GATES.forEach(gate => drawRoadGate(g,toScreenX(gate.x),GROUND_SURFACE_Y,gate.side,state.campaign.orders.some(o=>o.side===gate.side)));
   state.units.forEach((u) => {
@@ -718,20 +690,26 @@ function renderWorldAboveWater(g, time) {
   }
 
   drawBenkosPlayer(g, bsx, by, time);
+  if(b.inStream){g.strokeStyle='#84b9ae';g.lineWidth=1;g.beginPath();g.ellipse(bsx,by+2,12,2,0,0,Math.PI*2);g.stroke();}
+  if(b.interaction?.kind==='fish'){
+    const side=b.facing,tipX=bsx+side*24;
+    g.strokeStyle='#b99a5c';g.lineWidth=1;g.beginPath();g.moveTo(bsx+side*8,by-22);g.lineTo(tipX,by-43);g.stroke();
+    g.strokeStyle='#c4d2b6';g.beginPath();g.moveTo(tipX,by-43);g.lineTo(bsx+side*36,by+5);g.stroke();
+    g.fillStyle='#d29c70';g.fillRect(bsx+side*36-1,by+3+(settings.reduce_motion?0:Math.round(Math.sin(time*4))),3,2);
+  }
   g.fillStyle = '#e6c486';
   g.fillRect(bsx - 3, by + 2, 6, 2);
   g.fillRect(bsx - 1, by + 4, 2, 2);
 
-  state.projectiles.forEach((p) => {
-    const psx = toScreenX(position(p));
-    const psy = Math.round(position(p,'y')-22+view.waterLine-WATER_LINE_Y);
-    if (p.isNet) {
-      g.strokeStyle = '#fde047';
-      g.strokeRect(psx - 5, psy - 5, 10, 10);
-    } else {
-      g.fillStyle = p.color;
-      g.fillRect(psx - 3, psy - 1, 6, 2);
-    }
+  state.projectiles.forEach(p=>{
+    const x=toScreenX(position(p)),y=Math.round(position(p,'y')-22+view.waterLine-WATER_LINE_Y),side=Math.sign(p.vx)||1;
+    g.save();g.translate(x,y);g.scale(side,1);
+    if(p.isNet){
+      g.strokeStyle='#c6b177';g.lineWidth=1;g.beginPath();g.ellipse(0,0,6,5,0,0,Math.PI*2);g.moveTo(-4,-3);g.lineTo(4,3);g.moveTo(-4,3);g.lineTo(4,-3);g.stroke();
+    }else if(p.vy!==0){
+      g.fillStyle='#bc9a60';g.fillRect(-7,0,13,1);g.fillStyle='#d0d3c1';g.beginPath();g.moveTo(9,0);g.lineTo(4,-2);g.lineTo(4,2);g.fill();g.fillStyle='#b3bd9c';g.fillRect(-7,-2,3,1);g.fillRect(-7,2,3,1);
+    }else{g.fillStyle=p.color||'#b4c7b9';g.fillRect(-5,0,6,1);g.fillStyle='#ebe1c4';g.fillRect(1,-1,2,2);}
+    g.restore();
   });
 
   state.particles.forEach((pt) => {

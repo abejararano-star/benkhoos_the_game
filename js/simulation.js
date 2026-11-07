@@ -1,12 +1,14 @@
-import { workConstruction, homeRecovery } from './settlement.js?v=36fd021d06a5';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js?v=36fd021d06a5';
-import { ensureCampaign } from './campaign.js?v=36fd021d06a5';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=36fd021d06a5';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=36fd021d06a5';
+import { updateEcology, isHuntable } from './ecology.js?v=7c12c8ba03e2';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=7c12c8ba03e2';
+import { workConstruction, homeRecovery } from './settlement.js?v=7c12c8ba03e2';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js?v=7c12c8ba03e2';
+import { ensureCampaign } from './campaign.js?v=7c12c8ba03e2';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=7c12c8ba03e2';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=7c12c8ba03e2';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
-addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId, campaign, queueReinforcement } = api;
+addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId, campaign, queueReinforcement, resolveBenkosHit, triggerBenkosAttack } = api;
 return function updateSimulation(dt) {
   if (state.hitStopTimer > 0) {
     state.hitStopTimer -= dt;
@@ -55,9 +57,9 @@ return function updateSimulation(dt) {
 
   b.animTime += dt;
   b.payTimer=Math.max(0,(b.payTimer??0)-dt);
-  if(Math.abs(b.vx)>60){b.stepDust=(b.stepDust??0)+dt;if(b.stepDust>.18){b.stepDust=0;addParticles(b.x,WATER_LINE_Y-22,1,'#ac9670',12);}}
-  if (b.attackTimer > 0) b.attackTimer -= dt;
-  if (b.attackCooldown > 0) b.attackCooldown -= dt;
+  if(Math.abs(b.vx)>60){b.stepDust=(b.stepDust??0)+dt;if(b.stepDust>.18){b.stepDust=0;addParticles(b.x,WATER_LINE_Y-22,1,b.inStream?'#9fcac0':'#ac9670',12);}}
+  if(advancePlayerAttack(b,dt))resolveBenkosHit?.();
+  if(!b.attackTimer&&b.queuedAttack){b.queuedAttack=false;triggerBenkosAttack?.();}
   if (b.dashTimer > 0) b.dashTimer -= dt;
   if (b.ceibaTimer > 0) b.ceibaTimer -= dt;
   if (b.jaguarTimer > 0) b.jaguarTimer -= dt;
@@ -78,9 +80,15 @@ return function updateSimulation(dt) {
   const isRunning = b.sprintHoldTime > 0.35 || keys['ShiftLeft'] || keys['ShiftRight'] || b.jaguarTimer > 0;
   const mountMult = b.mounted ? 1.42 : 1.0;
   const baseSpeed = (isRunning ? 155 : 95) * mountMult;
-  const moveSpeed = (b.jaguarTimer > 0 ? 205 : baseSpeed) * (b.dashTimer > 0 ? 2.2 : 1.0);
+  b.inStream=state.ecology.streams.some(c=>Math.abs(c.x-b.x)<23);
+  const moveSpeed=(b.jaguarTimer>0?205:baseSpeed)*(b.dashTimer>0?2.2:1)*(b.inStream&&!b.mounted?.72:1);
 
-  if (b.dashTimer <= 0 && b.hurtKneelTimer <= 0) {
+  if(b.hurtTimer>.24&&b.dashTimer<=0){b.vx*=Math.pow(.85,dt*60);}
+  else if(b.attackTimer>0&&b.dashTimer<=0){
+    b.facing=b.attackFacing||b.facing;
+    const progress=b.attackElapsed/b.attackDuration;
+    b.vx=progress>.27&&progress<.5?b.facing*28:moveInput*moveSpeed*.12;
+  }else if (b.dashTimer <= 0 && b.hurtKneelTimer <= 0) {
     if (moveInput !== 0) {
       b.vx = moveInput * moveSpeed;
       b.facing = moveInput;
@@ -182,25 +190,7 @@ return function updateSimulation(dt) {
     if (claimed || c.life <= 0) state.droppedCoins.splice(i, 1);
   }
 
-  for (let i = state.wildlife.length - 1; i >= 0; i--) {
-    const an = state.wildlife[i];
-    if (an.nettedTimer > 0) {
-      an.nettedTimer -= dt;
-    } else {
-      an.moveTimer -= dt;
-      if (an.moveTimer <= 0) {
-        an.moveTimer = 1.5 + Math.random() * 2.5;
-        an.vx = (Math.random() > 0.4 ? (Math.random() > 0.5 ? 1 : -1) : 0) * 28;
-        if (an.vx !== 0) an.facing = Math.sign(an.vx);
-      }
-      an.x = Math.max(WORLD_MIN_X + 100, Math.min(WORLD_MAX_X - 100, an.x + an.vx * dt));
-    }
-    if (an.hp <= 0) {
-      spawnPhysicalCoin(an.x, WATER_LINE_Y - 12, (Math.random() - 0.5) * 40, -95, true, false);
-      addFloatingText(an.x, WATER_LINE_Y - 28, '+1 reales  Caza', '#4ade80');
-      state.wildlife.splice(i, 1);
-    }
-  }
+  updateEcology(state,dt,{damagePlayer:hitBenkosKingdomStyle,notice:(x,message)=>{addFloatingText(x,WATER_LINE_Y-45,message,'#c8be88');if(message.includes('pesca'))showBanner(message,'');},dropCoin:x=>spawnPhysicalCoin(x,WATER_LINE_Y-12,0,-95,true,false)});
 
   // ==================== ALLIED UNITS AI (SHEETS 1, 2, 3, 4) ====================
   const moraleMult = state.morale / 100;
@@ -208,6 +198,7 @@ return function updateSimulation(dt) {
     const u = state.units[idx];
     ensurePerson(u);
     u.animSeed = (u.animSeed ?? 0) + dt;
+    advanceAllyAction(u,state,dt,(enemy,damage)=>{addParticles(enemy.x,WATER_LINE_Y-20,5,'#d7bd8b',45);audio.playSfx('slash');});
     if (u.attackCooldown > 0) u.attackCooldown -= dt;
     if (u.attackAnimTimer > 0) u.attackAnimTimer -= dt;
     if (u.liberateAnimTimer > 0) {
@@ -280,6 +271,7 @@ return function updateSimulation(dt) {
           u.x += u.vx * dt;
         } else {
           u.carryingSack = false;
+          state.resources.food+=2;
           const yieldCoins = u.tier === 3 ? 2 : 1;
           for (let c = 0; c < yieldCoins; c++) {
             spawnPhysicalCoin(48, WATER_LINE_Y - 18, (Math.random() - 0.5) * 45, -105, true, false);
@@ -343,7 +335,7 @@ return function updateSimulation(dt) {
       }
     } else if (u.role === 'CAZADOR') {
       const postX = u.assignedSide * 270;
-      const prey = state.wildlife.find((an) => Math.abs(an.x - u.x) < 170);
+      const prey = state.wildlife.find(an=>isHuntable(an)&&Math.abs(an.x-u.x)<170);
       const enemyTarget = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 175);
       const target = enemyTarget || prey;
 
@@ -352,7 +344,7 @@ return function updateSimulation(dt) {
         u.attackCooldown = 1.45;
         u.attackAnimTimer = 0.45; u.activity = 'HUNT';
         const throwNet = (!target.nettedTimer || target.nettedTimer <= 0) && Math.random() < 0.55;
-        state.projectiles.push({
+        u.attackDuration=.45;u.pendingShot={eta:.17,
           x: u.x,
           y: WATER_LINE_Y - 20,
           vx: u.facing * 205,
@@ -361,7 +353,7 @@ return function updateSimulation(dt) {
           isNet: throwNet,
           fromPlayerSide: true,
           color: throwNet ? '#fde047' : '#a3e635'
-        });
+        };
       } else if (u.activity === 'KITE') {
         // updatePerson has already taken a backward step while facing the threat.
       } else if (Math.abs(postX - u.x) > 16) {
@@ -389,12 +381,12 @@ return function updateSimulation(dt) {
         const enemyTarget = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 200);
         if (enemyTarget) {
           u.attackCooldown = u.tier === 3 ? 0.85 : 1.1;
-          u.attackAnimTimer = 0.35; u.activity = 'ATTACK';
+          u.attackDuration=.5;u.attackAnimTimer=.5;u.activity='ATTACK';
           u.facing = Math.sign(enemyTarget.x - u.x) || 1;
-          state.projectiles.push({
-            x: u.x, y: WATER_LINE_Y - 19, vx: u.facing * 245, vy: -20,
+          u.pendingShot={eta:.18,
+            x:u.x,y: WATER_LINE_Y - 19, vx: u.facing * 245, vy: -20,
             dmg: 15 * moraleMult * tierMult, fromPlayerSide: true, color: u.tier === 3 ? '#fde047' : '#4ade80'
-          });
+          };
         }
       }
     } else if (u.role === 'GUERRERO' || u.role === 'ESPADACHIN' || u.role === 'CABALLERO_ALIADO' || u.role === 'CAMPEON_REAL') {
@@ -416,14 +408,12 @@ return function updateSimulation(dt) {
 
       if (u.attackCooldown <= 0 && nearEnemy && Math.abs(nearEnemy.x - u.x) <= 42) {
         u.attackCooldown = ALLY_COMBAT[u.role].cooldown;
-        u.attackAnimTimer = 0.38; u.activity = 'ATTACK';
+        u.attackDuration=.46;u.attackAnimTimer=.46;u.activity='ATTACK';
         u.weaponSubMode = u.weaponSubMode === 'SPEAR' ? 'SWORD' : 'SPEAR';
         const baseHit = ALLY_COMBAT[u.role].damage;
         const antiCav = (u.role === 'GUERRERO' && nearEnemy.type === 'CABALLERO') ? 1.8 : 1.0;
         const totalDmg = baseHit * moraleMult * tierMult * antiCav;
-        nearEnemy.hp -= totalDmg;
-        nearEnemy.vx = u.facing * (isMounted ? 110 : 75);
-        addParticles(nearEnemy.x, WATER_LINE_Y - 20, 6, '#fde047', 75);
+        u.pendingStrike={targetId:nearEnemy.id,damage:totalDmg,reach:52,facing:u.facing,eta:.17};
       }
     }
   }
@@ -433,7 +423,7 @@ return function updateSimulation(dt) {
     const en = state.enemies[i];
     en.isMoving = Math.abs(en.x - (en.previousX ?? en.x)) > .05;
     en.previousX = en.x;
-    en.animTime += dt;
+    en.animTime += dt;en.hurtTimer=Math.max(0,(en.hurtTimer??0)-dt);
     if (en.muzzleFlash > 0) en.muzzleFlash -= dt;
     if (en.attackAnimTimer > 0) en.attackAnimTimer -= dt;
     if (en.tauntTimer > 0) en.tauntTimer -= dt;
@@ -592,7 +582,7 @@ return function updateSimulation(dt) {
     if (distToBenkos <= en.range && !blockingWall) {
       if (en.attackCooldown <= 0) {
         en.attackAnimTimer = 0.38;
-        if (en.type === 'ARCABUCERO' || en.type === 'BANDOLERO') {
+        if (en.type === 'ARCABUCERO') {
           en.attackCooldown = en.type === 'ARCABUCERO' ? 2.4 : 1.7;
       en.attackReady = false;
           en.muzzleFlash = 0.16;
@@ -621,6 +611,7 @@ return function updateSimulation(dt) {
         } else {
           en.attackCooldown = en.isBoss ? 0.9 : 1.2;
       en.attackReady = false;
+          audio.playSfx('slash');
           if (en.isBoss) en.vx = en.facing * (en.phase === 2 ? 115 : 95);
           hitBenkosKingdomStyle(en.dmg, en.facing);
         }
@@ -669,8 +660,8 @@ return function updateSimulation(dt) {
     if (p.fromPlayerSide) {
       for (let j = 0; j < state.enemies.length; j++) {
         const en = state.enemies[j];
-        if (Math.abs(p.x - en.x) < 16 && Math.abs(p.y - (WATER_LINE_Y - 18)) < 26) {
-          en.hp -= p.dmg;
+        if(en.hp>0&&en.appearTimer<=0&&Math.abs(p.x-en.x)<16&& Math.abs(p.y - (WATER_LINE_Y - 18)) < 26) {
+          strikeEnemy(en,p.dmg,Math.sign(p.vx));
           if (p.isNet) {
             en.nettedTimer = en.isBoss ? 1.4 : 3.2;
             addFloatingText(en.x, WATER_LINE_Y - 46, ' ¡Atrapado en Red!', '#fde047');
@@ -683,7 +674,7 @@ return function updateSimulation(dt) {
       if (!hit) {
         for (let j = 0; j < state.wildlife.length; j++) {
           const an = state.wildlife[j];
-          if (Math.abs(p.x - an.x) < 14) {
+          if(isHuntable(an)&&Math.abs(p.x-an.x)<14){
             an.hp -= p.dmg;
             if (p.isNet) an.nettedTimer = 4.0;
             hit = true;

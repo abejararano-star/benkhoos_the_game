@@ -1,7 +1,8 @@
-import { MATERIALS, HQ_NAMES, upgradeInfo } from './settlement.js?v=36fd021d06a5';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=36fd021d06a5';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=36fd021d06a5';
-import { arrivalHint } from './campaign.js?v=36fd021d06a5';
+import { ecologyHint } from './ecology.js?v=7c12c8ba03e2';
+import { MATERIALS, HQ_NAMES, upgradeInfo } from './settlement.js?v=7c12c8ba03e2';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=7c12c8ba03e2';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=7c12c8ba03e2';
+import { arrivalHint } from './campaign.js?v=7c12c8ba03e2';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -49,7 +50,7 @@ export function createUI({ state, session, settings, actions }) {
     open('resultDialog');
   }
   function update() {
-    const node=actions.node?.();$('nodeHint').classList.toggle('hidden',!node);
+    const node=actions.node?.();$('nodeHint').classList.toggle('hidden',!node||Math.abs(state.benkos.vx)>25||state.benkos.attackTimer>0||state.enemies.some(e=>e.hp>0&&Math.abs(e.x-state.benkos.x)<150));
     if(node){
       text('nodeHintTitle',node.title.trim());text('nodeHintDescription',node.sub.replaceAll('[S]','S').replace(/\b1 reales\b/g,'1 real').trim());
       const signature=`${node.id}:${node.cost}:${node.getFilled()}`;
@@ -60,7 +61,7 @@ export function createUI({ state, session, settings, actions }) {
     bagDots.forEach((dot,i)=>dot.classList.toggle('filled',i<state.coins));
     const bagSignature=`${Math.ceil(state.coins/state.maxCoins*4)}:${window.SpriteManager?.ready}`;
     if(bagSignature!==lastPouch){lastPouch=bagSignature;const g=$('hudPouchArt').getContext('2d');g.clearRect(0,0,72,72);window.SpriteManager?.drawPouch?.(g,36,69,64,state.coins/state.maxCoins);}
-    text('hudMaterials', `${state.resources.wood} madera · ${state.resources.stone} piedra`);
+    text('hudMaterials', `${state.resources.wood} madera · ${state.resources.stone} piedra · ${state.resources.food} alimento`);
     text('hudDay', `DÍA ${state.day}`); text('hudAlertLevel', `${state.alertLevel}%`);
     const night = state.timeOfDay >= .68;
     text('hudPhaseBadge', state.phase === 'TRUCE_NIGHT' ? 'Noche de tregua' : night ? 'Defensa nocturna' : 'Exploración');
@@ -113,9 +114,9 @@ export function createUI({ state, session, settings, actions }) {
     text('btnChoiceAccept', `Aceptar tregua · 15 reales (${state.coins} disponibles)`);
     $('btnChoiceAccept').disabled = state.coins < 15;
     text('campaignNotice',arrivalHint(state));
-    $('campaignNotice').classList.toggle('quiet',state.timeOfDay<.5&&!state.campaign.orders.length&&!state.enemies.length&&!state.messengers.some(m=>m.state==='WAIT'&&!m.delivered));
+    $('campaignNotice').classList.toggle('quiet',!state.campaign.orders.some(o=>o.kind==='boss')||!!node);
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
-    text('contextHint', messenger ? 'E · Escuchar al mensajero de Cartagena' : 'B · Construir y evolucionar · F · Conocer a una persona');
+    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':ecologyHint(state)||'B · Obras · F · Personas · E · Interactuar con animales y agua');
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   // Escape is managed centrally; let form controls keep normal focus navigation.
@@ -200,14 +201,7 @@ export function createUI({ state, session, settings, actions }) {
       el.className=`world-label ${kind}`;if(el.textContent!==content)el.textContent=content;
       el.style.width=`${width}px`;el.style.transform=`translate3d(${Math.round(px-width/2)}px,${Math.round(py)}px,0)`;el.style.display='';
     }
-    const stationNames={LENADOR:'Hachas',AGRICULTOR:'Cultivo',MINERO:'Minería',CAZADOR:'Caza',CONSTRUCTOR:'Taller',ARQUERO:'Arcos',GUERRERO:'Lanzas',ESPADACHIN:'Forja',CABALLERO_ALIADO:'Establo'};
-    for(const r of state.toolRacks)label('rack:'+r.id,'station-label'+(Math.abs(state.benkos.x-r.x)<35?' selected':''),r.x,layout.ground-65,`${stationNames[r.role]} · ${r.stock}/${r.maxStock}`,112);
-    const person=state.units.filter(u=>u.speechTimer>0&&Math.abs(u.x-state.benkos.x)<70).sort((a,b)=>Math.abs(a.x-state.benkos.x)-Math.abs(b.x-state.benkos.x))[0];
-    if(person)label('person','speech-label',layout.x(person),layout.ground-83,`${person.name}
-${person.speech}`,210,true);
-    const messenger=state.messengers.find(m=>m.state==='WAIT'&&!m.delivered&&Math.abs(m.x-state.benkos.x)<100);
-    if(messenger)label('messenger','messenger-label',layout.x(messenger),layout.ground-62,'E · Escuchar al mensajero',180,true);
-    const notices=state.floatingTexts.slice(-4);
+    const notices=state.floatingTexts.filter(ft=>/^-\d+/.test(ft.text.trim())).slice(-2);
     notices.forEach((ft,i)=>{const line=ft.text.replace(/\s+/g,' ').replace('Cosecha Entregada','cosecha').replace('Plata de Mina','plata').trim();label('notice:'+i,'resource-label',layout.x(ft),layout.y(ft)-22+layout.ground-246,line,Math.max(100,Math.min(230,line.length*6+20)),true);});
     for(const [key,el]of worldLabels)if(!active.has(key))el.style.display='none';
   }

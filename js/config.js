@@ -31,7 +31,7 @@ export function getUnitMaxHp(role, tier) {
 }
 export const ENEMY_CATALOG = Object.freeze({
   CAMPESINO: { hp: 38, speed: 44, dmg: 8, range: 24, reward: 1 },
-  BANDOLERO: { hp: 48, speed: 62, dmg: 11, range: 95, reward: 2 },
+  BANDOLERO: { hp: 48, speed: 62, dmg: 11, range: 30, reward: 2 },
   SOLDADO_ESPANOL: { hp: 75, speed: 46, dmg: 14, range: 22, reward: 2 },
   ARQUERO_COLONIAL: { hp: 45, speed: 42, dmg: 11, range: 155, reward: 2 },
   PIQUERO: { hp: 85, speed: 38, dmg: 16, range: 38, reward: 3 },

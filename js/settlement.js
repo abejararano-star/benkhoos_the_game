@@ -1,12 +1,12 @@
-import { proficiency } from './people.js?v=36fd021d06a5';
+import { proficiency } from './people.js?v=7c12c8ba03e2';
 export const MATERIALS=['Palma y bejuco','Madera de ceiba','Bahareque y cal','Piedra y teja','Cantería tallada'];
 export const HQ_NAMES=['Refugio de la Matuna','Casa del consejo','Casa de bahareque','Cabildo de piedra','Gran Palenque'];
 export function initialSettlement(){return {level:1,homes:[{id:'home_west',x:-530,level:1},{id:'home_inner',x:-245,level:1},{id:'home_east',x:550,level:1}],barracks:{id:'barracks',x:245,level:1},projects:[],completed:0};}
 export function ensureSettlement(state){
-  state.resources??={wood:8,stone:4};state.settlement??=initialSettlement();const s=state.settlement;
+  state.resources??={wood:8,stone:4,food:5};state.resources.food??=5;state.settlement??=initialSettlement();const s=state.settlement;
   if(typeof s!=='object'||Array.isArray(s)||typeof state.resources!=='object'||Array.isArray(state.resources))throw Error('Recursos del palenque inválidos.');
   const level=n=>Math.max(1,Math.min(5,Math.floor(Number(n)||1)));s.level=level(s.level);
-  for(const k of ['wood','stone'])state.resources[k]=Math.max(0,Math.min(100000,Math.floor(Number(state.resources[k])||0)));
+  for(const k of ['wood','stone','food'])state.resources[k]=Math.max(0,Math.min(100000,Math.floor(Number(state.resources[k])||0)));
   if(!Array.isArray(s.homes)||s.homes.length!==3||!s.barracks||!Array.isArray(s.projects)||s.projects.length>5)throw Error('Las obras del palenque están dañadas.');
   const homeIds=initialSettlement().homes.map(h=>h.id);
   s.homes.forEach(h=>{if(!h||!homeIds.includes(h.id)||!Number.isFinite(h.x))throw Error('Vivienda inválida.');h.level=level(h.level);});

@@ -1,5 +1,6 @@
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=36fd021d06a5';
-import { initialSettlement } from './settlement.js?v=36fd021d06a5';
+import { initialEcology } from './ecology.js?v=7c12c8ba03e2';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=7c12c8ba03e2';
+import { initialSettlement } from './settlement.js?v=7c12c8ba03e2';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -15,8 +16,9 @@ const state = {
   coins: 16,
   maxCoins: BALANCE.bagCapacity,
   treasuryCoins: 12,
-  resources: {wood:8,stone:4},
+  resources: {wood:8,stone:4,food:5},
   settlement: initialSettlement(),
+  ecology:initialEcology(),
   morale: 100,
   day: 1,
   timeOfDay: 0.18,
@@ -45,7 +47,7 @@ const state = {
     spirit: 100,
     maxSpirit: 100,
     comboStep: 0,
-    attackTimer: 0,
+    attackTimer:0,attackDuration:.44,attackImpact:.15,attackElapsed:0,attackHit:false,attackFacing:1,queuedAttack:false,comboWindow:0,
     attackCooldown: 0,
     dashTimer: 0,
     ceibaTimer: 0,
@@ -55,6 +57,7 @@ const state = {
     hurtKneelTimer: 0,
     hurtTimer:0,
     payTimer:0,
+    interaction:null,
     resting: false,
     torchManual: false,
     sprintHoldTime: 0,

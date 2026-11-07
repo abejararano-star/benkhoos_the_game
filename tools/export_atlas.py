@@ -214,6 +214,8 @@ def main():
     sprites.update(import_expansion(OUT))
     from import_pixel_v7 import import_pixel_v7
     sprites.update(import_pixel_v7(OUT))
+    from import_pixel_v8 import import_pixel_v8
+    sprites.update(import_pixel_v8(OUT))
     digest = hashlib.sha256()
     for sheet in sorted({sp['sheet'] for sp in sprites.values()}): digest.update((OUT / (sheet + '.png')).read_bytes())
     json.dump(dict(version=2, build=digest.hexdigest()[:16], sprites=sprites), open(OUT / 'atlas.json', 'w', encoding='utf-8'), separators=(',', ':'))

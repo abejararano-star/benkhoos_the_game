@@ -1,5 +1,15 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
 export function drawLandscape(g, width, ground, camera, night, time) {
+  const manager=window.SpriteManager;
+  if(manager?.has('jungle_far')&&manager.drawBackdrop){
+    g.save();g.globalAlpha=night?.7:1;
+    manager.drawBackdrop(g,'jungle_far',width,ground,camera,.12,ground+12);
+    g.globalAlpha=night?.72:.86;
+    manager.drawBackdrop(g,'jungle_near',width,ground,camera,.29,ground*.93);
+    g.restore();
+    if(night){g.fillStyle='#0b282c35';g.fillRect(0,0,width,ground);}
+    return;
+  }
   for (let layer = 0; layer < 3; layer++) {
     const span = 240 - layer * 35;
     const offset = ((camera * (.12 + layer * .12)) % span + span) % span;
@@ -33,7 +43,7 @@ export function drawLandscape(g, width, ground, camera, night, time) {
 }
 
 export function drawVillage(g,toScreen,ground,night,time,settlement,reduceMotion=false) {
-  const sm=window.SpriteManager, buildings=[{kind:'hq',x:0,level:settlement.level,h:158},...settlement.homes.map(h=>({...h,kind:'home',h:98})),{...settlement.barracks,kind:'barracks',h:124}];
+  const sm=window.SpriteManager, buildings=[{kind:'hq',x:0,level:settlement.level,h:124},...settlement.homes.map(h=>({...h,kind:'home',h:80})),{...settlement.barracks,kind:'barracks',h:96}];
   for(const b of buildings){
     const x=toScreen(b.x),y=ground-6;
     g.fillStyle='#14261a55';g.beginPath();g.ellipse(x,y+2,b.h*.48,5,0,0,Math.PI*2);g.fill();
@@ -174,5 +184,25 @@ export function drawPersonStory(g,x,ground,unit,showSpeech=false){
     g.fillStyle='#d5c6a3';g.font='7px monospace';g.textAlign='center';g.fillText(line,x,ground-61);
   }else if(showSpeech&&unit.name){
     g.fillStyle='#e2d3b0';g.font='7px monospace';g.textAlign='center';g.fillText(unit.name,x,ground-52);
+  }
+}
+
+export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false){
+  const sm=window.SpriteManager;
+  for(const [index,creek]of streams.entries()){
+    const x=toScreen(creek.x);
+    sm?.draw?.(g,index?'habitat_bridge':'habitat_cascade',['idle'],x,ground+5,1,84,0);
+    sm?.draw?.(g,'habitat_fishing',['idle'],x+37,ground+9,1,35,0);
+    sm?.draw?.(g,'habitat_log',['idle'],x-75,ground,1,31,0);
+    sm?.draw?.(g,'habitat_fruit',['idle'],x+110,ground,1,39,0);
+    g.fillStyle='#285f64';g.fillRect(x-8,ground+6,18,16);g.fillStyle='#3e9391';g.fillRect(x-6,ground+7,12,16);
+    for(let i=0;i<11;i++){
+      const flow=reduceMotion?i*2:(time*19+i*5)%23;
+      g.fillStyle=i%2?'#9acdc0':'#70b9ac';g.fillRect(Math.round(x-6+(i*7)%12),Math.round(ground+flow),2+i%3,1);
+    }
+    for(let i=0;i<creek.fishStock;i++){
+      const fx=x-13+Math.sin(time*.9+i*2)*10,fy=ground-4+i*3;
+      g.fillStyle='#184f57';g.fillRect(Math.round(fx),Math.round(fy),4,1);g.fillRect(Math.round(fx-1),Math.round(fy-1),1,3);
+    }
   }
 }

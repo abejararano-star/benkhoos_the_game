@@ -104,6 +104,33 @@ class BenkosSpriteManager {
     }else if(u.role!=='AGRICULTOR')this.drawPouch(ctx,bx,y-13,14,.7);
   }
 
+  battleClass(role,tier=1,weapon='SWORD'){
+    if(role==='HERO')return tier>=3?'battle_royal_'+(weapon==='SPEAR'?'spearman':'swordsman'):'battle_hero_'+weapon.toLowerCase();
+    const type={GUERRERO:'spearman',ARQUERO:'archer',ESPADACHIN:'swordsman',CAZADOR:'spearman',CAMPEON_REAL:'swordsman'}[role];
+    return type?'battle_'+(tier>=3?'royal_':tier>=2?'elite_':'levy_')+type:null;
+  }
+  attackProgress(actor,impact=.17){
+    const duration=actor.attackDuration||.46,timer=actor.attackTimer??actor.attackAnimTimer??0,elapsed=Math.max(0,duration-timer);
+    const hit=actor.attackImpact??impact;
+    return elapsed<hit?elapsed/hit*3/7:(3+(elapsed-hit)/Math.max(.01,duration-hit)*4)/7;
+  }
+  drawBackdrop(ctx,cls,width,ground,camera,factor,height){
+    if(!this.has(cls))return false;const sp=this.atlas[cls],f=sp.anims.idle[0],scale=height/sp.ref,tile=f.w*scale;
+    const offset=((camera*factor)%tile+tile)%tile;
+    for(let x=-offset-tile;x<width+tile;x+=tile)this.draw(ctx,cls,['idle'],x+tile/2,ground,1,height,0);
+    return true;
+  }
+  drawAnimal(ctx,x,y,a,time){
+    const cls='animal_'+(a.species||'CAPYBARA'),height={CAPYBARA:19,DEER:31,BOAR:23,MONKEY:23,MACAW:23,TURTLE:12,JAGUAR:28}[a.species]||19;
+    const t=a.animTime??time,gait=this.motion?.sample(a,t);
+    const anim=a.hurtTimer>0||a.state==='CHARGE'?'hurt':a.state==='EAT'?'eat':gait?.moving||Math.abs(a.vx)>2?'walk':'idle';
+    return this.draw(ctx,cls,[anim],x,y,a.facing,height,t,6,anim==='walk'?(gait?.phase??0):null);
+  }
+  drawCorpse(ctx,x,y,c){
+    const cls=this.has('enemy_act_'+c.type)?'enemy_act_'+c.type:({GOBERNADOR_GIRON:'giron_general',CABALLERO:'caballero_esp',HERALDO_ALADO:'heraldo'})[c.type];if(!cls||!this.has(cls))return false;
+    ctx.save();ctx.globalAlpha=Math.min(.8,c.timer/.9);const result=this.draw(ctx,cls,['die','hurt'],x,y,c.facing,46,0,0,Math.min(1,(3.2-c.timer)/.35));ctx.restore();return result;
+  }
+
   // =========================================================================
   // Benkos Biohó Player Rendering
   // =========================================================================
@@ -155,13 +182,16 @@ class BenkosSpriteManager {
     // 3. Renderizado del Personaje (Montado vs Pie)
     let drawn = false;
     const gaitHero=royal?'gait_royal_'+(b.weaponMode==='SPEAR'?'spearman':'swordsman'):'gait_hero';
-    if(!isMounted&&!isAttacking&&!b.resting&&!(b.hurtTimer>0)&&!(b.hurtKneelTimer>0)&&!((b.payTimer??0)>0)&&this.has(gaitHero)){
+    const battle=this.battleClass('HERO',royal?3:1,b.weaponMode);
+    if(!isMounted&&(isAttacking||b.hurtTimer>0)&&this.has(battle)){
+      drawn=this.draw(ctx,battle,[b.hurtTimer>0?'hurt':'attack'],x,y,facing,48,0,0,b.hurtTimer>0?0:this.attackProgress(b));
+    }else if(!isMounted&&!isAttacking&&!b.resting&&!(b.hurtTimer>0)&&!(b.hurtKneelTimer>0)&&!((b.payTimer??0)>0)&&this.has(gaitHero)){
       drawn=this.draw(ctx,gaitHero,isMoving?['walk']:['idle'],x,y,facing,48,0,0,isMoving?(gait?.phase??0):null);
     } else if (isMounted) {
       const cavCls = this.has('real_caballero') ? 'real_caballero' : 'elite_caballero';
       const h = 54;
       if (isAttacking) {
-        drawn = this.draw(ctx, cavCls, ['attack', 'seq'], x, y, facing, h, t, 10, 1 - (b.attackTimer / 0.26));
+        drawn = this.draw(ctx, cavCls, ['attack', 'seq'], x, y, facing, h, t, 10, 1 - (b.attackTimer / (b.attackDuration||.44)));
       } else if (isMoving) {
         drawn = this.draw(ctx, cavCls, isRunning ? ['run', 'walk'] : ['walk'], x, y, facing, h, t, isRunning ? 10 : 7);
       } else {
@@ -171,7 +201,7 @@ class BenkosSpriteManager {
       const h = 46;
       if (isAttacking) {
         const animName = b.weaponMode === 'SPEAR' ? 'attack_spear' : 'attack_sword';
-        drawn = this.draw(ctx, 'campeon', [animName, 'attack_sword'], x, y, facing, h, t, 10, 1 - (b.attackTimer / 0.26));
+        drawn = this.draw(ctx, 'campeon', [animName, 'attack_sword'], x, y, facing, h, t, 10, 1 - (b.attackTimer / (b.attackDuration||.44)));
       } else if (b.roarTimer > 0 || (b.roarWave && b.roarWave > 0)) {
         drawn = this.draw(ctx, 'campeon', ['taunt'], x, y, facing, h, t, 6);
       } else if (b.dashTimer > 0) {
@@ -189,7 +219,7 @@ class BenkosSpriteManager {
     } else if (this.has('benkos')) {
       const h = 42;
       if (isAttacking) {
-        drawn = this.draw(ctx, 'benkos', ['work'], x, y, facing, h, t, 8, 1 - (b.attackTimer / 0.26));
+        drawn = this.draw(ctx, 'benkos', ['work'], x, y, facing, h, t, 8, 1 - (b.attackTimer / (b.attackDuration||.44)));
       } else if (b.roarTimer > 0 || (b.roarWave && b.roarWave > 0)) {
         drawn = this.draw(ctx, 'benkos', ['expr'], x, y, facing, h, t, 4);
       } else if (b.dashTimer > 0) {
@@ -211,63 +241,15 @@ class BenkosSpriteManager {
     return drawn;
   }
 
-  drawWeaponSlashVFX(ctx, x, y, facing, b) {
-    ctx.save();
-    const progress = 1 - Math.max(0, b.attackTimer / 0.26);
-    const isJaguar = b.jaguarTimer > 0;
-    const isSpear = b.weaponMode === 'SPEAR';
-    const isCleave = b.comboStep === 3;
-
-    ctx.translate(Math.round(x), Math.round(y - 20));
-    ctx.scale(facing, 1);
-
-    if (isSpear) {
-      const thrustLen = 32 + progress * 24;
-      ctx.strokeStyle = isJaguar ? '#fde047' : '#f8fafc';
-      ctx.lineWidth = isJaguar ? 3.5 : 2.5;
-      ctx.beginPath();
-      ctx.moveTo(10, -2);
-      ctx.lineTo(10 + thrustLen, -2);
-      ctx.stroke();
-
-      ctx.fillStyle = isJaguar ? '#fbbf24' : '#e0f2fe';
-      ctx.beginPath();
-      ctx.moveTo(10 + thrustLen + 8, -2);
-      ctx.lineTo(6 + thrustLen, -6);
-      ctx.lineTo(6 + thrustLen, 2);
-      ctx.closePath();
-      ctx.fill();
-    } else if (isCleave) {
-      const startAngle = -Math.PI * 0.45;
-      const endAngle = Math.PI * 0.4;
-      const currentAngle = startAngle + (endAngle - startAngle) * progress;
-
-      ctx.strokeStyle = isJaguar ? 'rgba(253, 224, 71, 0.95)' : 'rgba(251, 191, 36, 0.85)';
-      ctx.lineWidth = isJaguar ? 5 : 3.5;
-      ctx.beginPath();
-      ctx.arc(12, 0, 26, startAngle, currentAngle);
-      ctx.stroke();
-
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(12, 0, 24, startAngle, currentAngle);
-      ctx.stroke();
-    } else {
-      const arcProgress = Math.min(1, progress * 1.4);
-      ctx.strokeStyle = isJaguar ? '#fde047' : '#fef08a';
-      ctx.lineWidth = isJaguar ? 4 : 2.5;
-      ctx.beginPath();
-      ctx.arc(14, -2, 20, -0.6, -0.6 + arcProgress * 1.5);
-      ctx.stroke();
-
-      const tipX = 14 + Math.cos(-0.6 + arcProgress * 1.5) * 20;
-      const tipY = -2 + Math.sin(-0.6 + arcProgress * 1.5) * 20;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(tipX - 1.5, tipY - 1.5, 3, 3);
-    }
-
-    ctx.restore();
+  drawWeaponSlashVFX(ctx,x,y,facing,b){
+    const duration=b.attackDuration||.44,elapsed=duration-b.attackTimer,phase=(elapsed-(b.attackImpact??.15))/duration;
+    if(phase<-.04||phase>.25)return;
+    ctx.save();ctx.translate(Math.round(x),Math.round(y-23));ctx.scale(facing,1);
+    ctx.globalAlpha=Math.max(0,.7-phase*2);ctx.strokeStyle=b.jaguarTimer>0?'#e9cd6b':'#e6d8ac';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    if(b.weaponMode==='SPEAR'){ctx.moveTo(13,-2);ctx.lineTo(44+phase*15,-2);}
+    else ctx.arc(9,-1,b.comboStep===3?29:23,-1.1,1.1+phase*2);
+    ctx.stroke();ctx.restore();
   }
 
   // =========================================================================
@@ -313,6 +295,8 @@ class BenkosSpriteManager {
     const isMoving=gait?gait.moving:Math.abs(u.vx||0)>8;
     const isAttacking = (u.attackAnimTimer || 0) > 0;
     const tier = u.tier || 1;
+    const battle=this.battleClass(u.role,tier);
+    if(battle&&this.has(battle)&&(isAttacking||u.hurtTimer>0))return this.draw(ctx,battle,[u.hurtTimer>0?'hurt':'attack'],x,y,facing,u.role==='CAMPEON_REAL'?51:46,0,0,u.hurtTimer>0?0:this.attackProgress(u,u.role==='ARQUERO'?.18:.17));
     const gaitCls=this.gaitClass(u.role,tier);
     if(this.has(gaitCls)&&!isAttacking&&!(u.hurtTimer>0)&&(isMoving||!['REST','RECOVER','WORK','CHOP','BUILD','HELP'].includes(u.activity))){
       const drawn=this.draw(ctx,gaitCls,isMoving?['walk']:['idle'],x,y,facing,u.role==='CAMPEON_REAL'?51:46,0,0,isMoving?(gait?.phase??0):null);
@@ -379,6 +363,14 @@ class BenkosSpriteManager {
     const gait=this.motion?.sample(en,en.animTime??time);
     const isMoving=gait?gait.moving:!!en.isMoving;
     const isAttacking = (en.attackAnimTimer || 0) > 0;
+    const action='enemy_act_'+en.type,walk='enemy_gait_'+en.type;
+    if(this.has(action)){
+      if(en.hurtTimer>0)return this.draw(ctx,action,['hurt'],x,y,facing,46,0,0,0);
+      if(en.windupTimer>0)return this.draw(ctx,action,['windup'],x,y,facing,46,0,0,1-en.windupTimer/(en.windupTotal||.4));
+      if(isAttacking)return this.draw(ctx,action,['attack'],x,y,facing,46,0,0,1-en.attackAnimTimer/.38);
+      if(isMoving&&this.has(walk))return this.draw(ctx,walk,['walk'],x,y,facing,46,0,0,gait?.phase??0);
+      return this.draw(ctx,action,['idle'],x,y,facing,46,0);
+    }
     let cls;
     let h = 42;
 
@@ -427,8 +419,9 @@ class BenkosSpriteManager {
 
     if (!this.has(cls)) return false;
 
+    if(en.windupTimer>0)return this.draw(ctx,cls,['attack_horn','attack_charge','attack','attack_sword','seq'],x,y,facing,h,t,0,.4*(1-en.windupTimer/(en.windupTotal||.4)));
     if (isAttacking) {
-      const drawn = this.draw(ctx, cls, ['attack_horn', 'attack_charge', 'attack', 'attack_sword', 'seq'], x, y, facing, h, t, 10);
+      const drawn = this.draw(ctx, cls, ['attack_horn', 'attack_charge', 'attack', 'attack_sword', 'seq'], x, y, facing, h, t, 10,.4+.6*(1-en.attackAnimTimer/(en.type==='HERALDO_ALADO'?.7:.38)));
       if (en.type === 'GOBERNADOR_GIRON' && en.phase === 2) {
         ctx.save();
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.9)';

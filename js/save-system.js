@@ -1,7 +1,8 @@
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=36fd021d06a5';
-import { ensurePerson } from './people.js?v=36fd021d06a5';
-import { ensureSettlement } from './settlement.js?v=36fd021d06a5';
-import { ensureCampaign } from './campaign.js?v=36fd021d06a5';
+import { ensureEcology, seedEcology } from './ecology.js?v=7c12c8ba03e2';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=7c12c8ba03e2';
+import { ensurePerson } from './people.js?v=7c12c8ba03e2';
+import { ensureSettlement } from './settlement.js?v=7c12c8ba03e2';
+import { ensureCampaign } from './campaign.js?v=7c12c8ba03e2';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -26,7 +27,8 @@ export function makeSave(state, nextEntityId) {
 export function restoreSave(save, defaults) {
   if (!save || typeof save !== 'object') throw new Error('El guardado no es válido.');
   if (save.save_version > SAVE_VERSION) throw new Error('Esta partida necesita una versión más reciente del juego.');
-  const next = clone(defaults);
+  const next=clone(defaults);
+  const migrateEcology=!save.snapshot?.state?.ecology;
   let source = save.snapshot?.state;
   if (save.save_version >= 2 && (!source || typeof source !== 'object' || Array.isArray(source))) {
     throw new Error('La partida está incompleta.');
@@ -99,7 +101,9 @@ export function restoreSave(save, defaults) {
   if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= 0.68 ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);
+  next.enemies.forEach(e=>{if(e.type==='BANDOLERO')e.range=ENEMY_CATALOG.BANDOLERO.range;});
   ensureSettlement(next);
+  ensureEcology(next);
   // Add new tool stations to old worlds without replacing their existing stocks.
   for (const rack of defaults.toolRacks) if (!next.toolRacks.some(r=>r.id===rack.id)) next.toolRacks.push(clone(rack));
   next.toolRacks.forEach(r=>{r.x=STATION_X[r.role]??r.x;});
@@ -111,9 +115,12 @@ export function restoreSave(save, defaults) {
     if (value && typeof value === 'object') Object.values(value).forEach(checkNumbers);
   };
   checkNumbers(next);
+  if(save.snapshot?.state?.benkos?.attackDuration===undefined){next.benkos.attackTimer=0;next.benkos.attackCooldown=0;next.benkos.attackHit=true;next.benkos.queuedAttack=false;}
   next.benkos.vx = 0; next.benkos.sprintHoldTime = 0;
   next.touchHoldPay = false;
   next.cameraX = next.benkos.x;
-  const maxId = Math.max(0, ...[...next.units, ...next.enemies, ...next.droppedCoins, ...next.wildlife].map(e => Number(e.id) || 0));
-  return { state: next, nextEntityId: Math.max(maxId + 1, number(save.snapshot?.nextEntityId, 1, 1)) };
+  let maxId = Math.max(0, ...[...next.units, ...next.enemies, ...next.droppedCoins, ...next.wildlife].map(e => Number(e.id) || 0));
+  let nextId=Math.max(maxId+1,number(save.snapshot?.nextEntityId,1,1));
+  if(migrateEcology)seedEcology(next,()=>nextId++);
+  return {state:next,nextEntityId:nextId};
 }
