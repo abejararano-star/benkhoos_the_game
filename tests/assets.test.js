@@ -39,10 +39,12 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
   const manager=sandbox.window.SpriteManager;
   for(let i=0;i<20&&!manager.ready;i++)await Promise.resolve();
   assert.equal(manager.ready,true);
-  const actor={};assert.equal(manager.animationTime(actor,'walk',10),0);assert.equal(manager.animationTime(actor,'walk',10.25),.25);
-  assert.equal(manager.animationTime(actor,'attack',10.5),0);assert.equal(manager.animationTime(actor,'attack',10.75),.25);
-  assert.notEqual(manager.personClass('GUERRERO',1),manager.personClass('GUERRERO',2));assert.notEqual(manager.personClass('ARQUERO',2),manager.personClass('ARQUERO',3));
-  for(const action of ['idle','walk','run','spear','sword','hurt','pay','rest'])assert.equal(atlas.sprites.motion_hero.anims[action].length,8);
+  assert.ok(!Object.keys(atlas.sprites).some(name => /^(gait_|motion_|battle_|enemy_act_|retro_)/.test(name)));
+  for (const name of ['hero','hero_royal','hero_mounted','hero_mounted_royal']) {
+    const family = atlas.sprites['actor_' + name];
+    assert.ok(family.sheet.endsWith('_v9'), name);
+    for (const action of ['idle','walk','run','spear','sword','hurt']) assert.ok(family.anims[action].length > 1, name + '/' + action);
+  }
   for(const kind of ['hq','home','barracks'])for(let level=1;level<=5;level++)assert.ok(manager.has(`building_${kind}_${level}`));
 
   const gradient={addColorStop(){}};
@@ -56,14 +58,16 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
   }
   assert.ok(logs.length>35);
   for(const args of logs){assert.equal(args.length,9);assert.ok(args.slice(1).every(Number.isFinite));}
-  logs.length=0;manager.draw(ctx,'benkos',['idle'],100,246,1,42,0);
-  const f=atlas.sprites.benkos.anims.idle[0], scale=42/atlas.sprites.benkos.ref;
+  logs.length=0;manager.draw(ctx,'actor_hero',['idle'],100,246,1,48,0);
+  const f=atlas.sprites.actor_hero.anims.idle[0], scale=48/atlas.sprites.actor_hero.ref;
   assert.equal(logs[0][5],Math.round(-f.ax*scale));assert.equal(logs[0][6],Math.round(-f.ay*scale));
   // A carried load must keep the full walking cycle, rather than replace it with two static sack poses.
   manager.motion=new GaitClock();const worker={x:0,role:'MINERO',tier:1,facing:1,vx:60,carryingSack:true,animSeed:0};
   logs.length=0;manager.drawAlly(ctx,0,246,1,worker,0);worker.x=9;worker.animSeed=.15;
   logs.length=0;manager.drawAlly(ctx,9,246,1,worker,.15);
-  const step=atlas.sprites.gait_miner.anims.walk[2];assert.equal(logs[0][1],step.x);assert.equal(logs[0][2],step.y);
+  const step=atlas.sprites.actor_miner.anims.walk[1];assert.equal(logs[0][1],step.x);assert.equal(logs[0][2],step.y);
   worker.animSeed=.3;logs.length=0;manager.drawAlly(ctx,9,246,1,worker,.3);
-  const idle=atlas.sprites.gait_miner.anims.idle[0];assert.equal(logs[0][1],idle.x);assert.equal(logs[0][2],idle.y);
+  const idle=atlas.sprites.actor_miner.anims.idle[0];assert.equal(logs[0][1],idle.x);assert.equal(logs[0][2],idle.y);
+  worker.animSeed=3.6;logs.length=0;manager.drawAlly(ctx,9,246,1,worker,3.6);
+  const glance=atlas.sprites.actor_miner.anims.idle[2];assert.equal(logs[0][1],glance.x);assert.equal(logs[0][2],glance.y);
 });

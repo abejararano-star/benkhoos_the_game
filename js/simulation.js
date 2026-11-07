@@ -1,10 +1,11 @@
-import { updateEcology, isHuntable } from './ecology.js?v=7c12c8ba03e2';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=7c12c8ba03e2';
-import { workConstruction, homeRecovery } from './settlement.js?v=7c12c8ba03e2';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js?v=7c12c8ba03e2';
-import { ensureCampaign } from './campaign.js?v=7c12c8ba03e2';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=7c12c8ba03e2';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=7c12c8ba03e2';
+import { updateCommunity, joinEncounter } from './community.js?v=9662674baa81';
+import { updateEcology, isHuntable } from './ecology.js?v=9662674baa81';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=9662674baa81';
+import { workConstruction, homeRecovery } from './settlement.js?v=9662674baa81';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js?v=9662674baa81';
+import { ensureCampaign } from './campaign.js?v=9662674baa81';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=9662674baa81';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=9662674baa81';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -192,7 +193,8 @@ return function updateSimulation(dt) {
 
   updateEcology(state,dt,{damagePlayer:hitBenkosKingdomStyle,notice:(x,message)=>{addFloatingText(x,WATER_LINE_Y-45,message,'#c8be88');if(message.includes('pesca'))showBanner(message,'');},dropCoin:x=>spawnPhysicalCoin(x,WATER_LINE_Y-12,0,-95,true,false)});
 
-  // ==================== ALLIED UNITS AI (SHEETS 1, 2, 3, 4) ====================
+  updateCommunity(state, dt);
+  // Allied work and defense
   const moraleMult = state.morale / 100;
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
@@ -207,6 +209,7 @@ return function updateSimulation(dt) {
     }
 
     if(updatePerson(u,state,dt,Math.abs(u.x)<600?homeRecovery(state):1))continue;
+    if (joinEncounter(u, state, dt)) continue;
     const fitMult = proficiency(u);
     const combatBonus=['GUERRERO','ARQUERO','CAZADOR','ESPADACHIN','CABALLERO_ALIADO','CAMPEON_REAL'].includes(u.role)?1+(state.settlement.barracks.level-1)*.06:1;
     const tierMult = combatBonus * (u.tier === 3 ? 1.75 : (u.tier === 2 ? 1.35 : 1.0)) * fitMult;
@@ -342,7 +345,9 @@ return function updateSimulation(dt) {
       if (target && u.attackCooldown <= 0) {
         u.facing = Math.sign(target.x - u.x) || 1;
         u.attackCooldown = 1.45;
-        u.attackAnimTimer = 0.45; u.activity = 'HUNT';
+        u.attackDuration = .45;
+        u.attackAnimTimer = .45;
+        u.activity = 'HUNT';
         const throwNet = (!target.nettedTimer || target.nettedTimer <= 0) && Math.random() < 0.55;
         u.attackDuration=.45;u.pendingShot={eta:.17,
           x: u.x,

@@ -49,6 +49,14 @@ Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro ofici
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
 
+## Animaciones y comunidad · edición 9
+
+Cada oficio, rango de infantería y tipo de enemigo usa la misma familia visual para esperar, moverse y actuar. Benkos tiene poses de espada, lanza, pago, pesca y descanso. Sus monturas conservan la ropa o armadura que llevaba a pie. Los personajes que esperan respiran y miran alrededor a ritmos distintos según su temperamento. La opción de reducir movimiento desactiva esos cambios en reposo.
+
+Durante el día los vecinos cercanos conversan, se hacen amigos y se ríen juntos. Una rivalidad puede provocar un altercado breve. Cada participante pierde como máximo tres puntos de salud, conserva al menos el 75 % de su salud máxima y solo puede recibir ese daño una vez por día. Los enemigos cercanos interrumpen los encuentros. Consulta las amistades y rivalidades con **F**. Los vínculos se conservan al guardar.
+
+Al detenerte cerca de una inversión, la franja inferior muestra cuántos reales faltan. En **B**, las mejoras indican cuánto falta en la bolsa y qué obras ya están pagadas. Las escenas temporales `?review=1&scene=mount` y `?review=1&scene=community` permiten revisar la montura y la convivencia.
+
 ## Jungla, fauna y combate · edición 8
 
 El encuadre acerca el mundo con escala entera. Dos capas de jungla con ceibas, lianas y vegetación sustituyen el fondo geométrico. Los rótulos de puestos y comentarios dejan de ocupar la escena: la ayuda aparece en una franja inferior al detenerte cerca de una interacción y se oculta durante el combate.
@@ -127,6 +135,7 @@ js/game.js                Coordinación, economía e interacciones
 js/simulation.js          Simulación y combate a 60 pasos por segundo
 js/ai.js                  Selección y reserva de trabajos
 js/people.js              Personas, dones, profesiones y reacciones
+js/community.js           Encuentros, amistades, rivalidades y altercados
 js/campaign.js            Expediciones, caminos, avisos y mensajeros
 js/settlement.js          Materiales, evoluciones y trabajo de construcción
 js/renderer.js            Personajes, mundo y reflejo

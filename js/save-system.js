@@ -1,8 +1,9 @@
-import { ensureEcology, seedEcology } from './ecology.js?v=7c12c8ba03e2';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=7c12c8ba03e2';
-import { ensurePerson } from './people.js?v=7c12c8ba03e2';
-import { ensureSettlement } from './settlement.js?v=7c12c8ba03e2';
-import { ensureCampaign } from './campaign.js?v=7c12c8ba03e2';
+import { restoreCommunity } from './community.js?v=9662674baa81';
+import { ensureEcology, seedEcology } from './ecology.js?v=9662674baa81';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=9662674baa81';
+import { ensurePerson } from './people.js?v=9662674baa81';
+import { ensureSettlement } from './settlement.js?v=9662674baa81';
+import { ensureCampaign } from './campaign.js?v=9662674baa81';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -101,6 +102,7 @@ export function restoreSave(save, defaults) {
   if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= 0.68 ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);
+  restoreCommunity(next);
   next.enemies.forEach(e=>{if(e.type==='BANDOLERO')e.range=ENEMY_CATALOG.BANDOLERO.range;});
   ensureSettlement(next);
   ensureEcology(next);

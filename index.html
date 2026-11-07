@@ -7,12 +7,12 @@
 <meta name="description" content="Construye, libera y defiende el Palenque de la Matuna. Estrategia y acción para PC.">
 <title>Benkhoos · El Palenque de la Matuna</title>
 <link rel="icon" href="assets/ui/emblem.svg">
-<link rel="stylesheet" href="css/game.css?v=7c12c8ba03e2">
-<script src="js/db.js?v=7c12c8ba03e2" defer>
+<link rel="stylesheet" href="css/game.css?v=9662674baa81">
+<script src="js/db.js?v=9662674baa81" defer>
 </script>
-<script src="js/sprite_manager.js?v=7c12c8ba03e2" defer>
+<script src="js/sprite_manager.js?v=9662674baa81" defer>
 </script>
-<script type="module" src="js/game.js?v=7c12c8ba03e2">
+<script type="module" src="js/game.js?v=9662674baa81">
 </script>
 </head>
 <body>
@@ -94,7 +94,7 @@
 </button>
 </div>
 </section>
-<aside id="nodeHint" class="node-hint hidden" aria-label="Interacción cercana"><strong id="nodeHintTitle"></strong><p id="nodeHintDescription"></p><div id="nodeHintSlots" class="node-slots" aria-hidden="true"></div></aside>
+<aside id="nodeHint" class="node-hint hidden" aria-label="Interacción cercana"><strong id="nodeHintTitle"></strong><p id="nodeHintDescription"></p><span class="node-price"><svg class="icon" aria-hidden="true"><use href="assets/ui/icons.svg#coin"></use></svg><b id="nodeHintCoins"></b></span></aside>
 <aside class="objective">
 <span class="eyebrow">EL CAMINO A LA LIBERTAD</span>
 <h1 id="objectiveTitle">Un pueblo que resiste</h1>
@@ -407,12 +407,11 @@
 <button id="btnSimWave">Crear oleada</button>
 <button id="btnSpawnGovernor">Crear gobernador</button>
 <button id="btnSimCoins">Añadir 15 reales</button>
-<button id="btnToggleSpriteMode">Cambiar sprites / dibujo</button>
 </div>
 </div>
 </dialog>
 
-<dialog id="peopleDialog" aria-labelledby="personName"><div class="dialog-content people-content"><div class="panel-heading"><div><span class="eyebrow">CADA VIDA TIENE SU HISTORIA</span><h2 id="personName">Gente de la Matuna</h2></div><button id="btnClosePeople" aria-label="Cerrar ficha">×</button></div><label class="person-picker" for="personSelect">Conocer a <select id="personSelect"></select></label><div class="person-profile"><canvas id="personPortrait" width="128" height="160" aria-label="Retrato de la persona"></canvas><div><h3 id="personRole"></h3><p id="personTemperament"></p><span class="eyebrow">DON NATURAL</span><strong id="personGift"></strong><p id="personPreference"></p></div></div><div id="personAttributes" class="person-attributes"></div><p id="personExperience" class="muted"></p><p id="personCondition" class="muted"></p><fieldset><legend>Un nuevo camino</legend><label for="personNewRole">Oficio que aprenderá <select id="personNewRole"></select></label><div class="profession-actions"><button id="btnAssignProfession" class="primary">Proponer este oficio</button><button id="btnPersonAuto">Respetar su preferencia</button></div><p id="personFeedback" role="status"></p></fieldset><p class="muted">Cambiar de oficio necesita herramientas del puesto. La persona caminará hasta allí; si hay peligro, buscará refugio antes de entrenar. El don mejora su eficacia y la experiencia se conserva por oficio.</p></div></dialog>
+<dialog id="peopleDialog" aria-labelledby="personName"><div class="dialog-content people-content"><div class="panel-heading"><div><span class="eyebrow">CADA VIDA TIENE SU HISTORIA</span><h2 id="personName">Gente de la Matuna</h2></div><button id="btnClosePeople" aria-label="Cerrar ficha">×</button></div><label class="person-picker" for="personSelect">Conocer a <select id="personSelect"></select></label><div class="person-profile"><canvas id="personPortrait" width="128" height="160" aria-label="Retrato de la persona"></canvas><div><h3 id="personRole"></h3><p id="personTemperament"></p><span class="eyebrow">DON NATURAL</span><strong id="personGift"></strong><p id="personPreference"></p></div></div><div id="personAttributes" class="person-attributes"></div><p id="personExperience" class="muted"></p><p id="personCondition" class="muted"></p><p id="personRelations" class="person-relations"></p><fieldset><legend>Un nuevo camino</legend><label for="personNewRole">Oficio que aprenderá <select id="personNewRole"></select></label><div class="profession-actions"><button id="btnAssignProfession" class="primary">Proponer este oficio</button><button id="btnPersonAuto">Respetar su preferencia</button></div><p id="personFeedback" role="status"></p></fieldset><p class="muted">Cambiar de oficio necesita herramientas del puesto. La persona caminará hasta allí; si hay peligro, buscará refugio antes de entrenar. El don mejora su eficacia y la experiencia se conserva por oficio.</p></div></dialog>
 <dialog id="campaignDialog" aria-labelledby="campaignTitle"><div class="dialog-content wide"><div class="panel-heading"><div><span class="eyebrow">LOS CAMINOS HABLAN</span><h2 id="campaignTitle">Cartas de Cartagena</h2></div><button id="btnCloseCampaign" aria-label="Cerrar cartas">×</button></div><p class="muted">Los emisarios llegan por los caminos con estandarte blanco. No son combatientes. Habla con ellos con E; las cartas no leídas quedan aquí.</p><div id="campaignLetters"></div><button id="btnLetterTreaty" class="hidden">Responder a la propuesta de tregua</button></div></dialog>
 
 <dialog id="settlementDialog" aria-labelledby="settlementTitle"><div class="dialog-content settlement-content">

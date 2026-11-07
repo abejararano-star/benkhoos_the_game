@@ -1,0 +1,152 @@
+const INTERVAL = 8;
+const MAX_DISTANCE = 58;
+const SAFE_DISTANCE = 230;
+const SOCIABLE = ['CALM', 'CARING'];
+
+export function initialCommunity() {
+  return { time: 0, nextAt: 6, relations: [], encounter: null };
+}
+
+function pairKey(a, b) {
+  return [a.id, b.id].sort((left, right) => left - right).join(':');
+}
+
+function firstImpression(a, b) {
+  if (a.temperament === 'CARING' || b.temperament === 'CARING') return 1;
+  if (a.temperament === b.temperament && a.temperament !== 'RESTLESS') return 1;
+  if ([a, b].some(person => person.temperament === 'RESTLESS')) {
+    return [a, b].some(person => person.temperament === 'BRAVE' || person.temperament === 'CAUTIOUS') ? -2 : -1;
+  }
+  return 0;
+}
+
+function available(unit, state) {
+  return unit.role !== 'FUGITIVO' && unit.role !== 'CABALLERO_ALIADO' && unit.hp >= unit.maxHp * .75 &&
+    Math.abs(unit.x) < 610 && unit.fear < 25 && !unit.hurtTimer && !unit.requestedRole &&
+    !unit.carryingSack && !unit.pendingShot && !unit.pendingStrike && !unit.liberateAnimTimer &&
+    !(unit.attackAnimTimer > 0) && !['BUILD', 'CHOP', 'TRAINING', 'FLEE', 'KITE', 'REST', 'RECOVER'].includes(unit.activity) &&
+    !state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - unit.x) < SAFE_DISTANCE);
+}
+
+export function restoreCommunity(state) {
+  const community = state.community;
+  if (!Array.isArray(community?.relations)) {
+    state.community = initialCommunity();
+    return;
+  }
+  const ids = new Set(state.units.map(unit => unit.id));
+  const seen = new Set();
+  community.relations = community.relations.filter(relation => {
+    if (!relation || !Array.isArray(relation.people) || relation.people.length !== 2) return false;
+    const [first, second] = relation.people;
+    const key = pairKey({ id: first }, { id: second });
+    if (first === second || !ids.has(first) || !ids.has(second) || seen.has(key) || !Number.isFinite(relation.score)) return false;
+    seen.add(key);
+    relation.key = key;
+    relation.score = Math.max(-5, Math.min(5, relation.score));
+    relation.lastAt = Number.isFinite(relation.lastAt) ? relation.lastAt : 0;
+    return true;
+  });
+  community.time = Number.isFinite(community.time) ? community.time : 0;
+  community.nextAt = community.time + 4;
+  // A conversation is ephemeral. Its relationship and any damage already applied survive reload.
+  community.encounter = null;
+  for (const unit of state.units) {
+    delete unit.socialPose;
+    if (unit.activity === 'SOCIAL') unit.activity = 'IDLE';
+  }
+}
+
+export function updateCommunity(state, dt) {
+  const community = state.community;
+  community.time += dt;
+  const encounter = community.encounter;
+  if (encounter) {
+    const participants = encounter.people.map(id => state.units.find(unit => unit.id === id));
+    if (participants.some(unit => !unit || !available(unit, state)) || state.phase !== 'DAY_EXPLORE' || encounter.elapsed >= encounter.duration) {
+      for (const unit of participants) {
+        if (unit) delete unit.socialPose;
+      }
+      community.encounter = null;
+      community.nextAt = community.time + INTERVAL;
+      return;
+    }
+    encounter.elapsed += dt;
+    if (encounter.kind === 'SCUFFLE' && !encounter.hit && encounter.elapsed >= 1.15) {
+      encounter.hit = true;
+      for (const unit of participants) {
+        unit.lastScuffleDay = state.day;
+        const damage = Math.min(3, Math.max(1, Math.floor(unit.maxHp * .03)));
+        const floor = Math.ceil(unit.maxHp * .75);
+        unit.hp -= Math.min(damage, Math.max(0, unit.hp - floor));
+      }
+    }
+    return;
+  }
+
+  if (state.phase !== 'DAY_EXPLORE' || community.time < community.nextAt) return;
+  community.nextAt = community.time + 2;
+  const people = state.units.filter(unit => available(unit, state));
+  const links = new Map(community.relations.map(relation => [relation.key, relation]));
+  let chosen;
+  for (let i = 0; i < people.length; i++) {
+    for (let j = i + 1; j < people.length; j++) {
+      const a = people[i];
+      const b = people[j];
+      const distance = Math.abs(a.x - b.x);
+      if (distance > MAX_DISTANCE) continue;
+      const key = pairKey(a, b);
+      const relation = links.get(key);
+      const age = community.time - (relation?.lastAt ?? -100);
+      if (age < 26) continue;
+      if (!chosen || age - distance * .1 > chosen.priority) {
+        chosen = { a, b, key, relation, priority: age - distance * .1 };
+      }
+    }
+  }
+  if (!chosen) return;
+
+  const { a, b, key } = chosen;
+  let relation = chosen.relation;
+  if (!relation) {
+    relation = { key, people: [a.id, b.id], score: firstImpression(a, b), lastAt: 0 };
+    community.relations.push(relation);
+  }
+  const hotheaded = [a, b].some(unit => unit.temperament === 'RESTLESS');
+  const rested = [a, b].every(unit => unit.lastScuffleDay !== state.day);
+  let kind = 'CHAT';
+  if (relation.score <= -2 && hotheaded && rested) {
+    kind = 'SCUFFLE';
+  } else if (relation.score >= 2 && [a, b].some(unit => SOCIABLE.includes(unit.temperament))) {
+    kind = 'LAUGH';
+  }
+  relation.score = Math.max(-5, Math.min(5, relation.score + (kind === 'SCUFFLE' ? -1 : 1)));
+  relation.lastAt = community.time;
+  community.encounter = { people: [a.id, b.id], kind, elapsed: 0, duration: kind === 'SCUFFLE' ? 2.25 : 3.2, hit: false };
+}
+
+export function joinEncounter(unit, state, dt) {
+  const encounter = state.community.encounter;
+  const index = encounter?.people.indexOf(unit.id) ?? -1;
+  if (index < 0) return false;
+  const other = state.units.find(person => person.id === encounter.people[1 - index]);
+  if (!other) return false;
+  const direction = Math.sign(other.x - unit.x) || (index === 0 ? 1 : -1);
+  const spacing = encounter.kind === 'SCUFFLE' ? 24 : 29;
+  const gap = Math.abs(other.x - unit.x) - spacing;
+  unit.facing = direction;
+  unit.vx = Math.abs(gap) > 2 ? direction * Math.sign(gap) * Math.min(32, Math.abs(gap) * 4) : 0;
+  unit.x += unit.vx * dt;
+  unit.activity = 'SOCIAL';
+  unit.socialPose = { kind: encounter.kind, time: encounter.elapsed, index };
+  unit.mood = { CHAT: 'Conversando', LAUGH: 'Riendo con una amistad', SCUFFLE: 'En un altercado' }[encounter.kind];
+  return true;
+}
+
+export function relationshipsFor(unit, state) {
+  return state.community.relations.flatMap(relation => {
+    if (!relation.people.includes(unit.id)) return [];
+    const other = state.units.find(person => person.id === relation.people.find(id => id !== unit.id));
+    return other ? [{ name: other.name, score: relation.score, lastAt: relation.lastAt }] : [];
+  }).sort((a, b) => Math.abs(b.score) - Math.abs(a.score) || b.lastAt - a.lastAt);
+}

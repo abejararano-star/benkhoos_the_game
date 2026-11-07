@@ -5,8 +5,6 @@ from PIL import Image
 from import_expansion import grid_bounds
 
 ROOT=Path(__file__).resolve().parents[1]
-PEOPLE=['hero','civil','woodcutter','farmer','miner','hunter','builder','archer','spearman','messenger']
-GUARDS=['elite_spearman','royal_spearman','elite_archer','royal_archer','elite_swordsman','royal_swordsman']
 PROPS={
     'stations_v7':(3,3,['station_'+r for r in ['LENADOR','AGRICULTOR','MINERO','CAZADOR','CONSTRUCTOR','ARQUERO','GUERRERO','ESPADACHIN','CABALLERO_ALIADO']]),
     'walls_v7':(3,2,['fortification_'+str(i) for i in range(1,6)]+['fortification_ruin']),
@@ -17,7 +15,7 @@ PROPS={
 def import_pixel_v7(output):
     from export_atlas import pack
     sprites={}
-    specs=[('gait_people_v7',8,10),('gait_guard_v7',8,6),('currency_v7',8,2)]+[(name,c,r) for name,(c,r,_) in PROPS.items()]
+    specs=[('currency_v7',8,2)]+[(name,c,r) for name,(c,r,_) in PROPS.items()]
     for sheet,cols,rows in specs:
         image=Image.open(ROOT/'art/source'/f'{sheet}.png').convert('RGBA')
         mask=np.array(image)[:,:,3]>220
@@ -33,15 +31,7 @@ def import_pixel_v7(output):
                 frame=cell.crop(box);a=np.array(cell)[:,:,3];ys,xs=np.where(a>160)
                 if not len(ys):raise ValueError('Invisible sprite')
                 baseline=float(np.percentile(ys,99.8))+1
-                is_gait=sheet.startswith('gait_')
-                if is_gait:
-                    name=(PEOPLE if sheet=='gait_people_v7' else GUARDS)[row]
-                    cls='gait_'+name
-                    # Track the torso root, leaving the animated feet free to alternate.
-                    band=(ys>ys.min()+(ys.max()-ys.min())*.35)&(ys<ys.min()+(ys.max()-ys.min())*.65)
-                    ax=float(np.median(xs[band]))-box[0]
-                    index=col
-                elif sheet=='currency_v7':
+                if sheet=='currency_v7':
                     cls='currency_coin' if row==0 else 'currency_pouch' if col<5 else 'currency_chest'
                     index=col if row==0 or col<5 else col-5
                     ax=cell.width/2-box[0]
@@ -56,10 +46,7 @@ def import_pixel_v7(output):
             for f in frames:f['x'],f['y']=positions[(cls,f['i'])]
             heights=[f.pop('_solidH') for f in frames]
             ref=float(max(heights) if cls=='currency_pouch' else np.median(heights))
-            if cls.startswith('gait_'):
-                anims={'walk':frames,'idle':[dict(frames[1],i=0)]}
-                if 'spearman' in cls:ref*=.9
-            elif cls=='currency_coin':anims={'spin':frames,'idle':[frames[0]]}
+            if cls=='currency_coin':anims={'spin':frames,'idle':[frames[0]]}
             elif cls=='currency_pouch':anims={'fill':frames,'idle':[frames[0]]}
             elif cls=='currency_chest':anims={'open':frames,'idle':[frames[0]]}
             else:anims={'idle':frames}

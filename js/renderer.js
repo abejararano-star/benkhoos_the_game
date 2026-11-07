@@ -1,443 +1,10 @@
-import { RenderInterpolation } from './visual-motion.js?v=7c12c8ba03e2';
-import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=7c12c8ba03e2';
-import { ROAD_GATES } from './campaign.js?v=7c12c8ba03e2';
-import { WATER_LINE_Y } from './config.js?v=7c12c8ba03e2';
-export function createRenderer({ state, keys, canvas, ctx, sceneCanvas, sctx, view, settings, getNearestInteractiveNode }) {
+import { RenderInterpolation } from './visual-motion.js?v=9662674baa81';
+import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=9662674baa81';
+import { ROAD_GATES } from './campaign.js?v=9662674baa81';
+import { WATER_LINE_Y } from './config.js?v=9662674baa81';
+export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
 const position=(e,key='x')=>interpolation.value(e,key,renderAlpha);
-const PALETTE = {
-  outline: '#1a120d',
-  hair: '#1e1510',
-  hairHi: '#36261d',
-  skinLight: '#8a5a3c',
-  skinMid: '#6e452c',
-  skinShadow: '#4d2e1c',
-  tunicLight: '#e4d5be',
-  tunicMid: '#cbb89b',
-  tunicShadow: '#a69072',
-  scarfGold: '#ca984c',
-  scarfShadow: '#966b28',
-  strawHat: '#d8b467',
-  strawBand: '#7c4d25',
-  bronzeGold: '#d97706',
-  brightGold: '#fbbf24',
-  royalRed: '#b91c1c'
-};
-
-function drawPixelHorse(g, animTime, isMoving, opts = {}) {
-  const {
-    coat = '#5c3a21',
-    coatShadow = '#3b2313',
-    mane = '#1c130c',
-    caparison = '#991b1b',
-    goldTrim = '#eab308',
-    rearing = false
-  } = opts;
-
-  const px = (x, y, w, h, col) => {
-    g.fillStyle = col;
-    g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-  };
-
-  const gallop = isMoving ? Math.sin(animTime * 15) : 0;
-  const bob = isMoving ? Math.abs(gallop) * 2 : 0;
-  const rearAngle = rearing ? -6 : 0;
-
-  px(-16, -2, 32, 2, 'rgba(0,0,0,0.38)');
-
-  const l1 = Math.round(gallop * 5);
-  const l2 = Math.round(-gallop * 5);
-  px(-13 + l1, -11, 3, 10, coatShadow);
-  px(-13 + l1, -2, 4, 2, '#111');
-  px(-8 + l2, -11, 3, 10, coat);
-  px(-8 + l2, -2, 4, 2, '#1c1917');
-
-  px(7 + l2, -11 + rearAngle, 3, 10, coatShadow);
-  px(7 + l2, -2 + rearAngle, 4, 2, '#111');
-  px(11 + l1, -11 + rearAngle, 3, 10, coat);
-  px(11 + l1, -2 + rearAngle, 4, 2, '#1c1917');
-
-  const by = Math.round(-21 - bob + rearAngle * 0.5);
-  px(-14, by, 28, 11, coat);
-  px(-13, by + 7, 26, 4, coatShadow);
-
-  px(-9, by, 16, 8, caparison);
-  px(-9, by + 7, 16, 2, goldTrim);
-  px(-5, by - 1, 9, 3, '#451a03');
-
-  px(-18, by + 1, 4, 8, mane);
-  px(-19, by + 4, 3, 7, mane);
-
-  const hy = by - 9 + rearAngle * 0.5;
-  px(8, hy + 2, 8, 11, coat);
-  px(7, hy, 4, 9, mane);
-  px(11, hy - 2, 9, 6, coat);
-  px(13, hy - 5, 3, 3, coat);
-  px(16, hy, 2, 1, '#ffffff');
-  px(11, hy + 2, 8, 1, goldTrim);
-  px(6, hy + 4, 7, 1, goldTrim);
-}
-
-function drawAfricanShield(px, x, y, isRoyalGold) {
-  if (isRoyalGold) {
-    px(x, y, 7, 16, '#1c1917');
-    px(x + 1, y - 1, 5, 18, '#eab308');
-    px(x + 1, y + 1, 5, 14, '#1c1917');
-    px(x + 3, y + 2, 1, 12, '#fde047');
-    px(x + 1, y + 7, 5, 2, '#fde047');
-  } else {
-    px(x, y, 7, 14, '#5c3418');
-    px(x + 1, y + 1, 5, 12, '#78492a');
-    px(x + 3, y + 2, 1, 10, '#f8fafc');
-    px(x + 1, y + 6, 5, 2, '#f8fafc');
-  }
-}
-
-function drawAlliedUnitSprite(g, sx, groundY, u, time) {
-  if (state.useRealSprites !== false && window.SpriteManager && window.SpriteManager.drawAlly(g, sx, groundY, u.facing, u, time)) {
-    return;
-  }
-  const isMoving = Math.abs(u.vx) > 8;
-  const isChampion = u.role === 'CAMPEON_REAL';
-  const isMounted = u.role === 'CABALLERO_ALIADO';
-  const tier = isChampion ? 3 : (u.tier || 1);
-
-  g.save();
-  g.translate(Math.round(sx), Math.round(groundY));
-  g.scale(u.facing, 1);
-
-  const px = (x, y, w, h, col) => {
-    g.fillStyle = col;
-    g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-  };
-
-  if (isMounted) {
-    drawPixelHorse(g, u.animSeed, isMoving, {
-      coat: tier === 3 ? '#3b2313' : '#6b4226',
-      coatShadow: '#27170e',
-      mane: '#111',
-      caparison: tier === 3 ? '#b91c1c' : '#d97706',
-      goldTrim: '#fde047'
-    });
-    g.translate(0, -14);
-  }
-
-  const walk = Math.sin(u.animSeed * 11);
-  const legL = isMoving ? Math.round(walk * 4) : -2;
-  const legR = isMoving ? Math.round(-walk * 4) : 2;
-  const bounce = isMoving ? Math.abs(walk) * 1.5 : 0;
-
-  if (u.role === 'FUGITIVO' || u.liberateAnimTimer > 0) {
-    px(-6, -2, 12, 2, 'rgba(0,0,0,0.35)');
-    px(legL - 1, -10, 3, 10, PALETTE.skinMid);
-    px(legR, -10, 3, 10, PALETTE.skinShadow);
-    px(-5, -14, 10, 7, PALETTE.tunicMid);
-    px(-5, -7, 3, 2, PALETTE.tunicShadow);
-    px(2, -7, 3, 2, PALETTE.tunicShadow);
-    px(-4, -24, 8, 11, PALETTE.skinMid);
-    px(-4, -24, 5, 11, PALETTE.tunicLight);
-    px(-3, -32, 7, 7, PALETTE.skinMid);
-    px(-4, -34, 9, 4, PALETTE.hair);
-
-    if (u.liberateAnimTimer > 0) {
-      px(-6, -33, 3, 9, PALETTE.skinLight);
-      px(5, -33, 3, 9, PALETTE.skinLight);
-      px(-7, -30, 3, 2, '#94a3b8');
-      px(6, -30, 3, 2, '#94a3b8');
-    } else {
-      px(-4, -25, 8, 2, '#64748b');
-      px(0, -23, 2, 19, '#475569');
-      px(1, -21, 1, 15, '#cbd5e1');
-      px(legL - 1, -4, 3, 2, '#94a3b8');
-      px(legR, -4, 3, 2, '#94a3b8');
-      px(2, -22, 3, 8, PALETTE.skinLight);
-      px(2, -16, 3, 2, '#94a3b8');
-    }
-    g.restore();
-    return;
-  }
-
-  if (u.carryingSack) {
-    px(-6, -2, 12, 2, 'rgba(0,0,0,0.35)');
-    px(legL - 1, -10, 3, 10, PALETTE.skinMid);
-    px(legR, -10, 3, 10, PALETTE.skinShadow);
-    px(-4, -15, 9, 7, PALETTE.tunicMid);
-    px(-3, -24, 9, 10, PALETTE.tunicLight);
-    px(0, -31, 7, 7, PALETTE.skinMid);
-    px(-1, -33, 8, 3, PALETTE.hair);
-    px(-11, -30, 11, 14, '#a16207');
-    px(-10, -29, 9, 12, '#ca8a04');
-    px(-4, -24, 7, 3, PALETTE.skinLight);
-    g.restore();
-    return;
-  }
-
-  if (!isMounted) {
-    px(-7, -2, 14, 2, 'rgba(0,0,0,0.35)');
-    px(legL - 1, -10, 3, 10, PALETTE.skinMid);
-    px(legR + 1, -10, 3, 10, PALETTE.skinShadow);
-    if (tier >= 2 || isChampion) {
-      px(legL - 1, -8, 3, 6, PALETTE.bronzeGold);
-      px(legR + 1, -8, 3, 6, PALETTE.brightGold);
-    }
-    px(-5, -15, 10, 6, PALETTE.tunicLight);
-    if (tier >= 2 || u.role === 'GUERRERO' || isChampion) {
-      px(-5, -16, 10, 2, PALETTE.royalRed);
-      px(-1, -15, 3, 6, PALETTE.royalRed);
-    }
-  }
-
-  const ty = Math.round(-25 - bounce);
-
-  if (tier === 3 || isChampion) {
-    const capeWave = isMoving ? 3 : 0;
-    px(-9 - capeWave, ty + 1, 7 + capeWave, 18, '#991b1b');
-    px(-8 - capeWave, ty + 2, 5 + capeWave, 15, '#dc2626');
-  }
-
-  if (tier >= 2 || isChampion) {
-    px(-5, ty, 10, 11, '#78350f');
-    px(-4, ty + 1, 8, 9, PALETTE.bronzeGold);
-    px(-2, ty + 2, 5, 6, PALETTE.brightGold);
-    px(-6, ty, 4, 4, PALETTE.brightGold);
-    px(3, ty, 4, 4, PALETTE.brightGold);
-  } else {
-    px(-4, ty, 9, 11, PALETTE.tunicLight);
-    if (u.role === 'GUERRERO') {
-      px(-4, ty + 1, 3, 9, PALETTE.royalRed);
-      px(-1, ty + 4, 4, 5, PALETTE.royalRed);
-    }
-  }
-
-  const hy = ty - 8;
-  px(-3, hy, 7, 7, PALETTE.skinMid);
-  px(2, hy + 2, 2, 1, '#ffffff');
-  px(-4, hy - 2, 9, 3, PALETTE.hair);
-
-  if (u.role === 'AGRICULTOR' || u.role === 'MINERO') {
-    if (tier >= 2) {
-      px(-6, hy - 2, 12, 2, PALETTE.strawHat);
-      px(-3, hy - 5, 7, 3, PALETTE.brightGold);
-    } else {
-      px(-4, hy - 2, 8, 3, '#d6c7b2');
-    }
-  } else if (tier === 3) {
-    px(-4, hy - 3, 9, 3, PALETTE.brightGold);
-    px(-2, hy - 8, 5, 5, '#dc2626');
-    px(-1, hy - 9, 3, 3, '#ef4444');
-  } else if (tier === 2) {
-    px(-4, hy - 3, 9, 4, '#f8fafc');
-    px(2, hy - 3, 2, 2, PALETTE.brightGold);
-  } else if (u.role === 'ARQUERO' || u.role === 'CAZADOR') {
-    px(-4, hy - 1, 8, 2, '#fde047');
-  }
-
-  const isAtk = u.attackAnimTimer > 0;
-  if (u.role === 'AGRICULTOR') {
-    const swing = Math.sin(u.animSeed * 9) > 0 ? 4 : -2;
-    px(2, ty + 3, 5, 3, PALETTE.skinLight);
-    px(6, ty + 2, 2, 12 + swing, '#78350f');
-    px(5, ty + 13 + swing, 5, 3, '#94a3b8');
-  } else if (u.role === 'MINERO') {
-    const swing = Math.sin(u.animSeed * 10) > 0 ? 5 : -4;
-    px(2, ty + 2, 5, 3, PALETTE.skinLight);
-    px(6, ty - 2 + swing, 2, 13, '#78350f');
-    px(3, ty - 4 + swing, 8, 2, '#cbd5e1');
-  } else if (u.role === 'CAZADOR') {
-    px(-6, ty + 1, 3, 8, '#78350f');
-    const thrust = isAtk ? 6 : 0;
-    px(-2 + thrust, ty + 1, 20, 2, '#78350f');
-    px(18 + thrust, ty, 4, 3, '#e2e8f0');
-    g.strokeStyle = '#d6c7b2';
-    g.lineWidth = 1;
-    g.strokeRect(2, ty + 4, 6, 8);
-  } else if (u.role === 'ARQUERO') {
-    px(-6, ty + 1, 3, 8, '#78350f');
-    g.strokeStyle = tier >= 2 ? '#fde047' : '#854d0e';
-    g.lineWidth = 2;
-    g.beginPath();
-    g.arc(5, ty + 5, 9, -1.2, 1.2);
-    g.stroke();
-    if (isAtk) {
-      px(2, ty + 4, 11, 1, '#f8fafc');
-    }
-  } else if (u.role === 'ESPADACHIN') {
-    const slash = isAtk ? 6 : 0;
-    px(2 + slash, ty + 3, 5, 3, PALETTE.skinLight);
-    px(6 + slash, ty - 7, 3, 12, '#f8fafc');
-    px(7 + slash, ty - 9, 4, 3, '#e2e8f0');
-    if (isAtk) {
-      g.strokeStyle = 'rgba(253, 224, 71, 0.85)';
-      g.lineWidth = 2.5;
-      g.beginPath();
-      g.arc(6, ty + 3, 18, -1.1, 0.7);
-      g.stroke();
-    }
-  } else {
-    const thrust = isAtk ? 7 : 0;
-    if (isChampion && u.weaponSubMode === 'SWORD' && isAtk) {
-      px(4, ty + 1, 16, 2, '#f8fafc');
-      g.strokeStyle = 'rgba(253, 224, 71, 0.9)';
-      g.lineWidth = 3;
-      g.beginPath();
-      g.arc(6, ty + 2, 20, -1.0, 0.8);
-      g.stroke();
-    } else {
-      if (isAtk || isMounted) {
-        px(-6 + thrust, ty + 3, 28, 2, '#78350f');
-        px(22 + thrust, ty + 2, 6, 4, '#f8fafc');
-      } else {
-        px(-5, ty - 14, 2, 30, '#78350f');
-        px(-6, ty - 18, 4, 5, '#f8fafc');
-      }
-    }
-    drawAfricanShield(px, 3, ty - 1, tier >= 2 || isChampion);
-  }
-
-  g.restore();
-}
-
-function drawColonialUnitSprite(g, sx, groundY, en, time) {
-  if (state.useRealSprites !== false && window.SpriteManager && window.SpriteManager.drawEnemy(g, sx, groundY, en.facing, en, time)) {
-    return;
-  }
-  g.save();
-  g.translate(Math.round(sx), Math.round(groundY));
-  g.scale(en.facing, 1);
-
-  const px = (x, y, w, h, col) => {
-    g.fillStyle = col;
-    g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-  };
-
-  if (en.appearTimer > 0) {
-    g.fillStyle = `rgba(253, 224, 71, ${Math.min(0.75, en.appearTimer)})`;
-    g.fillRect(-20, -85, 40, 85);
-  }
-
-  const walk = Math.sin(en.animTime * 11);
-  const legL = Math.round(walk * 3.5);
-  const legR = Math.round(-walk * 3.5);
-  const isAttacking = en.attackAnimTimer > 0;
-
-  if (en.type === 'HERALDO_ALADO') {
-    if (en.trumpetRing > 0) {
-      g.strokeStyle = `rgba(251, 191, 36, ${en.trumpetRing})`;
-      g.lineWidth = 2.5;
-      for (let r = 1; r <= 3; r++) {
-        g.beginPath();
-        g.arc(24, -34, (1 - en.trumpetRing) * 55 + r * 10, -0.9, 0.9);
-        g.stroke();
-      }
-    }
-    drawPixelHorse(g, en.animTime, true, {
-      coat: '#f1f5f9', coatShadow: '#cbd5e1', mane: '#94a3b8', caparison: '#1e3a8a', goldTrim: '#f59e0b', rearing: isAttacking
-    });
-    const wingFlap = Math.round(Math.sin(en.animTime * 10) * 3);
-    px(-22, -46 + wingFlap, 16, 16, '#ffffff');
-    px(-14, -36, 12, 16, '#b91c1c');
-    px(-4, -37, 9, 12, '#1d4ed8');
-    px(-3, -45, 7, 7, '#d6a885');
-    px(-5, -52, 10, 5, '#dc2626');
-    px(7, -38, 14, 2, '#f59e0b');
-    g.restore();
-    return;
-  }
-
-  if (en.type === 'GOBERNADOR_GIRON') {
-    if (en.phase === 1) {
-      drawPixelHorse(g, en.animTime, true, {
-        coat: '#4a2c18', coatShadow: '#2e1a0d', mane: '#170d06', caparison: '#172554', goldTrim: '#f59e0b', rearing: en.tauntTimer > 0
-      });
-      px(-15, -36, 13, 18, '#991b1b');
-      px(-4, -37, 9, 13, '#1e293b');
-      px(-3, -45, 7, 7, '#e2b897');
-      px(-6, -47, 10, 4, '#f1f5f9');
-      px(4, -52, 3, 14, '#f8fafc');
-    } else {
-      px(legL - 3, -9, 4, 9, '#27170e');
-      px(legR + 1, -9, 4, 9, '#3b2314');
-      px(-11, -28, 12, 20, '#991b1b');
-      px(-4, -29, 10, 14, '#172554');
-      px(-3, -38, 8, 8, '#e2b897');
-      px(-6, -40, 11, 4, '#f8fafc');
-      px(8, -26, 16, 2, '#ffffff');
-    }
-    if (en.nettedTimer > 0) {
-      g.strokeStyle = '#fef08a';
-      g.strokeRect(-12, -36, 24, 34);
-    }
-    g.restore();
-    return;
-  }
-
-  if (en.type === 'CABALLERO') {
-    drawPixelHorse(g, en.animTime, true, {});
-    px(-4, -36, 9, 11, '#94a3b8');
-    px(-3, -43, 7, 7, '#d6a885');
-    px(-5, -46, 11, 4, '#64748b');
-    px(-6, -32, 28, 2, '#78350f');
-    g.restore();
-    return;
-  }
-
-  px(-6, -2, 12, 2, 'rgba(0,0,0,0.35)');
-  px(legL - 2, -10, 3, 10, '#5c3a21');
-  px(legR + 1, -10, 3, 10, '#432818');
-  px(-4, -23, 9, 12, en.type === 'SOLDADO_ESPANOL' ? '#94a3b8' : (en.type === 'ARCABUCERO' ? '#9a5b32' : '#2f5e35'));
-  px(-3, -30, 7, 7, '#d6a885');
-  px(-5, -33, 10, 3, '#475569');
-  if (en.type === 'ARCABUCERO') {
-    px(2, -21, 14, 2, '#475569');
-    if (en.muzzleFlash > 0) px(16, -24, 7, 6, '#fde047');
-  } else {
-    px(4, -20, 10, 2, '#e2e8f0');
-  }
-
-  if (en.nettedTimer > 0) {
-    g.strokeStyle = '#fde047';
-    g.lineWidth = 1;
-    g.strokeRect(-8, -32, 16, 30);
-    g.beginPath();
-    g.moveTo(-8, -32); g.lineTo(8, -2);
-    g.moveTo(8, -32); g.lineTo(-8, -2);
-    g.stroke();
-  }
-
-  g.restore();
-}
-
-function drawBenkosPlayer(g, sx, groundY, time) {
-  const b = state.benkos;
-  if (state.useRealSprites !== false && window.SpriteManager && window.SpriteManager.drawBenkos(g, sx, groundY, b.facing, b, time)) {
-    return;
-  }
-  const isHoldingPay = keys['KeyS'] || keys['ArrowDown'] || keys['KeyK'] || state.touchHoldPay;
-
-  if (b.royalArmor) {
-    drawAlliedUnitSprite(g, sx, groundY, {
-      role: 'CAMPEON_REAL',
-      tier: 3,
-      vx: b.vx,
-      facing: b.facing,
-      animSeed: b.animTime,
-      attackAnimTimer: b.attackTimer,
-      weaponSubMode: b.weaponMode
-    }, time);
-    return;
-  }
-
-  drawAlliedUnitSprite(g, sx, groundY, {
-    role: 'GUERRERO',
-    tier: 1,
-    vx: b.vx,
-    facing: b.facing,
-    animSeed: b.animTime,
-    attackAnimTimer: b.attackTimer,
-    carryingSack: isHoldingPay
-  }, time);
-}
-
 function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, chopped, time=0, variant=0) {
   const treeClass=chopped?'forest_stump':['forest_ceiba','forest_hardwood','forest_mangrove','forest_palm'][Math.abs(variant)%4];
   if(window.SpriteManager?.has(treeClass)){
@@ -612,11 +179,7 @@ function renderWorldAboveWater(g, time) {
   state.horses.forEach((hr) => {
     const hsx = toScreenX(position(hr));
     if (hsx < -50 || hsx > w + 50) return;
-    g.save();
-    g.translate(hsx, GROUND_SURFACE_Y);
-    g.scale(hr.facing, 1);
-    drawPixelHorse(g, time, false, {});
-    g.restore();
+    window.SpriteManager?.drawHorse?.(g, hsx, GROUND_SURFACE_Y, hr, time);
   });
 
   state.walls.forEach((wall) => {
@@ -649,14 +212,13 @@ function renderWorldAboveWater(g, time) {
     const sx = toScreenX(position(u));
     if (sx < -50 || sx > w + 50) return;
     drawMarker(g, sx, GROUND_SURFACE_Y, u);
-    drawAlliedUnitSprite(g, sx, GROUND_SURFACE_Y, u, time);
+    window.SpriteManager?.drawAlly?.(g, sx, GROUND_SURFACE_Y, u.facing, u, time);
     drawPersonStory(g,sx,GROUND_SURFACE_Y,u,false);
   });
 
   state.messengers.forEach(m=>{
     const sx=toScreenX(position(m));if(sx < -50 || sx > w+50)return;
-    if(window.SpriteManager?.drawMessenger)window.SpriteManager.drawMessenger(g,sx,GROUND_SURFACE_Y,m,time);
-    else {g.fillStyle='#7694a0';g.fillRect(sx-6,GROUND_SURFACE_Y-28,12,28);}
+    window.SpriteManager?.drawMessenger?.(g,sx,GROUND_SURFACE_Y,m,time);
     g.fillStyle='#e2dfc7';g.fillRect(sx+m.facing*12,GROUND_SURFACE_Y-49,2,23);g.fillRect(sx+m.facing*12,GROUND_SURFACE_Y-49,12,7);
 
   });
@@ -666,7 +228,7 @@ function renderWorldAboveWater(g, time) {
     if (sx < -70 || sx > w + 70) return;
     g.save();
     if(en.appearTimer>0)g.globalAlpha=Math.max(0,Math.min(1,1-en.appearTimer/1.2));
-    drawColonialUnitSprite(g, sx, GROUND_SURFACE_Y, en, time);
+    window.SpriteManager?.drawEnemy?.(g, sx, GROUND_SURFACE_Y, en.facing, en, time);
     g.restore();
     drawMarker(g, sx, GROUND_SURFACE_Y, en, true);
   });
@@ -689,14 +251,8 @@ function renderWorldAboveWater(g, time) {
     g.stroke();
   }
 
-  drawBenkosPlayer(g, bsx, by, time);
+  window.SpriteManager?.drawBenkos?.(g, bsx, by, b.facing, b, time);
   if(b.inStream){g.strokeStyle='#84b9ae';g.lineWidth=1;g.beginPath();g.ellipse(bsx,by+2,12,2,0,0,Math.PI*2);g.stroke();}
-  if(b.interaction?.kind==='fish'){
-    const side=b.facing,tipX=bsx+side*24;
-    g.strokeStyle='#b99a5c';g.lineWidth=1;g.beginPath();g.moveTo(bsx+side*8,by-22);g.lineTo(tipX,by-43);g.stroke();
-    g.strokeStyle='#c4d2b6';g.beginPath();g.moveTo(tipX,by-43);g.lineTo(bsx+side*36,by+5);g.stroke();
-    g.fillStyle='#d29c70';g.fillRect(bsx+side*36-1,by+3+(settings.reduce_motion?0:Math.round(Math.sin(time*4))),3,2);
-  }
   g.fillStyle = '#e6c486';
   g.fillRect(bsx - 3, by + 2, 6, 2);
   g.fillRect(bsx - 1, by + 4, 2, 2);
@@ -784,6 +340,7 @@ function renderWorldAboveWater(g, time) {
 }
 
 function renderFrame(time,alpha=1) {
+  if (window.SpriteManager) window.SpriteManager.reduceMotion = settings.reduce_motion;
   renderAlpha=alpha;renderCamera=interpolation.cameraX(state,alpha);
   const w = view.width;
   const h = view.height;

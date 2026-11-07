@@ -1,19 +1,19 @@
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=7c12c8ba03e2';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=7c12c8ba03e2';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=7c12c8ba03e2';
-import { requestBuilding } from './settlement.js?v=7c12c8ba03e2';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=7c12c8ba03e2';
-import { AfroColombianAudioEngine } from './audio.js?v=7c12c8ba03e2';
-import { createInitialState } from './world-state.js?v=7c12c8ba03e2';
-import { makeSave, restoreSave } from './save-system.js?v=7c12c8ba03e2';
-import { createRenderer } from './renderer.js?v=7c12c8ba03e2';
-import { createSimulation } from './simulation.js?v=7c12c8ba03e2';
-import { FixedStepper } from './clock.js?v=7c12c8ba03e2';
-import { bindInput } from './input.js?v=7c12c8ba03e2';
-import { createUI } from './ui.js?v=7c12c8ba03e2';
-import { chooseDefenseSide } from './ai.js?v=7c12c8ba03e2';
-import { ensurePerson, personMaxHp, requestProfession, ROLE_NAMES } from './people.js?v=7c12c8ba03e2';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=7c12c8ba03e2';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=9662674baa81';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=9662674baa81';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=9662674baa81';
+import { requestBuilding } from './settlement.js?v=9662674baa81';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=9662674baa81';
+import { AfroColombianAudioEngine } from './audio.js?v=9662674baa81';
+import { createInitialState } from './world-state.js?v=9662674baa81';
+import { makeSave, restoreSave } from './save-system.js?v=9662674baa81';
+import { createRenderer } from './renderer.js?v=9662674baa81';
+import { createSimulation } from './simulation.js?v=9662674baa81';
+import { FixedStepper } from './clock.js?v=9662674baa81';
+import { bindInput } from './input.js?v=9662674baa81';
+import { createUI } from './ui.js?v=9662674baa81';
+import { chooseDefenseSide } from './ai.js?v=9662674baa81';
+import { ensurePerson, personMaxHp, requestProfession, ROLE_NAMES } from './people.js?v=9662674baa81';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=9662674baa81';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -597,7 +597,7 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
 
 
 
-const renderFrame = createRenderer({ state, keys, canvas, ctx, sceneCanvas, sctx, view, settings, getNearestInteractiveNode });
+const renderFrame = createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings });
 const campaign = createCampaign({ state, spawnEnemy, nextId: () => nextEntityId++, showBanner, onTreaty: () => ui.open('modalPolitics') });
 const simulation = createSimulation({ state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife,
   showBanner, resolveBenkosHit, triggerBenkosAttack, saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -626,6 +626,19 @@ function newGame() {
   if(reviewMode){
     state.coins=24;state.treasuryCoins=100;state.timeOfDay=.28;
     if(reviewScene==='creek')state.benkos.x=-850;
+    if (reviewScene === 'mount') {
+      state.benkos.x = -135;
+      state.armorUnlocked = true;
+    }
+    if (reviewScene === 'community') {
+      const [first, second] = state.units;
+      first.x = 10;
+      second.x = 42;
+      first.temperament = 'CARING';
+      state.units = [first, second];
+      state.community.relations.push({ key: [first.id, second.id].join(':'), people: [first.id, second.id], score: 3, lastAt: -40 });
+      state.community.nextAt = 0;
+    }
     if(reviewScene==='combat'){state.benkos.x=-1130;state.units=[];spawnEnemy('SOLDADO_ESPANOL',-1,-1030);spawnEnemy('ARQUERO_COLONIAL',-1,-900);state.benkos.facing=1;}
   }
   state.cameraX = state.benkos.x; stepper.reset();
@@ -706,7 +719,6 @@ function debugAction(id) {
   if (id === 'btnSimCoins') giveCoinToBenkos(15);
   if (id === 'btnSimWave') spawnSpanishWave(1.2);
   if (id === 'btnSpawnGovernor') spawnEnemy('GOBERNADOR_GIRON', 1, state.benkos.x + 220);
-  if (id === 'btnToggleSpriteMode') state.useRealSprites = !state.useRealSprites;
 }
 input = bindInput({ keys, isPlaying, openSettlement:()=>ui.openSettlement(), inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
   toggleArmor, togglePause: ui.togglePause, save: () => saveGameToMySQL(), load: loadGameFromMySQL,

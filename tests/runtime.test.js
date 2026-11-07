@@ -68,6 +68,9 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.ok(inspect().state.units.every(u=>!u.carryingSack));
   // Pay for two upgrades through the normal S interaction at the totem.
   await loadState(s=>{s.benkos.x=-48;s.benkos.vx=0;s.coins=24;s.armyTier=1;});
+  assert.equal(elements.get('nodeHintCoins').textContent, 'Faltan 6 reales');
+  key('KeyS');advance(.23);key('KeyS',true);
+  assert.equal(elements.get('nodeHintCoins').textContent, 'Faltan 5 reales');
   key('KeyS');advance(3.4);key('KeyS',true);
   assert.equal(inspect().state.armyTier,3);assert.equal(inspect().state.armorUnlocked,true);
   assert.equal(inspect().state.units.filter(u=>u.role==='CAMPEON_REAL').length,1);

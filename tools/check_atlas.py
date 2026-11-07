@@ -25,7 +25,7 @@ def main():
     if args.preview:
         from PIL import Image, ImageDraw
         out=ROOT/'tools/previews';out.mkdir(exist_ok=True)
-        for name in ['benkos','trabajador','campeon']:
+        for name in ['actor_hero','actor_hero_mounted','actor_civil','actor_spearman','actor_SOLDADO_ESPANOL']:
             sp=sprites[name];sheet=Image.open(atlas_dir/(sp['sheet']+'.png'))
             rows=[]
             for anim,frames in sp['anims'].items():

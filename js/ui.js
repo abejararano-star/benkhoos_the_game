@@ -1,13 +1,14 @@
-import { ecologyHint } from './ecology.js?v=7c12c8ba03e2';
-import { MATERIALS, HQ_NAMES, upgradeInfo } from './settlement.js?v=7c12c8ba03e2';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=7c12c8ba03e2';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=7c12c8ba03e2';
-import { arrivalHint } from './campaign.js?v=7c12c8ba03e2';
+import { relationshipsFor } from './community.js?v=9662674baa81';
+import { ecologyHint } from './ecology.js?v=9662674baa81';
+import { MATERIALS, HQ_NAMES, upgradeInfo } from './settlement.js?v=9662674baa81';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=9662674baa81';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=9662674baa81';
+import { arrivalHint } from './campaign.js?v=9662674baa81';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
   const text = (id, value) => { const el = $(id); if (el && el.textContent !== String(value)) el.textContent = value; };
-  let lastNodeHint='',lastPouch='';
+  let lastPouch = '';
   const bagDots=[];for(let i=0;i<state.maxCoins;i++){const dot=document.createElement('i');$('hudBagSlots').append(dot);bagDots.push(dot);}
   let bannerTimer, returnDialog = 'pauseDialog';
   const dialogs = [...document.querySelectorAll('dialog')];
@@ -52,12 +53,15 @@ export function createUI({ state, session, settings, actions }) {
   function update() {
     const node=actions.node?.();$('nodeHint').classList.toggle('hidden',!node||Math.abs(state.benkos.vx)>25||state.benkos.attackTimer>0||state.enemies.some(e=>e.hp>0&&Math.abs(e.x-state.benkos.x)<150));
     if(node){
-      text('nodeHintTitle',node.title.trim());text('nodeHintDescription',node.sub.replaceAll('[S]','S').replace(/\b1 reales\b/g,'1 real').trim());
-      const signature=`${node.id}:${node.cost}:${node.getFilled()}`;
-      if(signature!==lastNodeHint){lastNodeHint=signature;const slots=$('nodeHintSlots');slots.replaceChildren();for(let i=0;i<node.cost;i++){const dot=document.createElement('i');dot.className=i<node.getFilled()?'filled':'';slots.append(dot);}}
+      text('nodeHintTitle', node.title.trim());
+      text('nodeHintDescription', node.sub.replaceAll('[S]', 'S').replace(/\(\d+ reales?\s*\)/g, '').trim());
+      const remaining = Math.max(0, node.cost - (node.getFilled() || 0));
+      const unit = remaining === 1 ? 'real' : 'reales';
+      text('nodeHintCoins', `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
     }
     text('hudCoins', state.coins); text('hudMaxCoins', state.maxCoins); text('hudTreasury', state.treasuryCoins);
-    text('hudBagFree',state.coins===state.maxCoins?'Bolsa llena':`${state.maxCoins-state.coins} espacios libres`);
+    const freeSlots = state.maxCoins - state.coins;
+    text('hudBagFree', freeSlots === 0 ? 'Bolsa llena' : freeSlots === 1 ? '1 espacio libre' : `${freeSlots} espacios libres`);
     bagDots.forEach((dot,i)=>dot.classList.toggle('filled',i<state.coins));
     const bagSignature=`${Math.ceil(state.coins/state.maxCoins*4)}:${window.SpriteManager?.ready}`;
     if(bagSignature!==lastPouch){lastPouch=bagSignature;const g=$('hudPouchArt').getContext('2d');g.clearRect(0,0,72,72);window.SpriteManager?.drawPouch?.(g,36,69,64,state.coins/state.maxCoins);}
@@ -115,8 +119,13 @@ export function createUI({ state, session, settings, actions }) {
     $('btnChoiceAccept').disabled = state.coins < 15;
     text('campaignNotice',arrivalHint(state));
     $('campaignNotice').classList.toggle('quiet',!state.campaign.orders.some(o=>o.kind==='boss')||!!node);
+    const encounter = state.community.encounter;
+    const neighbors = encounter?.people.map(id => state.units.find(unit => unit.id === id));
+    const social = neighbors?.every(Boolean) && neighbors.some(unit => Math.abs(unit.x - state.benkos.x) < 115)
+      ? `${neighbors[0].name.split(' ')[0]} y ${neighbors[1].name.split(' ')[0]} ${{ CHAT: 'conversan', LAUGH: 'se ríen juntos', SCUFFLE: 'tienen un altercado' }[encounter.kind]}`
+      : '';
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
-    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':ecologyHint(state)||'B · Obras · F · Personas · E · Interactuar con animales y agua');
+    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':ecologyHint(state)||social||'B · Obras · F · Personas · E · Interactuar con animales y agua');
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   // Escape is managed centrally; let form controls keep normal focus navigation.
@@ -176,7 +185,7 @@ export function createUI({ state, session, settings, actions }) {
   if (new URLSearchParams(location.search).get('debug') === '1') {
     $('btnOpenDebug').classList.remove('hidden');
     on('btnOpenDebug', () => { returnDialog = 'pauseDialog'; open('debugDialog'); });
-    for (const id of ['btnUpgradeTier','btnSpawnChampion','btnSpawnAllAllies','btnSimWave','btnSpawnGovernor','btnSimCoins','btnToggleSpriteMode']) on(id, () => { state.sandbox = true; actions.debug(id); update(); });
+    for (const id of ['btnUpgradeTier','btnSpawnChampion','btnSpawnAllAllies','btnSimWave','btnSpawnGovernor','btnSimCoins']) on(id, () => { state.sandbox = true; actions.debug(id); update(); });
   }
   on('btnCloseDebug', () => open('pauseDialog'));
   function applySettings() {
@@ -221,7 +230,14 @@ export function createUI({ state, session, settings, actions }) {
       const info=upgradeInfo(state,kind,id),card=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p'),btn=document.createElement('button');
       h.textContent=`${label} · ${info.target.level}/5`;p.textContent=MATERIALS[info.target.level-1];card.append(h);card.append(p);
       const job=state.settlement.projects.find(p=>p.targetId===id);
-      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra en curso · ${Math.floor(job.progress*100)}%`:(info.next?`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de trabajo`:info.reason);card.append(cost);
+      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra pagada · ${Math.floor(job.progress*100)}%`:(info.next?`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de trabajo`:info.reason);card.append(cost);
+      if (info.next && !job) {
+        const balance = document.createElement('small');
+        const missing = Math.max(0, info.coins - state.coins);
+        balance.className = 'building-coin-balance';
+        balance.textContent = missing === 0 ? 'Plata suficiente' : missing === 1 ? 'Falta 1 real en la bolsa' : `Faltan ${missing} reales en la bolsa`;
+        card.append(balance);
+      }
       btn.textContent=info.next?`Evolucionar a nivel ${info.next}`:'Evolución máxima';btn.disabled=!!info.reason;btn.title=info.reason||`Construir con ${MATERIALS[info.next-1]}`;
       btn.addEventListener('click',()=>{const result=actions.build(kind,id);text('buildingFeedback',result.message);renderBuildings();update();});card.append(btn);
       if(info.reason&&info.next){const why=document.createElement('small');why.textContent=info.reason;card.append(why);}cards.append(card);
@@ -240,6 +256,11 @@ export function createUI({ state, session, settings, actions }) {
     text('personPreference',`Prefiere: ${ROLE_NAMES[u.preferredRole]} · Salud ${Math.ceil(u.hp)}/${u.maxHp}`);
     text('personExperience',`Afinidad con su oficio: ${affinity(u,u.role).toFixed(1)}/5 · Eficacia ${Math.round(proficiency(u)*100)}% · Experiencia ${Math.floor(u.experience[u.role]??0)}`);
     text('personCondition',`Miedo ${Math.round(u.fear)}% · Cansancio ${Math.round(u.fatigue)}%${u.requestedRole?' · Preparando cambio a '+ROLE_NAMES[u.requestedRole]:''}`);
+    const links = relationshipsFor(u, state).slice(0, 4);
+    text('personRelations', links.length ? links.map(link => {
+      const label = link.score >= 3 ? 'Amistad' : link.score <= -2 ? 'Rivalidad' : 'Conoce a';
+      return `${label} · ${link.name}`;
+    }).join('  /  ') : 'Aún no tiene vínculos en el palenque.');
     const attributes=$('personAttributes');attributes.replaceChildren();
     for(const [key,label]of Object.entries(ATTRIBUTES)){
       const row=document.createElement('div'),name=document.createElement('span'),bar=document.createElement('i'),value=document.createElement('b');

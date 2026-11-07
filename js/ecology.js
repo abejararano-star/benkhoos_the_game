@@ -1,4 +1,4 @@
-import { WATER_LINE_Y } from './config.js?v=7c12c8ba03e2';
+import { WATER_LINE_Y } from './config.js?v=9662674baa81';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},

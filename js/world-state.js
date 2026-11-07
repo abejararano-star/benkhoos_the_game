@@ -1,6 +1,7 @@
-import { initialEcology } from './ecology.js?v=7c12c8ba03e2';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=7c12c8ba03e2';
-import { initialSettlement } from './settlement.js?v=7c12c8ba03e2';
+import { initialCommunity } from './community.js?v=9662674baa81';
+import { initialEcology } from './ecology.js?v=9662674baa81';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=9662674baa81';
+import { initialSettlement } from './settlement.js?v=9662674baa81';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -19,6 +20,7 @@ const state = {
   resources: {wood:8,stone:4,food:5},
   settlement: initialSettlement(),
   ecology:initialEcology(),
+  community: initialCommunity(),
   morale: 100,
   day: 1,
   timeOfDay: 0.18,
@@ -32,7 +34,6 @@ const state = {
   screenShake: 0,
   holdPayTimer: 0,
   activeNodeId: null,
-  useRealSprites: true,
   messengers: [],
   campaign: { version:1, orders:[], letters:[], warnedDays:[], sentDays:[], bossAnnouncements:[], defeatedBosses:[], lastRaidDay:0, heraldDefeated:false, governorDefeated:false },
 
