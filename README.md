@@ -49,6 +49,14 @@ Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro ofici
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
 
+## Senderos y Santuario de los Ancestros · edición 11
+
+Pulsa **E** frente a la casa central o **B** desde cualquier lugar para abrir Obras. Para encontrar el altar, sal hacia el oeste, cruza el riachuelo y sigue las piedras talladas más allá de la hacienda. El santuario aparece en el mapa al descubrirlo. Mantén **S** junto al altar para ofrendar y habilitar las siguientes mejoras del palenque. Las partidas anteriores conservan el nivel del altar. Las ofrendas incompletas de su antigua ubicación regresan al cofre.
+
+El mapa se extiende hasta el Mirador de la Ceiba por el oeste y el Manglar de la Marea por el este. Ambos senderos tienen fauna, un riachuelo y un alijo que se abre con **E**. Al anochecer Benkos enciende la antorcha. Pulsa **T** para apagarla o volver a encenderla. Los reales caídos en tierra duran 150 segundos. Los civiles cercanos pueden recoger los que Benkos pierda en combate y llevarlos al cofre si el camino es seguro.
+
+Las texturas de suelo, los fondos y los elementos del sendero se generaron con ImageGen. Las hojas originales y sus instrucciones de generación están en `art/source/*_v11.png` y `art/source/*_v11.prompt.txt`.
+
 ## Evolución, equipo y vida cotidiana · edición 10
 
 Mantén **S** ante el altar para subirlo de nivel. Cada mejora cambia su arquitectura y abre el mismo nivel de la casa central. Las viviendas y el cuartel siguen el nivel de la casa, y las murallas y granjas muestran sus requisitos. **B** abre las obras y permite comparar los cinco diseños del altar. Cada círculo sobre un puesto o edificio representa un real. La franja de interacción explica los requisitos y los círculos se esconden durante el combate.

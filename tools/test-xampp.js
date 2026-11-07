@@ -5,6 +5,7 @@ import { createInitialState } from '../js/world-state.js';
 import { makeSave } from '../js/save-system.js';
 import { createAnimal } from '../js/ecology.js';
 import { ensurePerson } from '../js/people.js';
+import { seedFrontier } from '../js/exploration.js';
 
 const base = process.env.BENKHOOS_TEST_URL ?? 'http://localhost/benkhoos/api/';
 if (!['localhost','127.0.0.1'].includes(new URL(base).hostname)) throw new Error('Integration tests are restricted to local XAMPP.');
@@ -30,6 +31,10 @@ try {
   s.units.push({id:46,role:'CONSTRUCTOR',tier:1,hp:90,maxHp:90,x:0,y:268});ensurePerson(s.units[2]);
   s.units[1].carryingSack=true;s.units[1].cargoWood=6;s.resources={wood:11,stone:7,food:9};
   s.wildlife=[createAnimal(70,'MACAW',640,{trust:2})];s.ecology.seeded=true;s.ecology.streams[0].fishStock=1;
+  let wildlifeId=71;seedFrontier(s,()=>wildlifeId++);
+  s.exploration.altarFound=true;s.exploration.opened=['ceiba_cache'];s.benkos.torchOff=true;
+  s.units[1].recoveredCoins=2;
+  s.droppedCoins.push({id:77,x:-403,y:268,vx:0,vy:0,life:120,recoverable:true,pickupDelay:0});
   s.settlement.level=3;s.settlement.barracks.level=2;s.settlement.projects.push({id:'hq_4',kind:'hq',targetId:'hq',targetLevel:4,x:0,duration:23,progress:.42});
   s.campaign.orders.push({id:'warning',type:'HERALDO_ALADO',side:1,eta:25,kind:'boss'});
   s.campaign.letters.push({id:'message',day:1,title:'Un mensajero',text:'La patrulla viene del camino este.',read:false});

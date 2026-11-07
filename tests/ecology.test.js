@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createInitialState} from '../js/world-state.js';
 import {createAnimal,seedEcology,interactEcology,updateEcology,isHuntable,SPECIES} from '../js/ecology.js';
 import {makeSave,restoreSave} from '../js/save-system.js';
+import {seedFrontier} from '../js/exploration.js';
 function world(species){const s=createInitialState();s.benkos.x=0;if(species)s.wildlife=[createAnimal(1,species,10)];return s;}
 
 test('migration seeds seven species without duplicate animals or identifiers',()=>{
@@ -45,6 +46,7 @@ test('forest fruit can only be collected once per stream each day',()=>{
 });
 test('animals, trust, food and water stocks survive saves; old attacks do not deal damage twice on migration',()=>{
   const s=world('TURTLE');s.ecology.seeded=true;s.wildlife[0].trust=2;s.ecology.streams[0].fishStock=1;
+  let id=80;seedFrontier(s,()=>id++);
   const restored=restoreSave(makeSave(s,100),createInitialState()).state;
   assert.deepEqual(restored.wildlife,s.wildlife);assert.deepEqual(restored.ecology,s.ecology);assert.equal(restored.resources.food,5);
   const old=makeSave(s,100);delete old.snapshot.state.ecology;delete old.snapshot.state.resources.food;delete old.snapshot.state.benkos.attackDuration;old.snapshot.state.benkos.attackTimer=.2;

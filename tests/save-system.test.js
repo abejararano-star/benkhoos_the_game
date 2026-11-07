@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createInitialState } from '../js/world-state.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
 import { ensurePerson } from '../js/people.js';
+import { seedFrontier } from '../js/exploration.js';
 
 test('v3 restores the complete world, including zero values, tier 3, damage and unlocks', () => {
   const s = createInitialState();
@@ -12,6 +13,8 @@ test('v3 restores the complete world, including zero values, tier 3, damage and 
   s.skills[1].unlocked = true;
   s.units = [{ id: 77, role:'GUERRERO', tier:3, x:12, hp:13, maxHp:213, carryingSack:false }];
   s.units.forEach(ensurePerson);
+  let id = 80;
+  seedFrontier(s, () => id++);
   const loaded = restoreSave(JSON.parse(JSON.stringify(makeSave(s, 93))), createInitialState());
   assert.equal(loaded.nextEntityId, 93);
   for (const key of ['day','armyTier','coins','treasuryCoins','timeOfDay','armorUnlocked','bossesDefeated','politicalEventSeen','walls','farms','haciendas','trees','skills','units','horses']) assert.deepEqual(loaded.state[key], s[key], key);

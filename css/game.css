@@ -936,3 +936,6 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 
 .material-count{max-width:210px;white-space:normal;font-size:10px;line-height:1.5}
 @media(max-width:900px){.material-count{max-width:105px;font-size:8px}}
+
+.torch-status{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);font:10px monospace;color:#f2c680;text-shadow:1px 1px #0e1712;white-space:nowrap}
+.minimap .minimap-altar{position:absolute;top:50%;width:7px;height:7px;background:#eac476;transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 5px #eac47688}

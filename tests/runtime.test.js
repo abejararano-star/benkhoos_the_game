@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { makeSave } from '../js/save-system.js';
 import { ENEMY_CATALOG } from '../js/config.js';
 import { createAnimal } from '../js/ecology.js';
+import { ALTAR_X } from '../js/exploration.js';
 
 // Run the real game modules against a small browser shell. No logic is copied.
 class Element {
@@ -60,8 +61,13 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().state.units.find(u=>u.id===selectedId).requestedRole,'MINERO');
   elements.get('btnClosePeople').click();key('Escape');
   await loadState(s => { s.benkos.x = 0; });
+  key('KeyE');assert.equal(elements.get('settlementDialog').open,true);
+  elements.get('btnResumeConstruction').click();
+  await loadState(s => { s.benkos.x = ALTAR_X + 12; });
   key('KeyS');advance(1.48);key('KeyS',true);
   assert.equal(inspect().state.altarTier, 2);
+  assert.equal(inspect().state.exploration.altarFound, true);
+  await loadState(s => { s.benkos.x = 0; });
   key('KeyB');assert.equal(elements.get('settlementDialog').open,true);
   const beforeBuild=inspect().state.coins;elements.get('buildingCards').children[0].children.find(c=>c.listeners.click)?.click();
   assert.equal(inspect().state.coins,beforeBuild-6);assert.equal(inspect().state.settlement.projects.length,1);

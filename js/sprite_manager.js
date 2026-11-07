@@ -91,6 +91,10 @@ class BenkosSpriteManager {
 
   drawPouch(ctx,x,y,height,fill){return this.draw(ctx,'currency_pouch',['fill'],x,y,1,height,0,0,Math.min(4,Math.ceil(Math.max(0,fill)*4))/5+.01);}
   drawCargo(ctx,x,y,facing,u){
+    if (u.recoveredCoins > 0) {
+      this.drawPouch(ctx, x - facing * 9, y - 12, 12, u.recoveredCoins / 4);
+      return;
+    }
     if(!u.carryingSack&&u.activity!=='DELIVER')return;
     const bx=x-facing*9;
     if(u.cargoWood){

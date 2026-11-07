@@ -1,7 +1,8 @@
-import { initialCommunity } from './community.js?v=d67d25007032';
-import { initialEcology } from './ecology.js?v=d67d25007032';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=d67d25007032';
-import { initialSettlement } from './settlement.js?v=d67d25007032';
+import { initialCommunity } from './community.js?v=e3b7c8bc5de3';
+import { initialEcology } from './ecology.js?v=e3b7c8bc5de3';
+import { initialExploration } from './exploration.js?v=e3b7c8bc5de3';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=e3b7c8bc5de3';
+import { initialSettlement } from './settlement.js?v=e3b7c8bc5de3';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -20,6 +21,7 @@ const state = {
   resources: {wood:8,stone:4,food:5},
   settlement: initialSettlement(),
   ecology:initialEcology(),
+  exploration: initialExploration(),
   community: initialCommunity(),
   morale: 100,
   day: 1,
@@ -61,6 +63,7 @@ const state = {
     interaction:null,
     resting: false,
     torchManual: false,
+    torchOff: false,
     sprintHoldTime: 0,
     animTime: 0
   },

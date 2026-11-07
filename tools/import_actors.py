@@ -20,7 +20,7 @@ GROUPS = {
 }
 
 
-def silhouettes(sheet, rows, columns=6):
+def silhouettes(sheet, rows, columns=6, max_width=1.2):
     """Assign connected bodies to poses before cropping, retaining their edge alpha."""
     path = ROOT / 'art' / 'source' / f'{sheet}.png'
     pixels = np.array(Image.open(path).convert('RGBA'))
@@ -48,7 +48,7 @@ def silhouettes(sheet, rows, columns=6):
     for slot, body_index in zip(slot_indices, body_indices):
         body = bodies[body_index]
         ys, xs = bounds[body - 1]
-        if distances[slot, body_index] > .35 or xs.stop - xs.start > cell_w * 1.2 or ys.stop - ys.start > cell_h * 1.22:
+        if distances[slot, body_index] > .35 or xs.stop - xs.start > cell_w * max_width or ys.stop - ys.start > cell_h * 1.22:
             raise ValueError(f'{sheet}: silhouette outside expected pose {slot + 1}')
         y0, y1 = max(0, ys.start - 1), min(height, ys.stop + 1)
         x0, x1 = max(0, xs.start - 1), min(width, xs.stop + 1)

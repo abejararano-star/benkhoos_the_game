@@ -1,4 +1,4 @@
-import { WATER_LINE_Y } from './config.js?v=d67d25007032';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=e3b7c8bc5de3';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -20,9 +20,9 @@ export function ensureAnimal(a){
 }
 export function ensureEcology(state){
   state.ecology??=initialEcology();const e=state.ecology;
-  if(!e||Array.isArray(e)||!Array.isArray(e.streams)||e.streams.length!==2)throw Error('Riachuelos inválidos.');
+  if(!e||Array.isArray(e)||!Array.isArray(e.streams)||![2,4].includes(e.streams.length))throw Error('Riachuelos inválidos.');
   if(!Number.isFinite(e.time)||e.time<0)e.time=0;
-  if(new Set(e.streams.map(c=>c.id)).size!==2)throw Error('Riachuelos duplicados.');
+  if(new Set(e.streams.map(c=>c.id)).size!==e.streams.length)throw Error('Riachuelos duplicados.');
   for(const creek of e.streams){if(!Number.isFinite(creek.x)||!Number.isFinite(creek.fishStock)||!Number.isFinite(creek.regrow))throw Error('Riachuelo dañado.');creek.fishStock=clamp(Math.floor(creek.fishStock),0,3);}
   state.resources.food??=5;state.wildlife.forEach(ensureAnimal);return e;
 }
@@ -106,6 +106,6 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
       if(Math.abs(a.x-a.homeX)>150)a.vx=-Math.sign(a.x-a.homeX)*spec.speed*.6;
       a.state=a.vx?'WALK':'IDLE';if(a.vx)a.facing=Math.sign(a.vx);
     }
-    a.x=clamp(a.x+a.vx*dt,-1600,1600);a.inWater=['CAPYBARA','TURTLE'].includes(a.species)&&e.streams.some(c=>Math.abs(c.x-a.x)<30);a.y=WATER_LINE_Y+(a.inWater?3:0)-(spec.flying?25+Math.sin(e.time*2+(Number(a.id)||1))*7:0);
+    a.x=clamp(a.x+a.vx*dt,WORLD_MIN_X+50,WORLD_MAX_X-50);a.inWater=['CAPYBARA','TURTLE'].includes(a.species)&&e.streams.some(c=>Math.abs(c.x-a.x)<30);a.y=WATER_LINE_Y+(a.inWater?3:0)-(spec.flying?25+Math.sin(e.time*2+(Number(a.id)||1))*7:0);
   }
 }

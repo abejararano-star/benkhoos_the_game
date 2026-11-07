@@ -1,6 +1,6 @@
-import { getUnitMaxHp } from './config.js?v=d67d25007032';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=d67d25007032';
-import { ensureTraits, griefEffect } from './daily-life.js?v=d67d25007032';
+import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=e3b7c8bc5de3';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=e3b7c8bc5de3';
+import { ensureTraits, griefEffect } from './daily-life.js?v=e3b7c8bc5de3';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
@@ -61,6 +61,7 @@ export function requestProfession(unit,role,state){
   ensurePerson(unit);
   if(['FUGITIVO','CAMPEON_REAL'].includes(unit.role))return {success:false,message:'Esta persona aún no puede cambiar de oficio.'};
   if (unit.kitOrder) return { success: false, message: 'Recogerá primero el equipo que ya encargó.' };
+  if (unit.recoveredCoins > 0) return { success: false, message: 'Primero llevará los reales recuperados al cofre.' };
   if(!roleAvailable(role,state.armyTier))return {success:false,message:'El oficio requiere el rango Élite.'};
   if(role===unit.role){unit.requestedRole=null;return {success:true,message:'Ya ejerce este oficio.'};}
   const rack=state.toolRacks.find(r=>r.role===role);
@@ -94,7 +95,7 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1){
   unit.fear=clamp(unit.fear+dt*(distance<140?Math.max(2, (unit.temperament==='BRAVE'?5:13)-(unit.traits.courage-3)*2):-9),0,100);
   if(unit.hurtTimer>0){
     unit.hurtTimer=Math.max(0,unit.hurtTimer-dt);unit.activity='HURT';
-    unit.x=clamp(unit.x+(unit.hurtDirection??1)*35*dt,-1600,1600);return true;
+    unit.x=clamp(unit.x+(unit.hurtDirection??1)*35*dt,WORLD_MIN_X+45,WORLD_MAX_X-45);return true;
   }
   const critical=unit.hp/unit.maxHp<(unit.temperament==='BRAVE'?.18:.32);
   const dangerRadius=critical?220:ranged?55:military?60:165;
@@ -106,7 +107,7 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1){
     const enemyBetweenTownAndWorker=Math.sign(unit.x)===Math.sign(enemy.x)&&Math.abs(enemy.x)<Math.abs(unit.x);
     const dir=enemyBetweenTownAndWorker?away:Math.abs(unit.x)>70?-Math.sign(unit.x):away;
     unit.vx=dir*(75+(unit.attributes.endurance??3)*3);unit.facing=dir;
-    unit.x=clamp(unit.x+unit.vx*dt,-1600,1600);
+    unit.x=clamp(unit.x+unit.vx*dt,WORLD_MIN_X+45,WORLD_MAX_X-45);
     speak(unit,unit.role==='LENADOR'?'¡El hacha puede esperar!':unit.role==='AGRICULTOR'?'¡La cosecha puede esperar!':'¡A las murallas!');
     return true;
   }

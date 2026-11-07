@@ -23,7 +23,7 @@ function firstImpression(a, b) {
 function available(unit, state) {
   return unit.role !== 'FUGITIVO' && unit.role !== 'CABALLERO_ALIADO' && unit.hp >= unit.maxHp * .75 &&
     Math.abs(unit.x) < 610 && unit.fear < 25 && !unit.hurtTimer && !unit.requestedRole &&
-    !unit.carryingSack && !unit.pendingShot && !unit.pendingStrike && !unit.liberateAnimTimer && !unit.kitOrder && !unit.leisure &&
+    !unit.carryingSack && !unit.recoveredCoins && !unit.pendingShot && !unit.pendingStrike && !unit.liberateAnimTimer && !unit.kitOrder && !unit.leisure &&
     !(unit.attackAnimTimer > 0) && !['BUILD', 'CHOP', 'TRAINING', 'FLEE', 'KITE', 'REST', 'RECOVER'].includes(unit.activity) &&
     !state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - unit.x) < SAFE_DISTANCE);
 }

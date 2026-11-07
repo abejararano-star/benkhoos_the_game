@@ -1,5 +1,5 @@
-import { WORLD_MAX_X, WORLD_MIN_X } from './config.js?v=d67d25007032';
-export const ROAD_GATES = Object.freeze([{side:-1,x:WORLD_MIN_X-90,label:'Camino de Cartagena'},{side:1,x:WORLD_MAX_X+90,label:'Camino de la hacienda oriental'}]);
+import { WORLD_MAX_X, WORLD_MIN_X } from './config.js?v=e3b7c8bc5de3';
+export const ROAD_GATES = Object.freeze([{side:-1,x:WORLD_MIN_X+65,label:'Camino de Cartagena'},{side:1,x:WORLD_MAX_X-65,label:'Camino de la hacienda oriental'}]);
 export function ensureCampaign(state){
   state.messengers??=[];
   if (state.campaign?.version===1 && ['orders','letters','warnedDays','sentDays','bossAnnouncements','defeatedBosses'].every(key=>Array.isArray(state.campaign[key]))) return state.campaign;
@@ -101,7 +101,7 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
         if(m.waitTimer>90){m.state='RETURN';if(!m.delivered){c.letters.push({id:`letter_${m.id}`,day:state.day,title:m.name,text:m.text,read:false});m.delivered=true;}}
       }else{
         m.vx=m.side*100;m.facing=m.side;m.x+=m.vx*dt;
-        if(Math.abs(m.x)>1840)state.messengers.splice(i,1);
+        if(m.x < WORLD_MIN_X - 70 || m.x > WORLD_MAX_X + 70)state.messengers.splice(i,1);
       }
     }
   }

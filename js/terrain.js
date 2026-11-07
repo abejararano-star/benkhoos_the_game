@@ -6,6 +6,11 @@ export function drawLandscape(g, width, ground, camera, night, time) {
     manager.drawBackdrop(g,'jungle_far',width,ground,camera,.12,ground+12);
     g.globalAlpha=night?.72:.86;
     manager.drawBackdrop(g,'jungle_near',width,ground,camera,.29,ground*.93);
+    const edge = Math.max(0, Math.min(1, (Math.abs(camera) - 1320) / 430));
+    if (edge > 0) {
+      g.globalAlpha = edge * (night ? .8 : 1);
+      manager.drawBackdrop(g, camera < 0 ? 'biome_ravine' : 'biome_mangrove', width, ground, camera, .38, ground + 4);
+    }
     g.restore();
     if(night){g.fillStyle='#0b282c35';g.fillRect(0,0,width,ground);}
     return;
@@ -39,6 +44,40 @@ export function drawLandscape(g, width, ground, camera, night, time) {
       g.fillRect(Math.round(x), ground - 20 - (i * 31 % 65), 1, 1);
     }
     g.globalAlpha = 1;
+  }
+}
+
+export function drawRiverbank(g, width, ground, camera) {
+  const manager = window.SpriteManager;
+  g.fillStyle = '#4b3b26';
+  g.fillRect(0, ground - 2, width, 24);
+  if (!manager?.has('bank_camp')) return;
+  const frame = manager.atlas.bank_camp.anims.idle[0];
+  const height = 27;
+  const span = Math.round(frame.w * height / frame.h);
+  const left = camera - width / 2;
+  for (let tile = Math.floor(left / span); tile * span < left + width; tile++) {
+    const x = (tile + .5) * span;
+    const kind = Math.abs(x) < 665 ? 'bank_camp' : x < -1610 ? 'bank_ruin' : 'bank_forest';
+    // Alternate mirroring to meet each edge with its matching texture.
+    manager.draw(g, kind, ['idle'], x - left, ground + 22, Math.abs(tile % 2) ? -1 : 1, height, 0);
+  }
+}
+
+export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, foreground = false) {
+  const manager = window.SpriteManager;
+  const details = foreground ? [
+    [-2240, 'trail_reeds', 14], [-2090, 'trail_reeds', 14], [-1970, 'trail_fern', 15],
+    [-1245, 'trail_reeds', 12], [1770, 'trail_fern', 12], [2058, 'trail_reeds', 16], [2385, 'trail_fern', 16]
+  ] : [
+    ...signs.map(x => [x, 'trail_sign', 33, -1]),
+    [altarX + 162, 'trail_arch', 102], [altarX - 97, 'trail_terrace', 47], [altarX + 78, 'trail_stones', 33],
+    [-2360, 'trail_stones', 42], [-2200, 'trail_fern', 50], [1705, 'trail_fern', 57],
+    [2130, 'trail_reeds', 42], [2300, 'trail_fern', 55], [2450, 'trail_stones', 41]
+  ];
+  for (const [x, sprite, height, facing = 1] of details) {
+    const sx = toScreen(x);
+    if (sx > -120 && sx < width + 120) manager?.draw?.(g, sprite, ['idle'], sx, ground + (foreground ? 12 : -1), facing, height, 0);
   }
 }
 

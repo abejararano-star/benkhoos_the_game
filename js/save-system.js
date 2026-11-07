@@ -1,9 +1,10 @@
-import { restoreCommunity } from './community.js?v=d67d25007032';
-import { ensureEcology, seedEcology } from './ecology.js?v=d67d25007032';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=d67d25007032';
-import { ensurePerson } from './people.js?v=d67d25007032';
-import { ensureSettlement } from './settlement.js?v=d67d25007032';
-import { ensureCampaign } from './campaign.js?v=d67d25007032';
+import { restoreCommunity } from './community.js?v=e3b7c8bc5de3';
+import { ensureEcology, seedEcology } from './ecology.js?v=e3b7c8bc5de3';
+import { seedFrontier } from './exploration.js?v=e3b7c8bc5de3';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=e3b7c8bc5de3';
+import { ensurePerson } from './people.js?v=e3b7c8bc5de3';
+import { ensureSettlement } from './settlement.js?v=e3b7c8bc5de3';
+import { ensureCampaign } from './campaign.js?v=e3b7c8bc5de3';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -30,6 +31,7 @@ export function restoreSave(save, defaults) {
   if (save.save_version > SAVE_VERSION) throw new Error('Esta partida necesita una versión más reciente del juego.');
   const next=clone(defaults);
   const migrateEcology=!save.snapshot?.state?.ecology;
+  const migrateAltar = !save.snapshot?.state?.exploration;
   let source = save.snapshot?.state;
   if (save.save_version >= 2 && (!source || typeof source !== 'object' || Array.isArray(source))) {
     throw new Error('La partida está incompleta.');
@@ -95,6 +97,10 @@ export function restoreSave(save, defaults) {
   next.skills.forEach(skill => { skill.unlocked = skill.level <= next.altarTier; });
   next.coins = Math.floor(number(next.coins, 0, 0, next.maxCoins));
   next.treasuryCoins = Math.floor(number(next.treasuryCoins, 0, 0, 1000000));
+  if (migrateAltar && next.altarSlotsFilled > 0) {
+    next.treasuryCoins += Math.floor(number(next.altarSlotsFilled, 0, 0, 14));
+    next.altarSlotsFilled = 0;
+  }
   next.timeOfDay = number(next.timeOfDay, 0, 0, 0.999999);
   next.benkos.x = number(next.benkos.x, 0, WORLD_MIN_X + 40, WORLD_MAX_X - 40);
   next.benkos.maxSpirit = number(next.benkos.maxSpirit, 100, 1, 1000);
@@ -105,6 +111,7 @@ export function restoreSave(save, defaults) {
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);
   for (const unit of next.units) {
+    if (unit.recoveredCoins !== undefined) unit.recoveredCoins = Math.floor(number(unit.recoveredCoins, 0, 0, 4));
     const order = unit.kitOrder;
     if (order && (!unit.equipment || !['weapon', 'armor'].includes(order.piece) || ![2, 3].includes(order.rank) ||
       order.rank !== unit.equipment[order.piece] + 1 || order.cost !== (order.piece === 'weapon' ? 2 : 3) + order.rank)) unit.kitOrder = null;
@@ -136,5 +143,6 @@ export function restoreSave(save, defaults) {
   let maxId = Math.max(0, ...[...next.units, ...next.enemies, ...next.droppedCoins, ...next.wildlife, ...next.community.memorial].map(e => Number(e?.id) || 0));
   let nextId=Math.max(maxId+1,number(save.snapshot?.nextEntityId,1,1));
   if(migrateEcology)seedEcology(next,()=>nextId++);
+  seedFrontier(next, () => nextId++);
   return {state:next,nextEntityId:nextId};
 }

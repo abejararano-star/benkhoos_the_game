@@ -1,20 +1,22 @@
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=d67d25007032';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=d67d25007032';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=d67d25007032';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=d67d25007032';
-import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=d67d25007032';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=d67d25007032';
-import { AfroColombianAudioEngine } from './audio.js?v=d67d25007032';
-import { createInitialState } from './world-state.js?v=d67d25007032';
-import { makeSave, restoreSave } from './save-system.js?v=d67d25007032';
-import { createRenderer } from './renderer.js?v=d67d25007032';
-import { createSimulation } from './simulation.js?v=d67d25007032';
-import { FixedStepper } from './clock.js?v=d67d25007032';
-import { bindInput } from './input.js?v=d67d25007032';
-import { createUI } from './ui.js?v=d67d25007032';
-import { chooseDefenseSide } from './ai.js?v=d67d25007032';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=d67d25007032';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=d67d25007032';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=e3b7c8bc5de3';
+import { GROUND_COIN_LIFE } from './coins.js?v=e3b7c8bc5de3';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=e3b7c8bc5de3';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=e3b7c8bc5de3';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=e3b7c8bc5de3';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=e3b7c8bc5de3';
+import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=e3b7c8bc5de3';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=e3b7c8bc5de3';
+import { AfroColombianAudioEngine } from './audio.js?v=e3b7c8bc5de3';
+import { createInitialState } from './world-state.js?v=e3b7c8bc5de3';
+import { makeSave, restoreSave } from './save-system.js?v=e3b7c8bc5de3';
+import { createRenderer } from './renderer.js?v=e3b7c8bc5de3';
+import { createSimulation } from './simulation.js?v=e3b7c8bc5de3';
+import { FixedStepper } from './clock.js?v=e3b7c8bc5de3';
+import { bindInput } from './input.js?v=e3b7c8bc5de3';
+import { createUI } from './ui.js?v=e3b7c8bc5de3';
+import { chooseDefenseSide } from './ai.js?v=e3b7c8bc5de3';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=e3b7c8bc5de3';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=e3b7c8bc5de3';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -74,11 +76,12 @@ function spawnCimarron(role, x, customTier) {
 
 function spawnWildlife(x){state.wildlife.push(createAnimal(nextEntityId++,'CAPYBARA',x));}
 
-function spawnPhysicalCoin(x, y, vx, vy, canBePickedByPlayer = false, fallsInRiver = false) {
+function spawnPhysicalCoin(x, y, vx, vy, canBePickedByPlayer = false, fallsInRiver = false, recoverable = false) {
   state.droppedCoins.push({
     id: nextEntityId++,
     x, y, vx, vy,
-    life: 24,
+    life: fallsInRiver ? 10 : GROUND_COIN_LIFE,
+    recoverable,
     pickupDelay: canBePickedByPlayer ? 0.35 : 0.8,
     fallsInRiver
   });
@@ -210,10 +213,10 @@ function getInteractionNodes() {
   }
 
   const nextSkill = state.skills.find((s) => !s.unlocked);
-  if (nextSkill) {
+  if (nextSkill && state.exploration.altarFound) {
     candidates.push({
       id: 'node_altar',
-      x: 0,
+      x: ALTAR_X,
       title: ` Altar: ${nextSkill.name}`,
       sub: `Mantén [S] para ofrendar (${nextSkill.cost} reales )`,
       height: ALTAR_HEIGHT[state.altarTier] + 5,
@@ -224,7 +227,7 @@ function getInteractionNodes() {
         nextSkill.unlocked = true;
         state.altarTier = nextSkill.level;
         audio.playSfx('roar');
-        addParticles(0, WATER_LINE_Y - 36, 26, '#fde047', 110);
+        addParticles(ALTAR_X, WATER_LINE_Y - 36, 26, '#fde047', 110);
         showBanner(`¡PODER DEL JAGUAR DESBLOQUEADO: ${nextSkill.name.toUpperCase()}!`, `Altar de nivel ${state.altarTier}. Ya puedes encargar la siguiente mejora de la casa central.`);
         updateHUD();
       }
@@ -372,6 +375,11 @@ function worldPrices() {
 
 function getNearestInteractiveNode(bx) {
   if (state.units.some(u => u.role === 'FUGITIVO' && Math.abs(u.x - bx) < 36)) return null;
+  if (Math.abs(bx) < 23) {
+    const info = upgradeInfo(state, 'hq', 'hq');
+    return { id: 'node_central_house', x: 0, title: 'Casa central', sub: 'Pulsa E o B para abrir las obras',
+      locked: 'Obras', cost: info.coins || 0, getFilled: () => 0 };
+  }
   let best = null;
   let bestDist = 34;
   getInteractionNodes().forEach((c) => {
@@ -394,7 +402,7 @@ function refundUnfinishedSlots(activeId) {
     refundAmount(state.tierUpgradeSlots, -48); state.tierUpgradeSlots = 0;
   }
   if (activeId !== 'node_altar' && state.altarSlotsFilled > 0) {
-    refundAmount(state.altarSlotsFilled, 0); state.altarSlotsFilled = 0;
+    refundAmount(state.altarSlotsFilled, ALTAR_X); state.altarSlotsFilled = 0;
   }
   if (activeId !== 'node_treasury' && state.treasurySlotsFilled > 0) {
     refundAmount(state.treasurySlotsFilled, 48); state.treasurySlotsFilled = 0;
@@ -435,6 +443,29 @@ function handleInteractOrMount() {
     return;
   }
 
+  if (Math.abs(b.x) < 23) {
+    ui.openSettlement();
+    return;
+  }
+  const cache = nearestTrailCache(state);
+  if (cache) {
+    state.exploration.opened.push(cache.id);
+    state.resources.wood += cache.wood;
+    state.resources.stone += cache.stone;
+    const inBag = Math.min(cache.coins, state.maxCoins - state.coins);
+    giveCoinToBenkos(inBag, cache.x);
+    for (let i = inBag; i < cache.coins; i++) spawnPhysicalCoin(cache.x + i * 6, WATER_LINE_Y - 8, i * 8 - 8, -62, true);
+    showBanner(cache.name, `Encontraste ${cache.coins} reales y ${cache.wood || cache.stone} de ${cache.wood ? 'madera' : 'piedra'}.`);
+    return;
+  }
+  if (TRAIL_SIGNS.some(x => Math.abs(x - b.x) < 28)) {
+    showBanner('HACIA LA CAÑADA DE LOS ANCESTROS', 'Sigue al oeste, más allá del riachuelo y de la hacienda. Las piedras talladas señalan el santuario.');
+    return;
+  }
+  if (Math.abs(b.x - ALTAR_X) < 42) {
+    showBanner('SANTUARIO DE LOS ANCESTROS', 'Mantén S para ofrendar. Las obras de la casa central están en B.');
+    return;
+  }
   if(Math.abs(b.x-48)>=48){
     const interaction=interactEcology(state,{fish:!!(keys.ShiftLeft||keys.ShiftRight)});
     if(interaction.handled){b.attackTimer=0;b.queuedAttack=false;showBanner(interaction.message,'');updateHUD();return;}
@@ -595,14 +626,15 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
   if (coinsLost > 0) {
     state.coins -= coinsLost;
     for (let i = 0; i < coinsLost; i++) {
-      const fallsIntoWater = i === coinsLost - 1 && Math.random() < 0.45;
+      const fallsIntoWater = b.inStream && i === coinsLost - 1 && Math.random() < .25;
       spawnPhysicalCoin(
         b.x,
         WATER_LINE_Y - 22,
         (Math.random() - 0.5) * 135,
         -125 - Math.random() * 45,
         true,
-        fallsIntoWater
+        fallsIntoWater,
+        true
       );
     }
     addFloatingText(b.x, WATER_LINE_Y - 42, `-${coinsLost} reales  ¡Monedas Caídas!`, '#f87171');
@@ -650,8 +682,15 @@ function newGame() {
   window.BenkosDB.currentSaveId = null;
   for (const [role, x] of [['ALDEANO',-35],['CONSTRUCTOR',65],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340],['FUGITIVO',-490],['FUGITIVO',510]]) spawnCimarron(role, x, 1);
   seedEcology(state,()=>nextEntityId++);
+  seedFrontier(state, () => nextEntityId++);
   if(reviewMode){
     state.coins=24;state.treasuryCoins=100;state.timeOfDay=.28;
+    if (reviewScene === 'shrine') state.benkos.x = ALTAR_X + 25;
+    if (reviewScene === 'night-trail') {
+      state.benkos.x = ALTAR_X + 86;
+      state.timeOfDay = .75;
+      state.phase = 'NIGHT_DEFENSE';
+    }
     if(reviewScene==='creek')state.benkos.x=-850;
     if (reviewScene === 'mount') {
       state.benkos.x = -135;
@@ -770,7 +809,14 @@ function debugAction(id) {
 input = bindInput({ keys, isPlaying, openSettlement:()=>ui.openSettlement(), inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
   toggleArmor, togglePause: ui.togglePause, save: () => saveGameToMySQL(), load: loadGameFromMySQL,
   toggleArmy: ui.toggleArmy, toggleFullscreen, rest:()=>{if(!state.benkos.attackTimer&&!state.benkos.interaction)state.benkos.resting=!state.benkos.resting;},
-  torch: () => { state.benkos.torchManual = !state.benkos.torchManual; } });
+  torch: () => {
+    if (state.phase === 'DAY_EXPLORE') state.benkos.torchManual = !state.benkos.torchManual;
+    else {
+      state.benkos.torchOff = torchIsLit(state);
+      state.benkos.torchManual = false;
+    }
+    updateHUD();
+  } });
 
 
 function inspectNpc(id = null) {

@@ -1,14 +1,16 @@
-import { collectEquipment } from './equipment.js?v=d67d25007032';
-import { advanceCrops, tendCrop } from './crops.js?v=d67d25007032';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=d67d25007032';
-import { updateCommunity, joinEncounter } from './community.js?v=d67d25007032';
-import { updateEcology, isHuntable } from './ecology.js?v=d67d25007032';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=d67d25007032';
-import { workConstruction, homeRecovery } from './settlement.js?v=d67d25007032';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=d67d25007032';
-import { ensureCampaign } from './campaign.js?v=d67d25007032';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d67d25007032';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=d67d25007032';
+import { recoverCoins } from './coins.js?v=e3b7c8bc5de3';
+import { discoverAltar } from './exploration.js?v=e3b7c8bc5de3';
+import { collectEquipment } from './equipment.js?v=e3b7c8bc5de3';
+import { advanceCrops, tendCrop } from './crops.js?v=e3b7c8bc5de3';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=e3b7c8bc5de3';
+import { updateCommunity, joinEncounter } from './community.js?v=e3b7c8bc5de3';
+import { updateEcology, isHuntable } from './ecology.js?v=e3b7c8bc5de3';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=e3b7c8bc5de3';
+import { workConstruction, homeRecovery } from './settlement.js?v=e3b7c8bc5de3';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=e3b7c8bc5de3';
+import { ensureCampaign } from './campaign.js?v=e3b7c8bc5de3';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=e3b7c8bc5de3';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=e3b7c8bc5de3';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -42,6 +44,7 @@ return function updateSimulation(dt) {
 
     state.trees.forEach(t=>{if(t.chopped&&t.regrowDay<=state.day){t.chopped=false;t.chopProgress=0;t.regrowDay=null;}});
     state.phase = 'DAY_EXPLORE';
+    state.benkos.torchOff = false;
     state.alertLevel = Math.min(100, state.alertLevel + 8);
     if (state.wildlife.filter(isHuntable).length < 4) {
       spawnWildlife(-520 - Math.random() * 450);
@@ -104,6 +107,10 @@ return function updateSimulation(dt) {
   b.x = Math.max(WORLD_MIN_X + 40, Math.min(WORLD_MAX_X - 40, b.x + b.vx * dt));
   state.cameraX += (b.x - state.cameraX) * Math.min(1, dt * 7.5);
 
+  if (discoverAltar(state)) {
+    showBanner('SANTUARIO DE LOS ANCESTROS', 'Ofrenda plata con S. El altar abrirá nuevas obras en la casa central.');
+    updateHUD();
+  }
   const activeNode = getNearestInteractiveNode(b.x);
   const currentNodeId = activeNode ? activeNode.id : null;
   if (currentNodeId !== state.activeNodeId) {
@@ -217,6 +224,9 @@ return function updateSimulation(dt) {
   for (let i = state.units.length - 1; i >= 0; i--) {
     const unit = state.units[i];
     if (unit.hp > 0) continue;
+    for (let coin = 0; coin < (unit.recoveredCoins ?? 0); coin++) {
+      spawnPhysicalCoin(unit.x, WATER_LINE_Y - 20, coin * 13 - 20, -80, true, false, true);
+    }
     recordLoss(unit, state);
     state.units.splice(i, 1);
     addFloatingText(unit.x, WATER_LINE_Y - 53, `Cayó ${unit.name}`, '#c9bea7');
@@ -240,6 +250,11 @@ return function updateSimulation(dt) {
     }
 
     if(updatePerson(u,state,dt,Math.abs(u.x)<600?homeRecovery(state):1))continue;
+    if (recoverCoins(u, state, dt, (worker, amount) => {
+      addFloatingText(48, WATER_LINE_Y - 42, `+${amount} ${amount === 1 ? 'real recuperado' : 'reales recuperados'} · ${worker.name.split(' ')[0]}`, '#e4cb85');
+      audio.playSfx('coinPickup');
+      updateHUD();
+    })) continue;
     if (collectEquipment(u, state, dt, personMaxHp)) continue;
     if (joinEncounter(u, state, dt) || takeLeisure(u, state, dt)) continue;
     const fitMult = proficiency(u);
@@ -570,7 +585,7 @@ return function updateSimulation(dt) {
       const escapeDir = en.x >= 0 ? 1 : -1;
       en.facing = escapeDir;
       en.x += escapeDir * en.speed * 1.25 * dt;
-      if (Math.abs(en.x) > 1810) state.enemies.splice(i, 1);
+      if (en.x < WORLD_MIN_X - 90 || en.x > WORLD_MAX_X + 90) state.enemies.splice(i, 1);
       continue;
     }
 
@@ -703,7 +718,9 @@ return function updateSimulation(dt) {
 
       }
     } else {
-      en.x += dirToTarget * en.speed * dt + en.vx * dt;
+      const onOuterRoad = Math.abs(en.x) > 1600 && distToBenkos > 330 && !target;
+      const marchSpeed = en.speed * (onOuterRoad ? 1.45 : 1);
+      en.x += dirToTarget * marchSpeed * dt + en.vx * dt;
       en.vx *= Math.pow(0.82, dt * 60);
     }
     if (en.isBoss) updateHUD();
@@ -769,7 +786,7 @@ return function updateSimulation(dt) {
         }
       }
     }
-    if (hit || p.y > WATER_LINE_Y || Math.abs(p.x) > 1680) {
+    if (hit || p.y > WATER_LINE_Y || (p.x < WORLD_MIN_X - 40 || p.x > WORLD_MAX_X + 40)) {
       state.projectiles.splice(i, 1);
     }
   }

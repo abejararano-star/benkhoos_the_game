@@ -56,6 +56,7 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
     assert.equal(variants.size, 9);
   }
   for (const level of [2, 3, 4, 5]) assert.ok(manager.has('altar_' + level));
+  for (const cls of ['bank_camp', 'bank_forest', 'bank_ruin', 'biome_ravine', 'biome_mangrove', 'trail_arch', 'trail_sign']) assert.ok(manager.has(cls));
   for(const kind of ['hq','home','barracks'])for(let level=1;level<=5;level++)assert.ok(manager.has(`building_${kind}_${level}`));
 
   const gradient={addColorStop(){}};

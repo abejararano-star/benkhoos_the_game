@@ -1,11 +1,12 @@
-import { describeTraits } from './daily-life.js?v=d67d25007032';
-import { equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=d67d25007032';
-import { relationshipsFor } from './community.js?v=d67d25007032';
-import { ecologyHint } from './ecology.js?v=d67d25007032';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=d67d25007032';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d67d25007032';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=d67d25007032';
-import { arrivalHint } from './campaign.js?v=d67d25007032';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=e3b7c8bc5de3';
+import { describeTraits } from './daily-life.js?v=e3b7c8bc5de3';
+import { equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=e3b7c8bc5de3';
+import { relationshipsFor } from './community.js?v=e3b7c8bc5de3';
+import { ecologyHint } from './ecology.js?v=e3b7c8bc5de3';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=e3b7c8bc5de3';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=e3b7c8bc5de3';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=e3b7c8bc5de3';
+import { arrivalHint } from './campaign.js?v=e3b7c8bc5de3';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -61,7 +62,7 @@ export function createUI({ state, session, settings, actions }) {
       text('nodeHintDescription', node.sub.replaceAll('[S]', 'S').replace(/\(\d+ reales?\s*\)/g, '').trim());
       const remaining = Math.max(0, node.cost - (node.getFilled() || 0));
       const unit = remaining === 1 ? 'real' : 'reales';
-      text('nodeHintCoins', `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
+      text('nodeHintCoins', node.cost === 0 ? 'Nivel máximo' : `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
     }
     text('hudCoins', state.coins); text('hudMaxCoins', state.maxCoins); text('hudTreasury', state.treasuryCoins);
     const freeSlots = state.maxCoins - state.coins;
@@ -87,12 +88,21 @@ export function createUI({ state, session, settings, actions }) {
     $('hudRoyalArmorBadge').classList.toggle('hidden', !state.benkos.royalArmor);
     const ranks = ['Cimarrón', 'Élite', 'Real'];
     text('hudArmyTierBadge', `Rango ${['I', 'II', 'III'][state.armyTier - 1]} · ${ranks[state.armyTier - 1]}`);
-    text('hudNextTierHint', state.armyTier < 3 ? `Tótem al oeste del altar · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Rango Real · Encarga equipo en F. Armadura de Benkos en C.');
+    text('hudNextTierHint', state.armyTier < 3 ? `Tótem junto a la casa central · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Rango Real · Encarga equipo en F. Armadura de Benkos en C.');
     const count = role => state.units.filter(u => u.role === role).length;
     for (const [suffix, role] of Object.entries({ Constructor:'CONSTRUCTOR', Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
-    const pct = (state.benkos.x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X) * 100;
-    $('minimapBenkos').style.left = `${pct}%`;
-    state.haciendas.forEach((h, i) => { $(`minimapHacienda${i ? 'R' : 'L'}`).style.background = h.destroyed ? '#91c9a2' : '#dc8264'; });
+    const mapPercent = x => (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X) * 100;
+    $('minimapBenkos').style.left = `${mapPercent(state.benkos.x)}%`;
+    $('minimapAltar').style.left = `${mapPercent(ALTAR_X)}%`;
+    $('minimapAltar').classList.toggle('hidden', !state.exploration.altarFound);
+    state.haciendas.forEach((h, i) => {
+      const marker = $(`minimapHacienda${i ? 'R' : 'L'}`);
+      marker.style.left = `${mapPercent(h.x)}%`;
+      marker.style.right = 'auto';
+      marker.style.background = h.destroyed ? '#91c9a2' : '#dc8264';
+    });
+    $('torchStatus').classList.toggle('hidden', state.phase === 'DAY_EXPLORE' && !torchIsLit(state));
+    text('torchStatus', torchIsLit(state) ? 'Antorcha encendida · T' : 'Antorcha apagada · T');
     for (const [i, skill] of state.skills.slice(1).entries()) {
       const btn = document.querySelector(`[data-skill="${skill.id}"]`);
       const active = state.benkos[({dash:'dashTimer', ceiba:'ceibaTimer', roar:'roarWave', jaguar:'jaguarTimer'})[skill.id]] > 0;
@@ -111,8 +121,11 @@ export function createUI({ state, session, settings, actions }) {
     if (state.fugitivesFreed < 2) {
       text('objectiveTitle', 'Un pueblo que resiste');
       text('objectiveText', `Libera a dos fugitivos fuera de las murallas (${state.fugitivesFreed}/2). Mantén S cerca de ellos para lanzar plata.`);
+    } else if (!state.exploration.altarFound) {
+      text('objectiveTitle', 'Huellas de los ancestros');
+      text('objectiveText', 'Cruza el riachuelo oeste, pasa la hacienda y busca el arco de piedra del santuario.');
     } else if (state.armyTier < 3) {
-      text('objectiveTitle', 'Fortalece la Matuna'); text('objectiveText', 'Invierte en las defensas y asciende a tu ejército en el tótem. La armadura se gana con el rango Real.');
+      text('objectiveTitle', 'Fortalece la Matuna'); text('objectiveText', 'Ofrenda en el santuario y vuelve a la casa central para abrir obras con E o B.');
     } else {
       text('objectiveTitle', 'Recupera el territorio'); text('objectiveText', `Haciendas: ${destroyed}/2. Gobernador: ${state.campaign.governorDefeated?'derrotado':'pendiente'}. Los mensajeros anuncian los siguientes movimientos.`);
     }
@@ -144,7 +157,7 @@ export function createUI({ state, session, settings, actions }) {
     const farm = state.farms.find(field => field.level > 0 && Math.abs(field.x - state.benkos.x) < 45);
     const crop = farm?.stage ? { PLANT: 'Siembra pendiente', GROW: `Creciendo · ${Math.floor(farm.cropProgress * 100)}%`, RIPE: 'Lista para cosechar', FALLOW: 'En descanso hasta mañana' }[farm.stage] : '';
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
-    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||'B · Obras · F · Personas · E · Interactuar con animales y agua');
+    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar');
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   // Escape is managed centrally; let form controls keep normal focus navigation.
@@ -299,7 +312,7 @@ export function createUI({ state, session, settings, actions }) {
       if(info.reason&&info.next){const why=document.createElement('small');why.textContent=info.reason;card.append(why);}cards.append(card);
     }
   }
-  function openSettlement(){returnDialog='pauseDialog';open('settlementDialog');$('previewLevel').value=String(state.settlement.level);$('previewKind').value='hq';renderBuildings();previewBuilding();text('buildingFeedback','Las obras avanzan durante la partida. Los constructores se refugian si hay peligro.');}
+  function openSettlement(){returnDialog='pauseDialog';open('settlementDialog');$('previewLevel').value=String(state.settlement.level);$('previewKind').value='hq';renderBuildings();previewBuilding();text('buildingFeedback', state.exploration.altarFound ? 'Las obras avanzan mientras juegas. Los constructores se refugian si hay peligro.' : 'El santuario está al oeste, más allá del riachuelo y de la hacienda. Su altar abre las obras de la casa central.');}
   on('btnSettlement',openSettlement);on('btnSettlementPause',openSettlement);on('btnCloseSettlement',resume);on('btnResumeConstruction',resume);
   $('previewKind').addEventListener('change',previewBuilding);$('previewLevel').addEventListener('change',previewBuilding);
   let selectedPersonId=null;

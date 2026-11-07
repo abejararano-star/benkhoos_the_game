@@ -1,9 +1,12 @@
-import { RenderInterpolation } from './visual-motion.js?v=d67d25007032';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=d67d25007032';
-import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=d67d25007032';
-import { ROAD_GATES } from './campaign.js?v=d67d25007032';
-import { WATER_LINE_Y } from './config.js?v=d67d25007032';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=e3b7c8bc5de3';
+import { createLighting } from './lighting.js?v=e3b7c8bc5de3';
+import { RenderInterpolation } from './visual-motion.js?v=e3b7c8bc5de3';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=e3b7c8bc5de3';
+import { drawLandscape, drawRiverbank, drawTrailScenery, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=e3b7c8bc5de3';
+import { ROAD_GATES } from './campaign.js?v=e3b7c8bc5de3';
+import { WATER_LINE_Y } from './config.js?v=e3b7c8bc5de3';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
+const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
 const position=(e,key='x')=>interpolation.value(e,key,renderAlpha);
 function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, chopped, time=0, variant=0) {
@@ -106,22 +109,8 @@ function renderWorldAboveWater(g, time) {
 
   drawLandscape(g, w, GROUND_SURFACE_Y, camX, isNight, time);
 
-  g.fillStyle = isNight ? '#271911' : '#4a321e';
-  g.fillRect(0, GROUND_SURFACE_Y, w, h - GROUND_SURFACE_Y);
-  g.fillStyle=isNight?'#364733':'#738349';g.fillRect(0,GROUND_SURFACE_Y-1,w,2);
-  for(let bx=-((Math.round(camX)%11+11)%11);bx<w;bx+=11){
-    const seed=Math.abs((Math.floor((bx+camX)/11)*1667)^0x3531);
-    g.fillStyle=isNight?'#4a3829':'#765335';g.fillRect(bx,GROUND_SURFACE_Y+5+seed%11,3+seed%7,1);
-    g.fillStyle=isNight?'#253729':'#596b3b';g.fillRect(bx+3,GROUND_SURFACE_Y-3,2+seed%4,3);
-    if(seed%3===0){g.fillStyle='#a28b60';g.fillRect(bx+5,GROUND_SURFACE_Y+2,2,1);}
-  }
-
-  // Fine clay strata and gravel replace the uniform blocks along the riverbank.
-  for(let i=0;i<Math.ceil(w/9)+2;i++){
-    const wx=Math.floor(camX/9)+i-Math.ceil(w/18),sx=toScreenX(wx*9),seed=Math.abs((wx*71)^0x4a31);
-    g.fillStyle=isNight?'#776348':'#a48a59';g.fillRect(sx,GROUND_SURFACE_Y+3+(seed%12),1+seed%3,1);
-    if(seed%4===0){g.fillStyle='#294c2e';g.fillRect(sx,GROUND_SURFACE_Y-4,1,5);g.fillRect(sx+2,GROUND_SURFACE_Y-6,1,6);}
-  }
+  drawRiverbank(g, w, GROUND_SURFACE_Y, camX);
+  drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X);
   drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion);
   drawVillage(g, toScreenX, GROUND_SURFACE_Y, isNight, time, state.settlement, settings.reduce_motion);
 
@@ -173,7 +162,14 @@ function renderWorldAboveWater(g, time) {
   });
 
   window.SpriteManager?.draw?.(g,'landmark_totem',['idle'],toScreenX(-48),GROUND_SURFACE_Y,1,57,0);
-  window.SpriteManager?.draw?.(g,altarSprite(state.altarTier),['idle'],toScreenX(0),GROUND_SURFACE_Y,1,ALTAR_HEIGHT[state.altarTier],0);
+  window.SpriteManager?.draw?.(g,altarSprite(state.altarTier),['idle'],toScreenX(ALTAR_X),GROUND_SURFACE_Y,1,ALTAR_HEIGHT[state.altarTier],0);
+  for (const cache of TRAIL_CACHES) {
+    const x = toScreenX(cache.x);
+    if (x > -40 && x < w + 40) {
+      const opened = state.exploration.opened.includes(cache.id);
+      window.SpriteManager?.draw?.(g, 'currency_chest', ['open'], x, GROUND_SURFACE_Y, 1, 21, 0, 0, opened ? .9 : 0);
+    }
+  }
   const chestProgress=Math.abs(state.benkos.x-48)<35?.9:0;
   window.SpriteManager?.draw?.(g,'currency_chest',['open'],toScreenX(48),GROUND_SURFACE_Y,1,26,0,0,chestProgress);
 
@@ -285,66 +281,8 @@ function renderWorldAboveWater(g, time) {
     g.fillStyle = `rgba(121, 57, 29, ${Math.min(.22, (state.timeOfDay - .56) * 1.8)})`;
     g.fillRect(0, 0, w, h);
   }
-  // ==================== DYNAMIC 2.5D TORCH & NIGHT LIGHTING ====================
-  if (isNight || state.benkos.torchManual) {
-    g.save();
-    const torchFlicker = settings.reduce_motion ? 0 : Math.sin(time * 6) * 1.5;
-    const bsx = toScreenX(position(state.benkos));
-    const bsy = GROUND_SURFACE_Y - 24;
-
-    // 1. Torch on Benkos
-    const torchGrad = g.createRadialGradient(bsx, bsy, 8, bsx, bsy, 75 + torchFlicker);
-    torchGrad.addColorStop(0, 'rgba(251, 146, 60, 0.16)');
-    torchGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.08)');
-    torchGrad.addColorStop(1, 'rgba(217, 119, 6, 0)');
-    g.fillStyle = torchGrad;
-    g.beginPath();
-    g.arc(bsx, bsy, 75 + torchFlicker, 0, Math.PI * 2);
-    g.fill();
-
-    // 2. Altar of Wiwa Campfire (x = 0)
-    const altarSx = toScreenX(0);
-    const altarGrad = g.createRadialGradient(altarSx, GROUND_SURFACE_Y - 20, 10, altarSx, GROUND_SURFACE_Y - 20, 95 + torchFlicker * 1.5);
-    altarGrad.addColorStop(0, 'rgba(251, 191, 36, 0.16)');
-    altarGrad.addColorStop(0.6, 'rgba(245, 158, 11, 0.06)');
-    altarGrad.addColorStop(1, 'rgba(180, 83, 9, 0)');
-    g.fillStyle = altarGrad;
-    g.beginPath();
-    g.arc(altarSx, GROUND_SURFACE_Y - 20, 95 + torchFlicker * 1.5, 0, Math.PI * 2);
-    g.fill();
-
-    // 3. Wall Torches
-    state.walls.forEach(wall => {
-      if (wall.level > 0 && wall.hp > 0) {
-        const wsx = toScreenX(wall.x);
-        const wGrad = g.createRadialGradient(wsx, GROUND_SURFACE_Y - 30, 4, wsx, GROUND_SURFACE_Y - 30, 45 + torchFlicker);
-        wGrad.addColorStop(0, 'rgba(253, 224, 71, 0.38)');
-        wGrad.addColorStop(0.6, 'rgba(245, 158, 11, 0.15)');
-        wGrad.addColorStop(1, 'rgba(217, 119, 6, 0)');
-        g.fillStyle = wGrad;
-        g.beginPath();
-        g.arc(wsx, GROUND_SURFACE_Y - 30, 45 + torchFlicker, 0, Math.PI * 2);
-        g.fill();
-      }
-    });
-
-    // 4. Arcabucero Muzzle Flashes
-    state.enemies.forEach(en => {
-      if (en.muzzleFlash > 0 && !settings.reduce_motion) {
-        const esx = toScreenX(position(en));
-        const mGrad = g.createRadialGradient(esx + en.facing * 18, GROUND_SURFACE_Y - 20, 2, esx + en.facing * 18, GROUND_SURFACE_Y - 20, 50);
-        mGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-        mGrad.addColorStop(0.4, 'rgba(249, 115, 22, 0.6)');
-        mGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
-        g.fillStyle = mGrad;
-        g.beginPath();
-        g.arc(esx + en.facing * 18, GROUND_SURFACE_Y - 20, 50, 0, Math.PI * 2);
-        g.fill();
-      }
-    });
-
-    g.restore();
-  }
+  drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X, true);
+  lightScene(g, state, toScreenX, bsx, GROUND_SURFACE_Y, w, time, settings.reduce_motion);
 }
 
 function renderFrame(time,alpha=1) {
@@ -376,6 +314,12 @@ function renderFrame(time,alpha=1) {
   riverGrad.addColorStop(1, 'rgba(14, 24, 32, 0.58)');
   ctx.fillStyle = riverGrad;
   ctx.fillRect(0, view.waterLine, w, waterHeight);
+  ctx.fillStyle = state.phase === 'DAY_EXPLORE' ? '#9fc4a850' : '#90aca72e';
+  for (let i = 0; i < 16; i++) {
+    const drift = settings.reduce_motion ? 0 : time * (4 + i % 3);
+    const x = ((i * 67 - renderCamera * .56 + drift) % w + w) % w;
+    ctx.fillRect(Math.round(x), view.waterLine + 2 + (i * 13 % Math.max(1, waterHeight - 3)), 5 + i % 7, 1);
+  }
 
   ctx.restore();
 }
