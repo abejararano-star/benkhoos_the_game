@@ -1,19 +1,20 @@
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=9662674baa81';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=9662674baa81';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=9662674baa81';
-import { requestBuilding } from './settlement.js?v=9662674baa81';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=9662674baa81';
-import { AfroColombianAudioEngine } from './audio.js?v=9662674baa81';
-import { createInitialState } from './world-state.js?v=9662674baa81';
-import { makeSave, restoreSave } from './save-system.js?v=9662674baa81';
-import { createRenderer } from './renderer.js?v=9662674baa81';
-import { createSimulation } from './simulation.js?v=9662674baa81';
-import { FixedStepper } from './clock.js?v=9662674baa81';
-import { bindInput } from './input.js?v=9662674baa81';
-import { createUI } from './ui.js?v=9662674baa81';
-import { chooseDefenseSide } from './ai.js?v=9662674baa81';
-import { ensurePerson, personMaxHp, requestProfession, ROLE_NAMES } from './people.js?v=9662674baa81';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=9662674baa81';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=d67d25007032';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=d67d25007032';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=d67d25007032';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=d67d25007032';
+import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=d67d25007032';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=d67d25007032';
+import { AfroColombianAudioEngine } from './audio.js?v=d67d25007032';
+import { createInitialState } from './world-state.js?v=d67d25007032';
+import { makeSave, restoreSave } from './save-system.js?v=d67d25007032';
+import { createRenderer } from './renderer.js?v=d67d25007032';
+import { createSimulation } from './simulation.js?v=d67d25007032';
+import { FixedStepper } from './clock.js?v=d67d25007032';
+import { bindInput } from './input.js?v=d67d25007032';
+import { createUI } from './ui.js?v=d67d25007032';
+import { chooseDefenseSide } from './ai.js?v=d67d25007032';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=d67d25007032';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=d67d25007032';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -35,7 +36,7 @@ const ui = createUI({ state, session, settings, actions: {
   continueGame: () => session.hasCampaign && state.status === 'playing' ? ui.resume() : loadGameFromMySQL(),
   clearInput: () => input?.clear(), fullscreen: toggleFullscreen,
   settings: changeSettings, volume: v => audio.setVolume(v), politics: choosePolitics,
-  leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction, inspectNpc, assignRole, autoRole, node:()=>getNearestInteractiveNode(state.benkos.x), build: (kind,id)=>requestBuilding(state,kind,id)
+  leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction, inspectNpc, assignRole, autoRole, node:()=>getNearestInteractiveNode(state.benkos.x), worldPrices, orderKit: (unit,piece)=>orderEquipment(unit,piece,state), build: (kind,id)=>requestBuilding(state,kind,id)
 }});
 function updateHUD() { ui.update(); }
 
@@ -44,7 +45,7 @@ let nextEntityId = 1;
 
 
 function spawnCimarron(role, x, customTier) {
-  const tier = customTier ?? state.armyTier;
+  const tier = customTier ?? 1;
   const maxHp = getUnitMaxHp(role, tier);
   const unit = {
     id: nextEntityId++,
@@ -152,25 +153,12 @@ function spawnSpanishWave(mult = 1) {
 function queueReinforcement(type, side) { dispatchReinforcement(state, type, side); }
 
 
-function upgradeArmyTier() {
-  if (state.armyTier >= 3) return;
+function upgradeArmyTier(debug = false) {
+  if (state.armyTier >= 3 || (!debug && armyRequirement(state))) return;
   state.armyTier++;
-  if (state.armyTier === 3) { state.armorUnlocked = true; state.benkos.royalArmor = true; spawnCimarron('CAMPEON_REAL', 25, 3); }
-  state.units.forEach((u) => {
-    if (u.role !== 'FUGITIVO' && u.role !== 'CAMPEON_REAL') {
-      u.tier = state.armyTier;
-      u.maxHp = personMaxHp(u, u.role, state.armyTier);
-      u.hp = u.maxHp;
-      addParticles(u.x, WATER_LINE_Y - 20, 12, '#fde047', 85);
-    }
-  });
   audio.playSfx('roar');
-  const names = {
-    1: 'CIMARRÓN',
-    2: 'ÉLITE',
-    3: 'REAL'
-  };
-  showBanner(`¡ASCENSO MILITAR: ${names[state.armyTier]}!`, 'Todas tus tropas y entrenamientos han evolucionado');
+  const name = state.armyTier === 2 ? 'Élite' : 'Real';
+  showBanner(`RANGO ${name.toUpperCase()} DISPONIBLE`, 'Encarga armas y armaduras en la ficha de cada combatiente. Se recogen en el cuartel.');
   updateHUD();
 }
 
@@ -199,19 +187,19 @@ function addParticles(x, y, count, color, speed = 65) {
 function showBanner(mainText, subText = 'MONTES DE MARÍA · 1600') { ui.banner(mainText, subText); }
 
 // ==================== 5. DIEGETIC INTERACTIVE NODES ====================
-function getNearestInteractiveNode(bx) {
-  // Freeing a person takes precedence over paying into a nearby tree or building.
-  if (state.units.some(u => u.role === 'FUGITIVO' && Math.abs(u.x - bx) < 36)) return null;
+function getInteractionNodes() {
   const candidates = [];
 
   if (state.armyTier < 3) {
     const upgCost = BALANCE.tierCosts[state.armyTier];
+    const locked = armyRequirement(state);
     const nextName = state.armyTier === 1 ? 'Rango ÉLITE' : 'Rango REAL';
     candidates.push({
       id: 'node_tier_totem',
       x: -48,
       title: ` Ascender Ejército a ${nextName}`,
-      sub: `Mantén [S] (${upgCost} reales ) para evolucionar todas tus tropas`,
+      sub: locked || 'Mantén [S] para desbloquear encargos de equipo',
+      height: 62, locked,
       cost: upgCost,
       getFilled: () => state.tierUpgradeSlots,
       setFilled: (v) => { state.tierUpgradeSlots = v; },
@@ -228,6 +216,7 @@ function getNearestInteractiveNode(bx) {
       x: 0,
       title: ` Altar: ${nextSkill.name}`,
       sub: `Mantén [S] para ofrendar (${nextSkill.cost} reales )`,
+      height: ALTAR_HEIGHT[state.altarTier] + 5,
       cost: nextSkill.cost,
       getFilled: () => state.altarSlotsFilled,
       setFilled: (v) => { state.altarSlotsFilled = v; },
@@ -236,7 +225,7 @@ function getNearestInteractiveNode(bx) {
         state.altarTier = nextSkill.level;
         audio.playSfx('roar');
         addParticles(0, WATER_LINE_Y - 36, 26, '#fde047', 110);
-        showBanner(`¡PODER DEL JAGUAR DESBLOQUEADO: ${nextSkill.name.toUpperCase()}!`, 'Usa las teclas [1-4] para invocar los espíritus del monte');
+        showBanner(`¡PODER DEL JAGUAR DESBLOQUEADO: ${nextSkill.name.toUpperCase()}!`, `Altar de nivel ${state.altarTier}. Ya puedes encargar la siguiente mejora de la casa central.`);
         updateHUD();
       }
     });
@@ -247,6 +236,7 @@ function getNearestInteractiveNode(bx) {
     x: 48,
     title: ` Cofre de Wiwa (${state.treasuryCoins} reales  guardadas)`,
     sub: '[S] Guardar Plata | [W/E] Retirar 5 reales  a tu bolsa',
+    height: 31,
     cost: 2,
     getFilled: () => state.treasurySlotsFilled,
     setFilled: (v) => { state.treasurySlotsFilled = v; },
@@ -264,6 +254,7 @@ function getNearestInteractiveNode(bx) {
         x: rk.x,
         title: `${rk.label} · ${rk.stock}/${rk.maxStock}`,
         sub: `Mantén [S] para forjar equipo (${rk.cost} reales )`,
+        height: 59,
         cost: rk.cost,
         getFilled: () => rk.filledSlots,
         setFilled: (v) => { rk.filledSlots = v; },
@@ -279,7 +270,10 @@ function getNearestInteractiveNode(bx) {
 
   state.walls.forEach((w) => {
     const isDamaged = w.level > 0 && w.hp < w.maxHp * 0.8;
-    if (w.level < Math.max(3,Math.min(state.settlement.level,state.settlement.barracks.level)) || isDamaged) {
+    if (w.level < 5 || isDamaged) {
+      const required = w.level + 1;
+      const unlocked = isDamaged || (required <= state.altarTier && required <= state.settlement.level && required <= state.settlement.barracks.level + 1);
+      const locked = unlocked ? '' : `Requiere altar y casa de nivel ${required} y cuartel de nivel ${required - 1}.`;
       const cost = w.level === 0 ? 2 : (isDamaged ? 2 : w.level * 2 + 1);
       const label = w.level === 0
         ? ' Levantar Empalizada'
@@ -288,7 +282,8 @@ function getNearestInteractiveNode(bx) {
         id: w.id,
         x: w.x,
         title: label,
-        sub: `Mantén [S] para ordenar obra (${cost} reales )`,
+        sub: locked || 'Mantén [S] para ordenar la obra',
+        height: [11, 59, 69, 75, 81, 91][w.level], locked,
         cost,
         getFilled: () => w.filledSlots,
         setFilled: (v) => { w.filledSlots = v; },
@@ -310,11 +305,13 @@ function getNearestInteractiveNode(bx) {
 
   state.farms.forEach((f) => {
     if (f.level < 2) {
+      const locked = f.level === 1 && (state.altarTier < 2 || state.settlement.level < 2) ? 'Requiere altar y casa central de nivel 2.' : '';
       candidates.push({
         id: f.id,
         x: f.x,
         title: f.level === 0 ? ' Construir Cultivo de Yuca' : ' Ampliar Granja Real Nv.2',
-        sub: `Mantén [S] para invertir (${f.cost} reales )`,
+        sub: locked || 'Mantén [S] para invertir',
+        height: f.level ? 47 : 15, locked,
         cost: f.cost,
         getFilled: () => f.filledSlots,
         setFilled: (v) => { f.filledSlots = v; },
@@ -334,6 +331,7 @@ function getNearestInteractiveNode(bx) {
         x: tr.x,
         title: ' Marcar Ceiba para Talar',
         sub: 'Mantén [S] (1 real) · Tus leñadores talarán y obtendrán 2 reales',
+        height: tr.height + 39,
         cost: 1,
         getFilled: () => tr.filledSlots,
         setFilled: (v) => { tr.filledSlots = v; },
@@ -345,9 +343,38 @@ function getNearestInteractiveNode(bx) {
     }
   });
 
+  return candidates;
+}
+
+function worldPrices() {
+  const nodes = getInteractionNodes().filter(node => !node.id.startsWith('tree_') || Math.abs(node.x - state.benkos.x) < 50);
+  const prices = nodes.map(node => ({
+    id: node.id, x: node.x, height: node.height, cost: node.cost,
+    paid: node.getFilled() || 0, locked: !!node.locked, title: node.title.trim()
+  }));
+  for (const [kind, id, size, title] of [
+    ['hq', 'hq', 124, 'Casa central'], ['barracks', 'barracks', 96, 'Cuartel'],
+    ...state.settlement.homes.map(home => ['home', home.id, 80, 'Vivienda'])
+  ]) {
+    const info = upgradeInfo(state, kind, id);
+    if (!info.next) continue;
+    const job = state.settlement.projects.find(project => project.targetId === id);
+    const sprite = window.SpriteManager.atlas?.[`building_${kind}_${info.target.level}`];
+    const frame = sprite?.anims.idle[0];
+    const height = 11 + (frame ? (frame.ay - frame.top) * size / sprite.ref : size * .78);
+    prices.push({
+      id: 'works_' + id, x: info.target.x, height, cost: info.coins,
+      paid: job ? info.coins : 0, locked: !job && !!info.reason, title: title + ' · B', works: true
+    });
+  }
+  return prices;
+}
+
+function getNearestInteractiveNode(bx) {
+  if (state.units.some(u => u.role === 'FUGITIVO' && Math.abs(u.x - bx) < 36)) return null;
   let best = null;
   let bestDist = 34;
-  candidates.forEach((c) => {
+  getInteractionNodes().forEach((c) => {
     const d = Math.abs(c.x - bx);
     if (d < bestDist) {
       bestDist = d;
@@ -630,6 +657,13 @@ function newGame() {
       state.benkos.x = -135;
       state.armorUnlocked = true;
     }
+    if (reviewScene === 'equipment') {
+      state.altarTier = state.armyTier = state.settlement.level = state.settlement.barracks.level = 2;
+      state.skills[1].unlocked = true;
+      state.benkos.x = 100;
+      state.units = [];
+      spawnCimarron('ESPADACHIN', 120, 1);
+    }
     if (reviewScene === 'community') {
       const [first, second] = state.units;
       first.x = 10;
@@ -646,8 +680,21 @@ function newGame() {
   showBanner('BIENVENIDO A LA MATUNA', 'Libera a los fugitivos fuera de las murallas. El cofre de Wiwa protege tu futuro.');
 }
 function toggleArmor() {
-  if (!state.armorUnlocked) { showBanner('LA ARMADURA SE GANA', 'Asciende al rango Real en el tótem para desbloquearla.'); return; }
-  state.benkos.royalArmor = !state.benkos.royalArmor; updateHUD();
+  if (!state.armorUnlocked) {
+    if (state.armyTier < 3) {
+      showBanner('ARMADURA REAL', 'El rango Real abre el encargo de la armadura.');
+      return;
+    }
+    if (state.coins < ROYAL_ARMOR_COST) {
+      showBanner('ARMADURA REAL', `Faltan ${ROYAL_ARMOR_COST - state.coins} reales en la bolsa.`);
+      return;
+    }
+    state.coins -= ROYAL_ARMOR_COST;
+    state.armorUnlocked = true;
+    showBanner('ARMADURA REAL COMPRADA', `${ROYAL_ARMOR_COST} reales de la bolsa. Pulsa C para alternarla.`);
+  }
+  state.benkos.royalArmor = !state.benkos.royalArmor;
+  updateHUD();
 }
 async function toggleFullscreen() {
   try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
@@ -713,7 +760,7 @@ function choosePolitics(accept) {
   state.politicalEventSeen = true; ui.resume(); updateHUD();
 }
 function debugAction(id) {
-  if (id === 'btnUpgradeTier') upgradeArmyTier();
+  if (id === 'btnUpgradeTier') upgradeArmyTier(true);
   if (id === 'btnSpawnChampion') spawnCimarron('CAMPEON_REAL', state.benkos.x + 30, 3);
   if (id === 'btnSpawnAllAllies') ['GUERRERO','ARQUERO','CAZADOR','MINERO','AGRICULTOR','ESPADACHIN','CABALLERO_ALIADO'].forEach((r,i) => spawnCimarron(r, state.benkos.x + i * 24));
   if (id === 'btnSimCoins') giveCoinToBenkos(15);

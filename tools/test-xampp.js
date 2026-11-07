@@ -21,6 +21,12 @@ try {
   s.units.push({id:45,role:'LENADOR',tier:1,hp:40,maxHp:95,x:-405,y:268});s.units.forEach(ensurePerson);
   s.units[0].requestedRole='CAZADOR';
   s.community.relations.push({key:'44:45',people:[44,45],score:4,lastAt:32});
+  s.community.relations[0].partner = true;
+  s.community.memorial.push({id:43,name:'Ana del Río',day:3});
+  s.units[1].grief = {name:'Ana del Río',remaining:58,duration:92};
+  s.units[0].equipment = {weapon:2,armor:1};
+  s.farms[0].stage = 'GROW';
+  s.farms[0].tending = 0;
   s.units.push({id:46,role:'CONSTRUCTOR',tier:1,hp:90,maxHp:90,x:0,y:268});ensurePerson(s.units[2]);
   s.units[1].carryingSack=true;s.units[1].cargoWood=6;s.resources={wood:11,stone:7,food:9};
   s.wildlife=[createAnimal(70,'MACAW',640,{trust:2})];s.ecology.seeded=true;s.ecology.streams[0].fishStock=1;

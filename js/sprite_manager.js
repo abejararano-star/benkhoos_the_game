@@ -113,7 +113,7 @@ class BenkosSpriteManager {
     return this.draw(ctx,cls,[anim],x,y,a.facing,height,t,6,anim==='walk'?(gait?.phase??0):null);
   }
 
-  personClass(role, tier = 1) {
+  personClass(role, tier = 1, weapon = 1) {
     const name = {
       FUGITIVO: 'captive', ALDEANO: 'civil', LENADOR: 'woodcutter', AGRICULTOR: 'farmer',
       MINERO: 'miner', CAZADOR: 'hunter', CONSTRUCTOR: 'builder', ARQUERO: 'archer',
@@ -121,6 +121,7 @@ class BenkosSpriteManager {
       CABALLERO_ALIADO: 'ally_mounted'
     }[role];
     const ranked = ['GUERRERO', 'ARQUERO', 'ESPADACHIN'].includes(role);
+    if (ranked && weapon > 1) return `actor_${name}_a${tier}_w${weapon}`;
     const rank = !ranked || tier < 2 ? '' : tier === 2 ? 'elite_' : 'royal_';
     return 'actor_' + rank + name;
   }
@@ -160,7 +161,7 @@ class BenkosSpriteManager {
   drawSocial(ctx, cls, x, y, facing, height, unit) {
     const { kind, time, index } = unit.socialPose;
     const speaker = Math.floor(time / .8) % 2 === index;
-    const laugh = kind === 'LAUGH';
+    const laugh = kind === 'LAUGH' || kind === 'ROMANCE';
     const scuffle = kind === 'SCUFFLE';
     const hit = scuffle && time >= 1.15 && time < 1.48;
     const windup = scuffle && time >= .6 && time < 1.15;
@@ -180,7 +181,8 @@ class BenkosSpriteManager {
     const cls = 'actor_hero' + (mounted ? '_mounted' : '') + (player.royalArmor ? '_royal' : '');
     const height = mounted ? 60 : 48;
     const animationTime = player.animTime ?? time;
-    const gait = this.motion?.sample(player, animationTime);
+    const running = Math.abs(player.vx) > (mounted ? 150 : 120) || player.dashTimer > 0;
+    const gait = this.motion?.sample(player, animationTime, mounted ? (running ? 112 : 76) : undefined);
     if (player.hurtKneelTimer > 0 || player.resting) {
       return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player, mounted ? 'idle' : 'rest');
     }
@@ -199,8 +201,8 @@ class BenkosSpriteManager {
       return this.draw(ctx, cls, ['fish'], x, y, facing, height, animationTime, 2.5, this.reduceMotion ? 0 : null);
     }
     if (gait?.moving ?? Math.abs(player.vx) > 8) {
-      const running = Math.abs(player.vx) > (mounted ? 150 : 120) || player.dashTimer > 0;
-      return this.draw(ctx, cls, [running ? 'run' : 'walk'], x, y, facing, height, animationTime, 9, gait?.phase);
+      const lift = mounted && running && !this.reduceMotion ? [2, 2, 1, 0, 0, 0, 1, 2][Math.floor((gait?.phase ?? 0) * 8)] : 0;
+      return this.draw(ctx, cls, [running ? 'run' : 'walk'], x, y - lift, facing, height, animationTime, 9, gait?.phase);
     }
     return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player);
   }
@@ -210,10 +212,20 @@ class BenkosSpriteManager {
   }
 
   drawAlly(ctx, x, y, facing, unit, time) {
-    const cls = this.personClass(unit.role, unit.tier);
+    if (!unit.grief) return this.drawAllyPose(ctx, x, y, facing, unit, time);
+    ctx.save();
+    const intensity = unit.grief.remaining / unit.grief.duration;
+    ctx.filter = `saturate(${1 - intensity * .74}) brightness(${1 - intensity * .16})`;
+    const drawn = this.drawAllyPose(ctx, x, y, facing, unit, time);
+    ctx.restore();
+    return drawn;
+  }
+
+  drawAllyPose(ctx, x, y, facing, unit, time) {
+    const cls = this.personClass(unit.role, unit.equipment?.armor ?? unit.tier, unit.equipment?.weapon);
     const height = unit.role === 'CABALLERO_ALIADO' ? 58 : unit.role === 'CAMPEON_REAL' ? 51 : 45;
     const t = unit.animSeed ?? time;
-    const gait = this.motion?.sample(unit, t);
+    const gait = this.motion?.sample(unit, t, unit.role === 'CABALLERO_ALIADO' ? 88 : undefined);
     if (unit.hurtTimer > 0) {
       return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0, 0, 1 - unit.hurtTimer / .4);
     }
@@ -236,7 +248,11 @@ class BenkosSpriteManager {
     if (['CHOP', 'BUILD', 'WORK'].includes(unit.activity)) {
       return this.draw(ctx, cls, ['action'], x, y, facing, height, t, 4);
     }
-    const rest = ['REST', 'RECOVER'].includes(unit.activity) && unit.role !== 'CABALLERO_ALIADO';
+    if (unit.activity === 'BATHE' || unit.activity === 'PLAY') {
+      const lean = this.reduceMotion ? null : { tilt: Math.sin(t * 4) * .045, stretch: 1 };
+      return this.draw(ctx, cls, ['rest'], x, y + (unit.activity === 'BATHE' ? 3 : 0), facing, height, t, 0, 0, lean);
+    }
+    const rest = ['REST', 'RECOVER', 'MOURN', 'LEAVE'].includes(unit.activity) && unit.role !== 'CABALLERO_ALIADO';
     return this.drawIdle(ctx, cls, x, y, facing, height, t, unit, rest ? 'rest' : 'idle');
   }
 
@@ -251,7 +267,7 @@ class BenkosSpriteManager {
     const cls = this.enemyClass(enemy);
     const height = this.enemyHeight(enemy);
     const t = enemy.animTime ?? time;
-    const gait = this.motion?.sample(enemy, t);
+    const gait = this.motion?.sample(enemy, t, enemy.type === 'CABALLERO' ? 88 : undefined);
     if (enemy.hurtTimer > 0) {
       return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0, 0, 1 - enemy.hurtTimer / .24);
     }
@@ -262,7 +278,7 @@ class BenkosSpriteManager {
       const duration = enemy.type === 'HERALDO_ALADO' ? .7 : .38;
       return this.draw(ctx, cls, ['strike'], x, y, facing, height, 0, 0, 1 - enemy.attackAnimTimer / duration);
     }
-    if (gait?.moving ?? !!enemy.isMoving) return this.draw(ctx, cls, ['walk'], x, y, facing, height, t, 8, gait?.phase);
+    if (gait?.moving ?? !!enemy.isMoving) return this.draw(ctx, cls, [enemy.type === 'CABALLERO' ? 'run' : 'walk'], x, y, facing, height, t, 8, gait?.phase);
     return this.drawIdle(ctx, cls, x, y, facing, height, t, enemy);
   }
 

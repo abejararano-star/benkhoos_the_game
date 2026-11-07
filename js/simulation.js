@@ -1,11 +1,14 @@
-import { updateCommunity, joinEncounter } from './community.js?v=9662674baa81';
-import { updateEcology, isHuntable } from './ecology.js?v=9662674baa81';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=9662674baa81';
-import { workConstruction, homeRecovery } from './settlement.js?v=9662674baa81';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession } from './people.js?v=9662674baa81';
-import { ensureCampaign } from './campaign.js?v=9662674baa81';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=9662674baa81';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=9662674baa81';
+import { collectEquipment } from './equipment.js?v=d67d25007032';
+import { advanceCrops, tendCrop } from './crops.js?v=d67d25007032';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=d67d25007032';
+import { updateCommunity, joinEncounter } from './community.js?v=d67d25007032';
+import { updateEcology, isHuntable } from './ecology.js?v=d67d25007032';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=d67d25007032';
+import { workConstruction, homeRecovery } from './settlement.js?v=d67d25007032';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=d67d25007032';
+import { ensureCampaign } from './campaign.js?v=d67d25007032';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d67d25007032';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=d67d25007032';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -40,7 +43,7 @@ return function updateSimulation(dt) {
     state.trees.forEach(t=>{if(t.chopped&&t.regrowDay<=state.day){t.chopped=false;t.chopProgress=0;t.regrowDay=null;}});
     state.phase = 'DAY_EXPLORE';
     state.alertLevel = Math.min(100, state.alertLevel + 8);
-    if (state.wildlife.length < 4) {
+    if (state.wildlife.filter(isHuntable).length < 4) {
       spawnWildlife(-520 - Math.random() * 450);
       spawnWildlife(520 + Math.random() * 450);
     }
@@ -79,8 +82,7 @@ return function updateSimulation(dt) {
   }
 
   const isRunning = b.sprintHoldTime > 0.35 || keys['ShiftLeft'] || keys['ShiftRight'] || b.jaguarTimer > 0;
-  const mountMult = b.mounted ? 1.42 : 1.0;
-  const baseSpeed = (isRunning ? 155 : 95) * mountMult;
+  const baseSpeed = b.mounted ? (isRunning ? 212 : 117) : (isRunning ? 155 : 95);
   b.inStream=state.ecology.streams.some(c=>Math.abs(c.x-b.x)<23);
   const moveSpeed=(b.jaguarTimer>0?205:baseSpeed)*(b.dashTimer>0?2.2:1)*(b.inStream&&!b.mounted?.72:1);
 
@@ -91,10 +93,12 @@ return function updateSimulation(dt) {
     b.vx=progress>.27&&progress<.5?b.facing*28:moveInput*moveSpeed*.12;
   }else if (b.dashTimer <= 0 && b.hurtKneelTimer <= 0) {
     if (moveInput !== 0) {
-      b.vx = moveInput * moveSpeed;
-      b.facing = moveInput;
+      const targetSpeed = moveInput * moveSpeed;
+      const change = b.mounted ? Math.min(1, dt * 5.5) : 1;
+      b.vx += (targetSpeed - b.vx) * change;
+      b.facing = Math.sign(b.vx) || moveInput;
     } else {
-      b.vx *= Math.pow(0.78, dt * 60);
+      b.vx *= Math.pow(b.mounted ? .88 : .78, dt * 60);
     }
   }
   b.x = Math.max(WORLD_MIN_X + 40, Math.min(WORLD_MAX_X - 40, b.x + b.vx * dt));
@@ -109,7 +113,7 @@ return function updateSimulation(dt) {
   }
 
   const isHoldingPay = keys['KeyS'] || keys['ArrowDown'] || keys['KeyK'] || state.touchHoldPay;
-  if (isHoldingPay) {
+  if (isHoldingPay && !activeNode?.locked) {
     state.holdPayTimer += dt;
     if (activeNode) {
       if (state.holdPayTimer >= 0.22) {
@@ -191,14 +195,41 @@ return function updateSimulation(dt) {
     if (claimed || c.life <= 0) state.droppedCoins.splice(i, 1);
   }
 
-  updateEcology(state,dt,{damagePlayer:hitBenkosKingdomStyle,notice:(x,message)=>{addFloatingText(x,WATER_LINE_Y-45,message,'#c8be88');if(message.includes('pesca'))showBanner(message,'');},dropCoin:x=>spawnPhysicalCoin(x,WATER_LINE_Y-12,0,-95,true,false)});
+  updateEcology(state, dt, {
+    damagePlayer: hitBenkosKingdomStyle,
+    notice: (x, message) => {
+      addFloatingText(x, WATER_LINE_Y - 45, message, '#c8be88');
+      if (message.includes('pesca')) showBanner(message, '');
+    },
+    dropCoin: x => spawnPhysicalCoin(x, WATER_LINE_Y - 12, 0, -95, true, false),
+    collectHunt: (animal, food) => {
+      const hunter = state.units.find(unit => unit.id === animal.lastHunterId && unit.role === 'CAZADOR' && unit.hp > 0);
+      if (!hunter) return false;
+      hunter.huntCargo ??= { food: 0, coins: 0 };
+      hunter.huntCargo.food += food;
+      hunter.huntCargo.coins++;
+      hunter.carryingSack = true;
+      return true;
+    }
+  });
 
+  advanceCrops(state, dt);
+  for (let i = state.units.length - 1; i >= 0; i--) {
+    const unit = state.units[i];
+    if (unit.hp > 0) continue;
+    recordLoss(unit, state);
+    state.units.splice(i, 1);
+    addFloatingText(unit.x, WATER_LINE_Y - 53, `Cayó ${unit.name}`, '#c9bea7');
+    showBanner('EL PALENQUE ESTÁ DE LUTO', unit.name);
+    updateHUD();
+  }
   updateCommunity(state, dt);
   // Allied work and defense
   const moraleMult = state.morale / 100;
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
     ensurePerson(u);
+    updateGrief(u, dt);
     u.animSeed = (u.animSeed ?? 0) + dt;
     advanceAllyAction(u,state,dt,(enemy,damage)=>{addParticles(enemy.x,WATER_LINE_Y-20,5,'#d7bd8b',45);audio.playSfx('slash');});
     if (u.attackCooldown > 0) u.attackCooldown -= dt;
@@ -209,10 +240,11 @@ return function updateSimulation(dt) {
     }
 
     if(updatePerson(u,state,dt,Math.abs(u.x)<600?homeRecovery(state):1))continue;
-    if (joinEncounter(u, state, dt)) continue;
+    if (collectEquipment(u, state, dt, personMaxHp)) continue;
+    if (joinEncounter(u, state, dt) || takeLeisure(u, state, dt)) continue;
     const fitMult = proficiency(u);
-    const combatBonus=['GUERRERO','ARQUERO','CAZADOR','ESPADACHIN','CABALLERO_ALIADO','CAMPEON_REAL'].includes(u.role)?1+(state.settlement.barracks.level-1)*.06:1;
-    const tierMult = combatBonus * (u.tier === 3 ? 1.75 : (u.tier === 2 ? 1.35 : 1.0)) * fitMult;
+    const weaponRank = u.equipment?.weapon ?? (u.role === 'CAMPEON_REAL' ? u.tier : 1);
+    const tierMult = (weaponRank === 3 ? 1.75 : weaponRank === 2 ? 1.35 : 1) * fitMult;
 
     if (u.role === 'CONSTRUCTOR') {
       const done=workConstruction(u,state,dt);
@@ -274,15 +306,18 @@ return function updateSimulation(dt) {
           u.x += u.vx * dt;
         } else {
           u.carryingSack = false;
-          state.resources.food+=2;
-          const yieldCoins = u.tier === 3 ? 2 : 1;
+          state.resources.food += u.cropCargo?.food ?? 2;
+          const yieldCoins = u.cropCargo?.coins ?? 1;
+          u.cropCargo = null;
+          u.vx = 0;
           for (let c = 0; c < yieldCoins; c++) {
             spawnPhysicalCoin(48, WATER_LINE_Y - 18, (Math.random() - 0.5) * 45, -105, true, false);
           }
           addFloatingText(48, WATER_LINE_Y - 40, `+${yieldCoins} reales  Cosecha Entregada`, '#fde047');
         }
       } else {
-        const activeFarm = chooseWorksite(u, state.farms, state.units, 'AGRICULTOR', BALANCE.farmCapacity);
+        const workable = state.farms.filter(farm => farm.stage === 'PLANT' || farm.stage === 'RIPE');
+        const activeFarm = chooseWorksite(u, workable, state.units, 'AGRICULTOR', BALANCE.farmCapacity);
         if (!activeFarm) { u.vx = 0; continue; }
         const targetX = activeFarm.x + ((u.id % 3) - 1) * 14;
         if (Math.abs(targetX - u.x) > 8) {
@@ -292,11 +327,11 @@ return function updateSimulation(dt) {
         } else {
           u.vx = 0;
           u.activity = 'WORK';
-          activeFarm.cropProgress += dt * 0.16 * activeFarm.level * tierMult;
-          if (activeFarm.cropProgress >= 1.0) {
-            activeFarm.cropProgress = 0;
+          const harvest = tendCrop(activeFarm, state, dt, fitMult);
+          if (harvest) {
+            u.cropCargo = harvest;
             u.carryingSack = true;
-            addFloatingText(u.x, WATER_LINE_Y - 38, ' Cesto Lleno', '#4ade80');
+            addFloatingText(u.x, WATER_LINE_Y - 38, 'Cosecha lista para entregar', '#4ade80');
           }
         }
       }
@@ -337,10 +372,32 @@ return function updateSimulation(dt) {
         }
       }
     } else if (u.role === 'CAZADOR') {
-      const postX = u.assignedSide * 270;
-      const prey = state.wildlife.find(an=>isHuntable(an)&&Math.abs(an.x-u.x)<170);
-      const enemyTarget = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 175);
-      const target = enemyTarget || prey;
+      const postX = u.assignedSide * 270 + patrolOffset(u, state);
+      const enemyTarget = nearest(u, state.enemies, enemy => enemy.hp > 0 && Math.abs(enemy.x - u.x) < 175);
+      if (u.huntCargo && !enemyTarget) {
+        const delta = 48 - u.x;
+        u.activity = 'DELIVER';
+        u.mood = 'Llevando la caza y la plata al cofre';
+        if (Math.abs(delta) > 12) {
+          u.facing = Math.sign(delta);
+          u.vx = u.facing * 61;
+          u.x += u.vx * dt;
+        } else {
+          u.vx = 0;
+          state.resources.food += u.huntCargo.food;
+          state.treasuryCoins += u.huntCargo.coins;
+          addFloatingText(48, WATER_LINE_Y - 42, `+${u.huntCargo.coins} real de caza · +${u.huntCargo.food} alimento`, '#dbc78f');
+          u.huntCargo = null;
+          u.carryingSack = false;
+          updateHUD();
+        }
+        continue;
+      }
+      const prey = state.phase === 'DAY_EXPLORE'
+        ? nearest(u, state.wildlife, animal => isHuntable(animal) && Math.abs(animal.x - postX) < 630)
+        : null;
+      const target = enemyTarget || (prey && Math.abs(prey.x - u.x) < 160 ? prey : null);
+      const huntX = prey && !enemyTarget ? prey.x - Math.sign(prey.x - u.x) * 116 : postX;
 
       if (target && u.attackCooldown <= 0) {
         u.facing = Math.sign(target.x - u.x) || 1;
@@ -349,7 +406,8 @@ return function updateSimulation(dt) {
         u.attackAnimTimer = .45;
         u.activity = 'HUNT';
         const throwNet = (!target.nettedTimer || target.nettedTimer <= 0) && Math.random() < 0.55;
-        u.attackDuration=.45;u.pendingShot={eta:.17,
+        u.vx = 0;
+        u.pendingShot={eta:.17, hunterId: u.id,
           x: u.x,
           y: WATER_LINE_Y - 20,
           vx: u.facing * 205,
@@ -361,8 +419,10 @@ return function updateSimulation(dt) {
         };
       } else if (u.activity === 'KITE') {
         // updatePerson has already taken a backward step while facing the threat.
-      } else if (Math.abs(postX - u.x) > 16) {
-        u.facing = Math.sign(postX - u.x) || 1;
+      } else if (!u.pendingShot && Math.abs(huntX - u.x) > 16) {
+        u.activity = 'PATROL';
+        u.mood = prey ? 'Siguiendo un rastro' : 'Rondando el monte';
+        u.facing = Math.sign(huntX - u.x) || 1;
         u.vx = u.facing * 68;
         u.x += u.vx * dt;
       } else {
@@ -371,7 +431,7 @@ return function updateSimulation(dt) {
       }
     } else if (u.role === 'ARQUERO') {
       const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
-      const postX=defensePostX(u,state.units,activeWall);
+      const postX = defensePostX(u, state.units, activeWall) + patrolOffset(u, state);
       if (u.activity === 'KITE') {
         // Keep distance and retain the opportunity to shoot.
       } else if (Math.abs(postX - u.x) > 3) {
@@ -385,22 +445,21 @@ return function updateSimulation(dt) {
       if (u.attackCooldown <= 0) {
         const enemyTarget = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 200);
         if (enemyTarget) {
-          u.attackCooldown = u.tier === 3 ? 0.85 : 1.1;
+          u.attackCooldown = weaponRank === 3 ? 0.85 : 1.1;
           u.attackDuration=.5;u.attackAnimTimer=.5;u.activity='ATTACK';
           u.facing = Math.sign(enemyTarget.x - u.x) || 1;
           u.pendingShot={eta:.18,
             x:u.x,y: WATER_LINE_Y - 19, vx: u.facing * 245, vy: -20,
-            dmg: 15 * moraleMult * tierMult, fromPlayerSide: true, color: u.tier === 3 ? '#fde047' : '#4ade80'
+            dmg: 15 * moraleMult * tierMult, fromPlayerSide: true, color: weaponRank === 3 ? '#fde047' : '#4ade80'
           };
         }
       }
     } else if (u.role === 'GUERRERO' || u.role === 'ESPADACHIN' || u.role === 'CABALLERO_ALIADO' || u.role === 'CAMPEON_REAL') {
-      const isMounted = u.role === 'CABALLERO_ALIADO';
       const moveSpd = ALLY_COMBAT[u.role].speed;
       const nearEnemy = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 310);
       const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
       const frontX=activeWall?activeWall.x-u.assignedSide*10:u.assignedSide*285;
-      const guardX=defensePostX(u,state.units,activeWall);
+      const guardX = defensePostX(u, state.units, activeWall) + patrolOffset(u, state);
       const targetX = nearEnemy ? (u.role === 'GUERRERO' ? Math.max(frontX - 85, Math.min(frontX + 85, nearEnemy.x)) : nearEnemy.x) : guardX;
 
       if (Math.abs(targetX-u.x)>(nearEnemy?22:3)) {
@@ -681,6 +740,7 @@ return function updateSimulation(dt) {
           const an = state.wildlife[j];
           if(isHuntable(an)&&Math.abs(p.x-an.x)<14){
             an.hp -= p.dmg;
+            an.lastHunterId = p.hunterId ?? null;
             if (p.isNet) an.nettedTimer = 4.0;
             hit = true;
             break;
@@ -697,7 +757,7 @@ return function updateSimulation(dt) {
         hit = true;
       } else {
         // Impacto en defensor aliado con escudo
-        const hitAlly = state.units.find(u => (u.role === 'GUERRERO' || u.role === 'CAMPEON_REAL') && Math.abs(p.x - u.x) < 14);
+        const hitAlly = state.units.find(u => u.hp > 0 && (u.role === 'GUERRERO' || u.role === 'CAMPEON_REAL') && Math.abs(p.x - u.x) < 14);
         if (hitAlly) {
           reactToDamage(hitAlly, p.dmg, Math.sign(p.vx));
           addParticles(hitAlly.x, p.y, 5, '#fde047', 50);

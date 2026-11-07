@@ -917,6 +917,14 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 .node-price{display:inline-flex;align-items:center;gap:5px;color:#f0ca83;white-space:nowrap;font-size:11px;border-left:1px solid #9a865c66;padding-left:9px}
 .node-price .icon{width:14px;height:14px;fill:currentColor}
 .person-relations,.building-coin-balance{color:#e1c391}
+.world-price{display:flex;align-items:center;gap:3px;padding:4px 5px;border:1px solid #8f754b;background:#13261de8;border-radius:4px;box-shadow:0 1px 3px #0b1512aa;white-space:nowrap}
+.world-price i{width:7px;height:7px;border:1px solid #c9a969;border-radius:50%;background:#14261d}
+.world-price i.filled{background:#eac476;box-shadow:inset 1px 0 #ffe1a0}
+.world-price span{color:#d9b979;font:9px monospace;padding-right:2px}
+.world-price.price-locked{opacity:.69;border-color:#6c725c}
+.world-price.price-locked i{border-color:#a5a185}
+.world-price.price-active{border-color:#f1cf83;background:#17291ef7}
+.evolution-path{color:#e1c391;font-size:.85rem;line-height:1.5}
 @media(max-width:740px){.node-hint{flex-wrap:wrap;column-gap:8px}.node-hint p{display:none}}
 
 .banner{top:17px;left:50%;right:auto;bottom:auto;width:min(370px,35vw);transform:translate(-50%,-5px);padding:7px 12px;max-height:64px;overflow:hidden;background:#13281de8;box-shadow:none;text-align:center}

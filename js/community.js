@@ -4,7 +4,7 @@ const SAFE_DISTANCE = 230;
 const SOCIABLE = ['CALM', 'CARING'];
 
 export function initialCommunity() {
-  return { time: 0, nextAt: 6, relations: [], encounter: null };
+  return { time: 0, nextAt: 6, relations: [], memorial: [], encounter: null };
 }
 
 function pairKey(a, b) {
@@ -23,7 +23,7 @@ function firstImpression(a, b) {
 function available(unit, state) {
   return unit.role !== 'FUGITIVO' && unit.role !== 'CABALLERO_ALIADO' && unit.hp >= unit.maxHp * .75 &&
     Math.abs(unit.x) < 610 && unit.fear < 25 && !unit.hurtTimer && !unit.requestedRole &&
-    !unit.carryingSack && !unit.pendingShot && !unit.pendingStrike && !unit.liberateAnimTimer &&
+    !unit.carryingSack && !unit.pendingShot && !unit.pendingStrike && !unit.liberateAnimTimer && !unit.kitOrder && !unit.leisure &&
     !(unit.attackAnimTimer > 0) && !['BUILD', 'CHOP', 'TRAINING', 'FLEE', 'KITE', 'REST', 'RECOVER'].includes(unit.activity) &&
     !state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - unit.x) < SAFE_DISTANCE);
 }
@@ -45,9 +45,12 @@ export function restoreCommunity(state) {
     relation.key = key;
     relation.score = Math.max(-5, Math.min(5, relation.score));
     relation.lastAt = Number.isFinite(relation.lastAt) ? relation.lastAt : 0;
+    relation.meetings = Number.isFinite(relation.meetings) ? Math.max(0, relation.meetings) : 0;
+    relation.partner = relation.partner === true;
     return true;
   });
   community.time = Number.isFinite(community.time) ? community.time : 0;
+  community.memorial = Array.isArray(community.memorial) ? community.memorial.slice(-24) : [];
   community.nextAt = community.time + 4;
   // A conversation is ephemeral. Its relationship and any damage already applied survive reload.
   community.encounter = null;
@@ -97,10 +100,11 @@ export function updateCommunity(state, dt) {
       if (distance > MAX_DISTANCE) continue;
       const key = pairKey(a, b);
       const relation = links.get(key);
-      const age = community.time - (relation?.lastAt ?? -100);
+      const age = relation ? community.time - relation.lastAt : 52;
       if (age < 26) continue;
-      if (!chosen || age - distance * .1 > chosen.priority) {
-        chosen = { a, b, key, relation, priority: age - distance * .1 };
+      const priority = Math.min(age, 120) - distance * .1 + Math.max(0, relation?.score ?? 0) * 4 + (relation?.partner ? 15 : 0);
+      if (!chosen || priority > chosen.priority) {
+        chosen = { a, b, key, relation, priority };
       }
     }
   }
@@ -112,17 +116,24 @@ export function updateCommunity(state, dt) {
     relation = { key, people: [a.id, b.id], score: firstImpression(a, b), lastAt: 0 };
     community.relations.push(relation);
   }
-  const hotheaded = [a, b].some(unit => unit.temperament === 'RESTLESS');
+  const hotheaded = [a, b].some(unit => unit.temperament === 'RESTLESS' || unit.traits?.impulse === 5);
   const rested = [a, b].every(unit => unit.lastScuffleDay !== state.day);
   let kind = 'CHAT';
+  const hasPartner = unit => community.relations.some(link => link.partner && link.people.includes(unit.id));
+  const mutualInterest = a.gender !== b.gender && !a.grief && !b.grief &&
+    (a.traits?.charm ?? 2) + (b.traits?.charm ?? 2) >= 6;
   if (relation.score <= -2 && hotheaded && rested) {
     kind = 'SCUFFLE';
+  } else if (relation.partner || (relation.score >= 4 && relation.meetings >= 3 && mutualInterest && !hasPartner(a) && !hasPartner(b))) {
+    relation.partner = true;
+    kind = 'ROMANCE';
   } else if (relation.score >= 2 && [a, b].some(unit => SOCIABLE.includes(unit.temperament))) {
     kind = 'LAUGH';
   }
   relation.score = Math.max(-5, Math.min(5, relation.score + (kind === 'SCUFFLE' ? -1 : 1)));
+  relation.meetings = (relation.meetings ?? 0) + 1;
   relation.lastAt = community.time;
-  community.encounter = { people: [a.id, b.id], kind, elapsed: 0, duration: kind === 'SCUFFLE' ? 2.25 : 3.2, hit: false };
+  community.encounter = { people: [a.id, b.id], kind, elapsed: 0, duration: kind === 'SCUFFLE' ? 2.25 : kind === 'ROMANCE' ? 4 : 3.2, hit: false };
 }
 
 export function joinEncounter(unit, state, dt) {
@@ -139,7 +150,7 @@ export function joinEncounter(unit, state, dt) {
   unit.x += unit.vx * dt;
   unit.activity = 'SOCIAL';
   unit.socialPose = { kind: encounter.kind, time: encounter.elapsed, index };
-  unit.mood = { CHAT: 'Conversando', LAUGH: 'Riendo con una amistad', SCUFFLE: 'En un altercado' }[encounter.kind];
+  unit.mood = { CHAT: 'Conversando', LAUGH: 'Riendo con una amistad', SCUFFLE: 'En un altercado', ROMANCE: 'Compartiendo un rato con su pareja' }[encounter.kind];
   return true;
 }
 
@@ -147,6 +158,6 @@ export function relationshipsFor(unit, state) {
   return state.community.relations.flatMap(relation => {
     if (!relation.people.includes(unit.id)) return [];
     const other = state.units.find(person => person.id === relation.people.find(id => id !== unit.id));
-    return other ? [{ name: other.name, score: relation.score, lastAt: relation.lastAt }] : [];
+    return other ? [{ name: other.name, score: relation.score, lastAt: relation.lastAt, partner: relation.partner }] : [];
   }).sort((a, b) => Math.abs(b.score) - Math.abs(a.score) || b.lastAt - a.lastAt);
 }

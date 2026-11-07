@@ -49,6 +49,16 @@ Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro ofici
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
 
+## Evolución, equipo y vida cotidiana · edición 10
+
+Mantén **S** ante el altar para subirlo de nivel. Cada mejora cambia su arquitectura y abre el mismo nivel de la casa central. Las viviendas y el cuartel siguen el nivel de la casa, y las murallas y granjas muestran sus requisitos. **B** abre las obras y permite comparar los cinco diseños del altar. Cada círculo sobre un puesto o edificio representa un real. La franja de interacción explica los requisitos y los círculos se esconden durante el combate.
+
+El tótem desbloquea los rangos Élite y Real cuando se han construido el altar, la casa y el cuartel del nivel necesario. En **F** puedes encargar una pieza para lanceros, arqueros y espadachines. El encargo se paga una sola vez. Su dueño recoge la pieza en el cuartel durante el día, cuando el camino es seguro. El arma y la armadura se compran por separado. Solo el arma mejora el daño y solo la armadura aumenta la salud máxima. Para Benkos, **C** compra la armadura por ocho reales una vez disponible el rango Real y después permite alternarla.
+
+Las personas generan rasgos estables como inteligencia, dedicación, ímpetu, valor, curiosidad y carisma. Hablan con sus vecinos y algunas amistades se convierten en parejas. Si alguien cae, sus personas cercanas pasan un duelo temporal que se refleja en su apariencia y eficacia. Durante el día, los civiles pueden pasear, bañarse, jugar con un animal tranquilo o descansar en casa. La guardia y los cazadores patrullan y atienden su puesto. Los cazadores persiguen presas y entregan la comida y la plata al cofre. Las granjas necesitan siembra, tiempo de crecimiento y una cosecha antes de volver a producir al día siguiente.
+
+El caballo acelera y cambia de dirección de forma gradual. Su galope tiene ocho poses y sus ataques usan contornos separados del fondo. Las hojas de montura, altar y armas de esta edición se generaron con ImageGen. Se conservan junto a sus instrucciones de generación en `art/source/*_v10.png` y `art/source/*_v10.prompt.txt`.
+
 ## Animaciones y comunidad · edición 9
 
 Cada oficio, rango de infantería y tipo de enemigo usa la misma familia visual para esperar, moverse y actuar. Benkos tiene poses de espada, lanza, pago, pesca y descanso. Sus monturas conservan la ropa o armadura que llevaba a pie. Los personajes que esperan respiran y miran alrededor a ritmos distintos según su temperamento. La opción de reducir movimiento desactiva esos cambios en reposo.

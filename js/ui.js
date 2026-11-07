@@ -1,14 +1,17 @@
-import { relationshipsFor } from './community.js?v=9662674baa81';
-import { ecologyHint } from './ecology.js?v=9662674baa81';
-import { MATERIALS, HQ_NAMES, upgradeInfo } from './settlement.js?v=9662674baa81';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=9662674baa81';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=9662674baa81';
-import { arrivalHint } from './campaign.js?v=9662674baa81';
+import { describeTraits } from './daily-life.js?v=d67d25007032';
+import { equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=d67d25007032';
+import { relationshipsFor } from './community.js?v=d67d25007032';
+import { ecologyHint } from './ecology.js?v=d67d25007032';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=d67d25007032';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d67d25007032';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=d67d25007032';
+import { arrivalHint } from './campaign.js?v=d67d25007032';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
   const text = (id, value) => { const el = $(id); if (el && el.textContent !== String(value)) el.textContent = value; };
   let lastPouch = '';
+  let prices = [];
   const bagDots=[];for(let i=0;i<state.maxCoins;i++){const dot=document.createElement('i');$('hudBagSlots').append(dot);bagDots.push(dot);}
   let bannerTimer, returnDialog = 'pauseDialog';
   const dialogs = [...document.querySelectorAll('dialog')];
@@ -51,6 +54,7 @@ export function createUI({ state, session, settings, actions }) {
     open('resultDialog');
   }
   function update() {
+    if (session.mode === 'playing') prices = actions.worldPrices?.() ?? [];
     const node=actions.node?.();$('nodeHint').classList.toggle('hidden',!node||Math.abs(state.benkos.vx)>25||state.benkos.attackTimer>0||state.enemies.some(e=>e.hp>0&&Math.abs(e.x-state.benkos.x)<150));
     if(node){
       text('nodeHintTitle', node.title.trim());
@@ -83,7 +87,7 @@ export function createUI({ state, session, settings, actions }) {
     $('hudRoyalArmorBadge').classList.toggle('hidden', !state.benkos.royalArmor);
     const ranks = ['Cimarrón', 'Élite', 'Real'];
     text('hudArmyTierBadge', `Rango ${['I', 'II', 'III'][state.armyTier - 1]} · ${ranks[state.armyTier - 1]}`);
-    text('hudNextTierHint', state.armyTier < 3 ? `Tótem al oeste del altar · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Ejército Real · Armadura desbloqueada.');
+    text('hudNextTierHint', state.armyTier < 3 ? `Tótem al oeste del altar · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Rango Real · Encarga equipo en F. Armadura de Benkos en C.');
     const count = role => state.units.filter(u => u.role === role).length;
     for (const [suffix, role] of Object.entries({ Constructor:'CONSTRUCTOR', Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
     const pct = (state.benkos.x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X) * 100;
@@ -113,19 +117,34 @@ export function createUI({ state, session, settings, actions }) {
       text('objectiveTitle', 'Recupera el territorio'); text('objectiveText', `Haciendas: ${destroyed}/2. Gobernador: ${state.campaign.governorDefeated?'derrotado':'pendiente'}. Los mensajeros anuncian los siguientes movimientos.`);
     }
     $('objectiveProgress').style.width = `${Math.min(100, (Math.min(2, state.fugitivesFreed) + state.armyTier - 1 + destroyed + Math.min(2, state.bossesDefeated)) / 8 * 100)}%`;
-    const armor = $('btnToggleRoyalArmor'); armor.disabled = !state.armorUnlocked;
-    armor.title = state.armorUnlocked ? 'Alternar armadura · C' : 'Alcanza el rango Real para desbloquearla';
+    const armor = $('btnToggleRoyalArmor');
+    armor.disabled = !state.armorUnlocked && state.armyTier < 3;
+    armor.title = state.armorUnlocked ? 'Alternar armadura · C' : state.armyTier >= 3 ? `Comprar por ${ROYAL_ARMOR_COST} reales · C` : 'Requiere rango Real';
+    text('btnToggleRoyalArmor', state.armorUnlocked ? 'Alternar armadura real · C' : `Armadura real · ${ROYAL_ARMOR_COST} reales · C`);
     text('btnChoiceAccept', `Aceptar tregua · 15 reales (${state.coins} disponibles)`);
     $('btnChoiceAccept').disabled = state.coins < 15;
     text('campaignNotice',arrivalHint(state));
     $('campaignNotice').classList.toggle('quiet',!state.campaign.orders.some(o=>o.kind==='boss')||!!node);
     const encounter = state.community.encounter;
     const neighbors = encounter?.people.map(id => state.units.find(unit => unit.id === id));
-    const social = neighbors?.every(Boolean) && neighbors.some(unit => Math.abs(unit.x - state.benkos.x) < 115)
-      ? `${neighbors[0].name.split(' ')[0]} y ${neighbors[1].name.split(' ')[0]} ${{ CHAT: 'conversan', LAUGH: 'se ríen juntos', SCUFFLE: 'tienen un altercado' }[encounter.kind]}`
-      : '';
+    const nearTalk = neighbors?.every(Boolean) && neighbors.some(unit => Math.abs(unit.x - state.benkos.x) < 115);
+    let social = '';
+    if (nearTalk) {
+      const speaker = neighbors[Math.floor(encounter.elapsed / 1.8) % 2];
+      const line = {
+        CHAT: speaker.traits?.curiosity >= 4 ? '¿Has visto los animales del riachuelo?' :
+          speaker.traits?.dedication >= 4 ? 'Mañana quiero empezar temprano.' : '¿Cómo te ha ido hoy?',
+        LAUGH: '¡Eso sí que me hizo reír!',
+        SCUFFLE: 'Necesito que me escuches.',
+        ROMANCE: 'Me alegra encontrarte después del trabajo.'
+      }[encounter.kind];
+      social = `${speaker.name.split(' ')[0]} · «${line}»`;
+    }
+    const neighbor = state.units.find(unit => Math.abs(unit.x - state.benkos.x) < 66 && ['BATHE','PLAY','LEAVE','MOURN'].includes(unit.activity));
+    const farm = state.farms.find(field => field.level > 0 && Math.abs(field.x - state.benkos.x) < 45);
+    const crop = farm?.stage ? { PLANT: 'Siembra pendiente', GROW: `Creciendo · ${Math.floor(farm.cropProgress * 100)}%`, RIPE: 'Lista para cosechar', FALLOW: 'En descanso hasta mañana' }[farm.stage] : '';
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
-    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':ecologyHint(state)||social||'B · Obras · F · Personas · E · Interactuar con animales y agua');
+    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||'B · Obras · F · Personas · E · Interactuar con animales y agua');
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   // Escape is managed centrally; let form controls keep normal focus navigation.
@@ -210,6 +229,42 @@ export function createUI({ state, session, settings, actions }) {
       el.className=`world-label ${kind}`;if(el.textContent!==content)el.textContent=content;
       el.style.width=`${width}px`;el.style.transform=`translate3d(${Math.round(px-width/2)}px,${Math.round(py)}px,0)`;el.style.display='';
     }
+    const fightNearby = state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - state.benkos.x) < 140);
+    if (!fightNearby && !state.benkos.attackTimer) {
+      for (const price of prices) {
+        const px = projectX(price.x);
+        const py = projectY(layout.ground - price.height);
+        if (px < 16 || px > window.innerWidth - 16 || py < 90) continue;
+        const key = 'price:' + price.id;
+        active.add(key);
+        let el = worldLabels.get(key);
+        if (!el) {
+          el = document.createElement('div');
+          root.append(el);
+          worldLabels.set(key, el);
+        }
+        const nearby = state.activeNodeId === price.id && !price.locked;
+        const signature = `${price.cost}:${price.paid}:${price.locked}:${nearby}`;
+        if (el.dataset.signature !== signature) {
+          el.dataset.signature = signature;
+          el.className = 'world-label world-price' + (price.locked ? ' price-locked' : '') + (nearby ? ' price-active' : '');
+          el.title = `${price.title} · ${price.paid}/${price.cost} reales`;
+          const coins = Array.from({ length: price.cost }, (_, index) => {
+            const coin = document.createElement('i');
+            if (index < price.paid) coin.className = 'filled';
+            return coin;
+          });
+          if (price.works || price.locked) {
+            const sign = document.createElement('span');
+            sign.textContent = price.works ? 'B' : '×';
+            coins.unshift(sign);
+          }
+          el.replaceChildren(...coins);
+        }
+        el.style.transform = `translate3d(${Math.round(px)}px,${Math.round(py)}px,0) translate(-50%,-100%)`;
+        el.style.display = '';
+      }
+    }
     const notices=state.floatingTexts.filter(ft=>/^-\d+/.test(ft.text.trim())).slice(-2);
     notices.forEach((ft,i)=>{const line=ft.text.replace(/\s+/g,' ').replace('Cosecha Entregada','cosecha').replace('Plata de Mina','plata').trim();label('notice:'+i,'resource-label',layout.x(ft),layout.y(ft)-22+layout.ground-246,line,Math.max(100,Math.min(230,line.length*6+20)),true);});
     for(const [key,el]of worldLabels)if(!active.has(key))el.style.display='none';
@@ -218,8 +273,9 @@ export function createUI({ state, session, settings, actions }) {
     const level=Number($('previewLevel').value)||1,kind=$('previewKind').value||'hq',g=$('buildingPreview').getContext('2d');
     g.clearRect(0,0,560,240);const sky=g.createLinearGradient(0,0,0,240);sky.addColorStop(0,'#253f39');sky.addColorStop(1,'#677758');g.fillStyle=sky;g.fillRect(0,0,560,240);
     g.fillStyle='#192f23';g.fillRect(0,216,560,24);g.fillStyle='#8c8461';g.fillRect(20,216,520,2);
-    window.SpriteManager?.draw?.(g,`building_${kind}_${level}`,['idle'],280,218,1,kind==='hq'?228:210,0);
-    text('previewCaption',`Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
+    window.SpriteManager?.draw?.(g, kind === 'altar' ? altarSprite(level) : `building_${kind}_${level}`,['idle'],280,218,1,kind==='hq'?228:210,0);
+    text('previewCaption', kind === 'altar' ? `Altar de nivel ${level} · ${state.skills[level - 1].name}` : `Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
+    text('evolutionPath', `Altar ${state.altarTier} → Casa central ${state.settlement.level} → Cuartel ${state.settlement.barracks.level} → Rango militar ${state.armyTier}`);
   }
   function renderBuildings(){
     text('settlementTitle',HQ_NAMES[state.settlement.level-1]);
@@ -258,9 +314,23 @@ export function createUI({ state, session, settings, actions }) {
     text('personCondition',`Miedo ${Math.round(u.fear)}% · Cansancio ${Math.round(u.fatigue)}%${u.requestedRole?' · Preparando cambio a '+ROLE_NAMES[u.requestedRole]:''}`);
     const links = relationshipsFor(u, state).slice(0, 4);
     text('personRelations', links.length ? links.map(link => {
-      const label = link.score >= 3 ? 'Amistad' : link.score <= -2 ? 'Rivalidad' : 'Conoce a';
+      const label = link.partner ? 'Pareja' : link.score >= 3 ? 'Amistad' : link.score <= -2 ? 'Rivalidad' : 'Conoce a';
       return `${label} · ${link.name}`;
     }).join('  /  ') : 'Aún no tiene vínculos en el palenque.');
+    text('personTraits', describeTraits(u));
+    text('personGrief', u.grief ? `De luto por ${u.grief.name} · ${Math.ceil(u.grief.remaining)} s` : '');
+    const kit = $('personEquipment');
+    kit.classList.toggle('hidden', !u.equipment);
+    if (u.equipment) {
+      text('personKitStatus', u.kitOrder ? `Encargo pagado · ${u.kitOrder.item} ${RANK_NAMES[u.kitOrder.rank - 1]} pendiente de recoger` :
+        `Arma de rango ${RANK_NAMES[u.equipment.weapon - 1]} · Armadura de rango ${RANK_NAMES[u.equipment.armor - 1]}`);
+      for (const [piece, id] of [['weapon','btnOrderWeapon'], ['armor','btnOrderArmor']]) {
+        const offer = equipmentOffer(u, piece, state);
+        $(id).disabled = !offer || !!offer.reason;
+        $(id).title = offer?.reason ?? '';
+        text(id, !offer || offer.rank > 3 ? 'Nivel máximo' : `${offer.item} ${RANK_NAMES[offer.rank - 1]} · ${offer.cost} reales`);
+      }
+    }
     const attributes=$('personAttributes');attributes.replaceChildren();
     for(const [key,label]of Object.entries(ATTRIBUTES)){
       const row=document.createElement('div'),name=document.createElement('span'),bar=document.createElement('i'),value=document.createElement('b');
@@ -279,9 +349,19 @@ export function createUI({ state, session, settings, actions }) {
     returnDialog='pauseDialog';selectedPersonId=Number(id);open('peopleDialog');
     const select=$('personSelect');select.replaceChildren();
     for(const u of state.units){ensurePerson(u);const option=document.createElement('option');option.value=u.id;option.textContent=`${u.name} · ${ROLE_NAMES[u.role]}`;select.append(option);}
-    select.value=selectedPersonId;renderPerson();text('personFeedback','El don permanece cuando cambia de oficio. Se conserva la experiencia y la proporción de salud.');
+    select.value=selectedPersonId;text('personKitFeedback','');renderPerson();text('personFeedback','El don permanece cuando cambia de oficio. Se conserva la experiencia y la proporción de salud.');
   }
-  $('personSelect').addEventListener('change',e=>{selectedPersonId=Number(e.target.value);renderPerson();});
+  $('personSelect').addEventListener('change',e=>{selectedPersonId=Number(e.target.value);text('personKitFeedback','');renderPerson();});
+  for (const [piece, id] of [['weapon','btnOrderWeapon'], ['armor','btnOrderArmor']]) {
+    on(id, () => {
+      const unit = state.units.find(person => person.id === selectedPersonId);
+      if (!unit) return;
+      const result = actions.orderKit(unit, piece);
+      text('personKitFeedback', result.message);
+      renderPerson();
+      update();
+    });
+  }
   on('btnAssignProfession',()=>{const res=actions.assignRole(selectedPersonId,$('personNewRole').value);renderPerson();text('personFeedback',res.message);});
   on('btnPersonAuto',()=>{actions.autoRole(selectedPersonId);renderPerson();text('personFeedback','Elegirá su oficio preferido cuando haya herramientas y el camino sea seguro.');});
   return { update, banner, open, closeAll, resume, menu, result, togglePause, applySettings, openPeople, openSettlement, renderWorldOverlay,

@@ -1,9 +1,9 @@
-import { restoreCommunity } from './community.js?v=9662674baa81';
-import { ensureEcology, seedEcology } from './ecology.js?v=9662674baa81';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=9662674baa81';
-import { ensurePerson } from './people.js?v=9662674baa81';
-import { ensureSettlement } from './settlement.js?v=9662674baa81';
-import { ensureCampaign } from './campaign.js?v=9662674baa81';
+import { restoreCommunity } from './community.js?v=d67d25007032';
+import { ensureEcology, seedEcology } from './ecology.js?v=d67d25007032';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=d67d25007032';
+import { ensurePerson } from './people.js?v=d67d25007032';
+import { ensureSettlement } from './settlement.js?v=d67d25007032';
+import { ensureCampaign } from './campaign.js?v=d67d25007032';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -91,6 +91,8 @@ export function restoreSave(save, defaults) {
   next.day = Math.floor(number(next.day, 1, 1, 100000));
   next.maxCoins = defaults.maxCoins;
   next.armyTier = Math.floor(number(next.armyTier, 1, 1, 3));
+  next.altarTier = Math.max(Math.floor(number(next.altarTier, 1, 1, 5)), ...next.skills.filter(skill => skill.unlocked).map(skill => skill.level));
+  next.skills.forEach(skill => { skill.unlocked = skill.level <= next.altarTier; });
   next.coins = Math.floor(number(next.coins, 0, 0, next.maxCoins));
   next.treasuryCoins = Math.floor(number(next.treasuryCoins, 0, 0, 1000000));
   next.timeOfDay = number(next.timeOfDay, 0, 0, 0.999999);
@@ -102,6 +104,16 @@ export function restoreSave(save, defaults) {
   if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= 0.68 ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);
+  for (const unit of next.units) {
+    const order = unit.kitOrder;
+    if (order && (!unit.equipment || !['weapon', 'armor'].includes(order.piece) || ![2, 3].includes(order.rank) ||
+      order.rank !== unit.equipment[order.piece] + 1 || order.cost !== (order.piece === 'weapon' ? 2 : 3) + order.rank)) unit.kitOrder = null;
+    const grief = unit.grief;
+    if (grief && (typeof grief.name !== 'string' || !Number.isFinite(grief.remaining) || !Number.isFinite(grief.duration) ||
+      grief.remaining <= 0 || grief.remaining > grief.duration)) unit.grief = null;
+    if (unit.leisure && (!['STROLL', 'BATHE', 'PLAY', 'LEAVE', 'MOURN'].includes(unit.leisure.kind) ||
+      !Number.isFinite(unit.leisure.x) || !Number.isFinite(unit.leisure.remaining) || !Number.isFinite(unit.leisure.expiresAt))) unit.leisure = null;
+  }
   restoreCommunity(next);
   next.enemies.forEach(e=>{if(e.type==='BANDOLERO')e.range=ENEMY_CATALOG.BANDOLERO.range;});
   ensureSettlement(next);
@@ -121,7 +133,7 @@ export function restoreSave(save, defaults) {
   next.benkos.vx = 0; next.benkos.sprintHoldTime = 0;
   next.touchHoldPay = false;
   next.cameraX = next.benkos.x;
-  let maxId = Math.max(0, ...[...next.units, ...next.enemies, ...next.droppedCoins, ...next.wildlife].map(e => Number(e.id) || 0));
+  let maxId = Math.max(0, ...[...next.units, ...next.enemies, ...next.droppedCoins, ...next.wildlife, ...next.community.memorial].map(e => Number(e?.id) || 0));
   let nextId=Math.max(maxId+1,number(save.snapshot?.nextEntityId,1,1));
   if(migrateEcology)seedEcology(next,()=>nextId++);
   return {state:next,nextEntityId:nextId};

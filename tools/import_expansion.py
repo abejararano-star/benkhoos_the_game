@@ -35,7 +35,7 @@ def import_expansion(output):
             ys = np.where(np.array(cell)[:, :, 3] > 128)[0]
             name = f'building_{kind}_{col + 1}'
             items.append((name, frame))
-            anchor = dict(i=0, w=frame.width, h=frame.height, ax=cell.width / 2 - box[0],
+            anchor = dict(i=0, w=frame.width, h=frame.height, ax=cell.width / 2 - box[0], top=int(ys.min() - box[1]),
                           ay=int(np.percentile(ys, 99.7)) + 1 - box[1])
             sprites[name] = dict(sheet=sheet, ref=source.height / 3, anims=dict(idle=[anchor]))
     atlas, positions = pack(items)

@@ -1,4 +1,4 @@
-import { WATER_LINE_Y } from './config.js?v=9662674baa81';
+import { WATER_LINE_Y } from './config.js?v=d67d25007032';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -33,7 +33,7 @@ export function seedEcology(state,nextId){
   for(const [species,x]of seeds)if(!state.wildlife.some(a=>a.species===species&&Math.abs(a.homeX-x)<55))state.wildlife.push(createAnimal(nextId(),species,x,{trapped:species==='TURTLE'&&x<0}));
   state.ecology.seeded=true;
 }
-export function isHuntable(a){return !!SPECIES[a.species??'CAPYBARA']?.huntable&&!(a.trust>0)&&!a.trapped;}
+export function isHuntable(a){return a.hp > 0 && !!SPECIES[a.species??'CAPYBARA']?.huntable&&!(a.trust>0)&&!a.trapped;}
 export function nearestEcology(state){
   const b=state.benkos;
   const animal=state.wildlife.filter(a=>a.hp>0&&Math.abs(a.x-b.x)<38).sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x))[0];
@@ -73,7 +73,7 @@ export function interactEcology(state,{fish=false}={}){
   return {handled:true,message:coins?'El mono te entrega una moneda que encontró.':a.trust>=2?`${spec.name} confía en ti. Te acompañará si avanzas con calma.`:`${spec.name} acepta el alimento. Su confianza aumenta.`};
 }
 
-export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCoin=()=>{}}={}){
+export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCoin=()=>{},collectHunt=()=>false}={}){
   const e=state.ecology,b=state.benkos;e.time+=dt;
   for(const creek of e.streams){
     creek.drinkCooldown=Math.max(0,(creek.drinkCooldown??0)-dt);
@@ -87,7 +87,7 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
   for(let i=state.wildlife.length-1;i>=0;i--){
     const a=ensureAnimal(state.wildlife[i]),spec=SPECIES[a.species];a.animTime+=dt;
     a.feedCooldown=Math.max(0,a.feedCooldown-dt);a.attackCooldown=Math.max(0,a.attackCooldown-dt);a.aggression=Math.max(0,a.aggression-dt);
-    if(a.hp<=0){if(spec.huntable){state.resources.food+=spec.food;dropCoin(a.x);notice(a.x,`+${spec.food} alimento · caza`);}state.wildlife.splice(i,1);continue;}
+    if(a.hp<=0){if(spec.huntable&&!collectHunt(a,spec.food)){state.resources.food+=spec.food;dropCoin(a.x);notice(a.x,`+${spec.food} alimento · caza`);}state.wildlife.splice(i,1);continue;}
     if(a.hp<(a.lastHp??a.hp)){a.aggression=spec.predator?8:0;a.fear=90;a.hurtTimer=.3;}a.lastHp=a.hp;a.hurtTimer=Math.max(0,(a.hurtTimer??0)-dt);
     if(a.trapped||a.nettedTimer>0){a.nettedTimer=Math.max(0,a.nettedTimer-dt);a.vx=0;a.state='TRAPPED';continue;}
     if(a.eatTimer>0){a.eatTimer-=dt;a.vx=0;a.state='EAT';continue;}

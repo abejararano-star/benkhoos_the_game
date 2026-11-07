@@ -1,6 +1,8 @@
-import { proficiency } from './people.js?v=9662674baa81';
+import { proficiency } from './people.js?v=d67d25007032';
 export const MATERIALS=['Palma y bejuco','Madera de ceiba','Bahareque y cal','Piedra y teja','Cantería tallada'];
 export const HQ_NAMES=['Refugio de la Matuna','Casa del consejo','Casa de bahareque','Cabildo de piedra','Gran Palenque'];
+export const ALTAR_HEIGHT = [0, 53, 57, 65, 73, 83];
+export const altarSprite = level => level === 1 ? 'landmark_altar' : `altar_${level}`;
 export function initialSettlement(){return {level:1,homes:[{id:'home_west',x:-530,level:1},{id:'home_inner',x:-245,level:1},{id:'home_east',x:550,level:1}],barracks:{id:'barracks',x:245,level:1},projects:[],completed:0};}
 export function ensureSettlement(state){
   state.resources??={wood:8,stone:4,food:5};state.resources.food??=5;state.settlement??=initialSettlement();const s=state.settlement;
@@ -28,6 +30,7 @@ export function upgradeInfo(state,kind,id){
   if(!costs)return {target,reason:'Evolución máxima alcanzada.'};
   const [coins,wood,stone,duration]=costs.map(v=>Math.ceil(v*factor));let reason='';
   if(state.settlement.projects.some(p=>p.targetId===target.id))reason='Este edificio ya tiene una obra en marcha.';
+  else if(state.altarTier<next)reason=`Requiere altar de nivel ${next}.`;
   else if(kind!=='hq'&&next>state.settlement.level)reason=`Requiere casa central de nivel ${next}.`;
   else if(!state.units.some(u=>u.role==='CONSTRUCTOR'&&u.hp>0))reason='Asigna una persona al oficio de constructor.';
   else if(state.coins<coins||state.resources.wood<wood||state.resources.stone<stone)reason='Faltan materiales o reales en la bolsa.';

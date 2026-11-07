@@ -1,4 +1,6 @@
-import { getUnitMaxHp } from './config.js?v=9662674baa81';
+import { getUnitMaxHp } from './config.js?v=d67d25007032';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=d67d25007032';
+import { ensureTraits, griefEffect } from './daily-life.js?v=d67d25007032';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
@@ -33,12 +35,18 @@ export function ensurePerson(unit){
     unit.hp=Math.max(0,Math.round(unit.maxHp*healthRatio));
   }
   unit.experience??={};
+  ensureTraits(unit, random(Number(unit.id) * 431 + 271));
+  ensureEquipment(unit);
   return unit;
 }
 export function personMaxHp(unit,role=unit.role,tier=unit.tier??1){
-  return Math.round(getUnitMaxHp(role,tier)*(1+Math.max(0,(unit.attributes?.endurance??3)-3)*.09));
+  const armorRank = INFANTRY.includes(role) ? unit.equipment?.armor ?? tier : tier;
+  return Math.round(getUnitMaxHp(role,armorRank)*(1+Math.max(0,(unit.attributes?.endurance??3)-3)*.09));
 }
-export function proficiency(unit,role=unit.role){return 1+(affinity(unit,role)-3)*.10+Math.min(.25,(unit.experience?.[role]??0)/1200);}
+export function proficiency(unit,role=unit.role){
+  const dedication = (unit.traits?.dedication ?? 3) - 3;
+  return (1 + (affinity(unit, role) - 3) * .10 + Math.min(.25, (unit.experience?.[role] ?? 0) / 1200) + dedication * .035) * griefEffect(unit);
+}
 export function speak(unit,line){if(unit.speechCooldown>0)return;unit.speech=line;unit.speechTimer=3;unit.speechCooldown=11;}
 export function reactToDamage(unit,damage,direction=1){
   ensurePerson(unit);
@@ -52,6 +60,7 @@ export function roleAvailable(role,tier){return WORK_ROLES.includes(role)&&(!['E
 export function requestProfession(unit,role,state){
   ensurePerson(unit);
   if(['FUGITIVO','CAMPEON_REAL'].includes(unit.role))return {success:false,message:'Esta persona aún no puede cambiar de oficio.'};
+  if (unit.kitOrder) return { success: false, message: 'Recogerá primero el equipo que ya encargó.' };
   if(!roleAvailable(role,state.armyTier))return {success:false,message:'El oficio requiere el rango Élite.'};
   if(role===unit.role){unit.requestedRole=null;return {success:true,message:'Ya ejerce este oficio.'};}
   const rack=state.toolRacks.find(r=>r.role===role);
@@ -64,7 +73,10 @@ export function completeProfession(unit,rack,state){
   const old=state.toolRacks.find(r=>r.role===unit.role);
   if(old&&old.stock<old.maxStock)old.stock++;
   const health=clamp(unit.hp/unit.maxHp,0,1);
-  rack.stock--;unit.role=rack.role;unit.tier=state.armyTier;
+  const armor = INFANTRY.includes(unit.role) ? unit.equipment?.armor ?? 1 : 1;
+  rack.stock--;unit.role=rack.role;unit.tier=1;
+  unit.equipment = INFANTRY.includes(unit.role) ? { weapon: 1, armor } : null;
+  ensureEquipment(unit);
   unit.maxHp=personMaxHp(unit);unit.hp=Math.max(1,Math.round(unit.maxHp*health));
   unit.requestedRole=null;unit.worksiteId=null;unit.carryingSack=false;
   unit.activity='TRAINING';unit.mood=affinity(unit,unit.role)>=4?'En su elemento':'Aprendiendo';
@@ -79,15 +91,10 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1){
   const enemy=state.enemies.filter(e=>e.hp>0&&e.appearTimer<=0).sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x))[0];
   const distance=enemy?Math.abs(enemy.x-unit.x):Infinity;
   const military=MILITARY.includes(unit.role), ranged=['ARQUERO','CAZADOR'].includes(unit.role);
-  unit.fear=clamp(unit.fear+dt*(distance<140?(unit.temperament==='BRAVE'?3:12):-9),0,100);
+  unit.fear=clamp(unit.fear+dt*(distance<140?Math.max(2, (unit.temperament==='BRAVE'?5:13)-(unit.traits.courage-3)*2):-9),0,100);
   if(unit.hurtTimer>0){
     unit.hurtTimer=Math.max(0,unit.hurtTimer-dt);unit.activity='HURT';
     unit.x=clamp(unit.x+(unit.hurtDirection??1)*35*dt,-1600,1600);return true;
-  }
-  if(unit.hp<=0){
-    const was=unit.role;unit.role=was==='FUGITIVO'?'FUGITIVO':'ALDEANO';unit.tier=1;
-    unit.maxHp=personMaxHp(unit);unit.hp=Math.max(1,Math.round(unit.maxHp*.25));
-    unit.fear=100;unit.requestedRole=null;unit.carryingSack=false;unit.mood='Herido';
   }
   const critical=unit.hp/unit.maxHp<(unit.temperament==='BRAVE'?.18:.32);
   const dangerRadius=critical?220:ranged?55:military?60:165;
@@ -133,7 +140,7 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1){
   }
   unit.activity=distance<220?(military?'GUARD':ranged?'HUNT':'ALERT'):'IDLE';
   unit.mood=distance<220?(military?'Protegiendo al pueblo':'Alerta'):affinity(unit,unit.role)>=4?'En su elemento':'Tranquilo';
-  unit.experience[unit.role]=(unit.experience[unit.role]??0)+dt*(working?.8:.15);
+  unit.experience[unit.role]=(unit.experience[unit.role]??0)+dt*(working?.8:.15)*(.76+unit.traits.intelligence*.08);
   if(safe&&Math.abs(unit.vx)<3&&unit.temperament==='CARING'){
     const wounded=state.units.find(other=>other!==unit&&other.hp<other.maxHp*.6&&Math.abs(other.x-unit.x)<35);
     if(wounded){wounded.hp=Math.min(wounded.maxHp,wounded.hp+dt*1.5);unit.activity='HELP';unit.mood='Cuidando a un vecino';speak(unit,'Respira. Aquí te cuidamos.');}

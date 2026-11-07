@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { makeSave } from '../js/save-system.js';
 import { ENEMY_CATALOG } from '../js/config.js';
+import { createAnimal } from '../js/ecology.js';
 
 // Run the real game modules against a small browser shell. No logic is copied.
 class Element {
@@ -58,6 +59,9 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   const selectedId=Number(elements.get('personSelect').value);elements.get('personNewRole').value='MINERO';elements.get('btnAssignProfession').click();
   assert.equal(inspect().state.units.find(u=>u.id===selectedId).requestedRole,'MINERO');
   elements.get('btnClosePeople').click();key('Escape');
+  await loadState(s => { s.benkos.x = 0; });
+  key('KeyS');advance(1.48);key('KeyS',true);
+  assert.equal(inspect().state.altarTier, 2);
   key('KeyB');assert.equal(elements.get('settlementDialog').open,true);
   const beforeBuild=inspect().state.coins;elements.get('buildingCards').children[0].children.find(c=>c.listeners.click)?.click();
   assert.equal(inspect().state.coins,beforeBuild-6);assert.equal(inspect().state.settlement.projects.length,1);
@@ -66,14 +70,26 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   await loadState(s=>{s.enemies=[];s.resources={wood:0,stone:0};s.units=['LENADOR','MINERO'].map(role=>s.units.find(u=>u.role===role));for(const u of s.units){u.x=48;u.vx=0;u.carryingSack=true;u.requestedRole=null;if(u.role==='LENADOR')u.cargoWood=6;}});
   advance(.05);assert.equal(inspect().state.resources.wood,6);assert.equal(inspect().state.resources.stone,2);
   assert.ok(inspect().state.units.every(u=>!u.carryingSack));
+  await loadState(s => {
+    s.treasuryCoins = 10;
+    s.units = [{ id: 88, role: 'CAZADOR', tier: 1, x: 100, hp: 80, maxHp: 80, assignedSide: 1, attackCooldown: 0 }];
+    s.wildlife = [createAnimal(89, 'CAPYBARA', 142, { hp: 1 })];
+  });
+  advance(2.4);
+  assert.equal(inspect().state.treasuryCoins, 11);
+  assert.equal(inspect().state.wildlife.length, 0);
   // Pay for two upgrades through the normal S interaction at the totem.
-  await loadState(s=>{s.benkos.x=-48;s.benkos.vx=0;s.coins=24;s.armyTier=1;});
+  await loadState(s=>{s.benkos.x=-48;s.benkos.vx=0;s.coins=24;s.armyTier=1;s.altarTier=3;s.settlement.level=3;s.settlement.barracks.level=3;});
+  const beforeRanks = inspect().state.units.map(unit => [unit.id, unit.tier]);
   assert.equal(elements.get('nodeHintCoins').textContent, 'Faltan 6 reales');
   key('KeyS');advance(.23);key('KeyS',true);
   assert.equal(elements.get('nodeHintCoins').textContent, 'Faltan 5 reales');
   key('KeyS');advance(3.4);key('KeyS',true);
-  assert.equal(inspect().state.armyTier,3);assert.equal(inspect().state.armorUnlocked,true);
-  assert.equal(inspect().state.units.filter(u=>u.role==='CAMPEON_REAL').length,1);
+  assert.equal(inspect().state.armyTier,3);assert.equal(inspect().state.armorUnlocked,false);
+  assert.deepEqual(inspect().state.units.map(unit => [unit.id, unit.tier]), beforeRanks);
+  const beforeArmor = inspect().state.coins;
+  key('KeyC');assert.equal(inspect().state.benkos.royalArmor,true);
+  assert.equal(inspect().state.coins,beforeArmor - 8);
   window.BenkosDB.currentSaveId=77;
   elements.get('btnNewGame').click();assert.equal(window.BenkosDB.currentSaveId,null);
   await loadState(s=>{s.armyTier=3;s.armorUnlocked=true;});

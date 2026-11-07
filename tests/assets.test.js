@@ -44,7 +44,18 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
     const family = atlas.sprites['actor_' + name];
     assert.ok(family.sheet.endsWith('_v9'), name);
     for (const action of ['idle','walk','run','spear','sword','hurt']) assert.ok(family.anims[action].length > 1, name + '/' + action);
+    if (name.includes('mounted')) assert.equal(family.anims.run.length, 8);
   }
+  for (const role of ['GUERRERO', 'ARQUERO', 'ESPADACHIN']) {
+    const variants = new Set();
+    for (const armor of [1, 2, 3]) for (const weapon of [1, 2, 3]) {
+      const name = manager.personClass(role, armor, weapon);
+      assert.ok(manager.has(name), name);
+      variants.add(name);
+    }
+    assert.equal(variants.size, 9);
+  }
+  for (const level of [2, 3, 4, 5]) assert.ok(manager.has('altar_' + level));
   for(const kind of ['hq','home','barracks'])for(let level=1;level<=5;level++)assert.ok(manager.has(`building_${kind}_${level}`));
 
   const gradient={addColorStop(){}};

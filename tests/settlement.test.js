@@ -8,6 +8,9 @@ import {makeSave,restoreSave} from '../js/save-system.js';
 function world(){const s=createInitialState();const u={id:1,role:'CONSTRUCTOR',tier:1,hp:90,maxHp:90,x:100};ensurePerson(u);s.units=[u];return s;}
 test('construction charges once, needs a builder at the site and unlocks later materials',()=>{
   const s=world(),u=s.units[0];s.coins=24;s.resources={wood:100,stone:100};
+  assert.match(requestBuilding(s,'hq').message, /altar de nivel 2/);
+  assert.equal(s.coins, 24);
+  s.altarTier = 2;
   assert.equal(requestBuilding(s,'home','home_inner').success,false);
   assert.equal(requestBuilding(s,'hq').success,true);assert.equal(s.coins,18);assert.equal(s.resources.wood,96);
   assert.equal(requestBuilding(s,'hq').success,false);assert.equal(s.coins,18);
@@ -20,16 +23,16 @@ test('construction charges once, needs a builder at the site and unlocks later m
 });
 test('all five central-house stages are reachable and the last stage cannot spend again',()=>{
   const s=world();s.resources={wood:1000,stone:1000};
-  for(let next=2;next<=5;next++){s.coins=24;s.units[0].x=0;assert.equal(requestBuilding(s,'hq').success,true);for(let i=0;i<2500;i++)workConstruction(s.units[0],s,1/60);assert.equal(s.settlement.level,next);}
+  for(let next=2;next<=5;next++){s.altarTier=next;s.coins=24;s.units[0].x=0;assert.equal(requestBuilding(s,'hq').success,true);for(let i=0;i<2500;i++)workConstruction(s.units[0],s,1/60);assert.equal(s.settlement.level,next);}
   const before=s.coins;assert.equal(requestBuilding(s,'hq').success,false);assert.equal(s.coins,before);
 });
 test('no builder or missing resources cannot create or partially pay for an upgrade',()=>{
-  const s=world();s.units=[];const before=structuredClone(s.resources);assert.equal(requestBuilding(s,'hq').success,false);assert.deepEqual(s.resources,before);
+  const s=world();s.altarTier=2;s.units=[];const before=structuredClone(s.resources);assert.equal(requestBuilding(s,'hq').success,false);assert.deepEqual(s.resources,before);
   s.units=world().units;s.resources.wood=0;assert.equal(requestBuilding(s,'hq').success,false);assert.equal(s.coins,16);
   assert.ok(upgradeInfo(s,'hq').reason);
 });
 test('materials, cargo, buildings and unfinished work survive saves; old v3 worlds gain stations',()=>{
-  const s=world();requestBuilding(s,'hq');s.units[0].cargoWood=5;s.settlement.projects[0].progress=.43;
+  const s=world();s.altarTier=2;requestBuilding(s,'hq');s.units[0].cargoWood=5;s.settlement.projects[0].progress=.43;
   const loaded=restoreSave(makeSave(s,100),createInitialState()).state;
   for(const key of ['resources','settlement','units'])assert.deepEqual(loaded[key],s[key]);
   const old=makeSave(s,100);delete old.snapshot.state.resources;delete old.snapshot.state.settlement;old.snapshot.state.toolRacks=old.snapshot.state.toolRacks.filter(r=>r.role!=='CONSTRUCTOR');

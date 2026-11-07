@@ -3,7 +3,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 // A complete step is driven by world distance, rather than by frame rate or stale vx.
 export class GaitClock {
   constructor(){this.actors=new WeakMap();}
-  sample(actor,time){
+  sample(actor,time,strideLength){
     const x=Number(actor.x)||0;
     let gait=this.actors.get(actor);
     if(!gait||time<gait.time){gait={x,time,phase:0,moving:false,speed:0};this.actors.set(actor,gait);return gait;}
@@ -14,7 +14,7 @@ export class GaitClock {
     else{
       gait.speed=distance/dt;gait.moving=gait.speed>2;
       if(gait.moving){
-        const stride=gait.speed>115?52:36;
+        const stride=strideLength ?? (gait.speed>115?52:36);
         const backwards=Math.sign(dx)!==(actor.facing||Math.sign(dx));
         gait.phase=((gait.phase+distance/stride*(backwards?-1:1))%1+1)%1;
       }

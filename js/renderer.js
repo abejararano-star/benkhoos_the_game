@@ -1,7 +1,8 @@
-import { RenderInterpolation } from './visual-motion.js?v=9662674baa81';
-import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=9662674baa81';
-import { ROAD_GATES } from './campaign.js?v=9662674baa81';
-import { WATER_LINE_Y } from './config.js?v=9662674baa81';
+import { RenderInterpolation } from './visual-motion.js?v=d67d25007032';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=d67d25007032';
+import { drawLandscape, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=d67d25007032';
+import { ROAD_GATES } from './campaign.js?v=d67d25007032';
+import { WATER_LINE_Y } from './config.js?v=d67d25007032';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
 const position=(e,key='x')=>interpolation.value(e,key,renderAlpha);
@@ -145,7 +146,7 @@ function renderWorldAboveWater(g, time) {
   state.farms.forEach((f) => {
     const sx = toScreenX(f.x);
     if (sx < -60 || sx > w + 60) return;
-    if(f.level>0&&window.SpriteManager?.has('landmark_farm')){
+    if(f.level>0&&f.cropProgress>.37&&window.SpriteManager?.has('landmark_farm')){
       window.SpriteManager.draw(g,'landmark_farm',['idle'],sx,GROUND_SURFACE_Y,1,31+f.cropProgress*10,0);return;
     }
     if (f.level > 0) {
@@ -172,7 +173,7 @@ function renderWorldAboveWater(g, time) {
   });
 
   window.SpriteManager?.draw?.(g,'landmark_totem',['idle'],toScreenX(-48),GROUND_SURFACE_Y,1,57,0);
-  window.SpriteManager?.draw?.(g,'landmark_altar',['idle'],toScreenX(0),GROUND_SURFACE_Y,1,53,0);
+  window.SpriteManager?.draw?.(g,altarSprite(state.altarTier),['idle'],toScreenX(0),GROUND_SURFACE_Y,1,ALTAR_HEIGHT[state.altarTier],0);
   const chestProgress=Math.abs(state.benkos.x-48)<35?.9:0;
   window.SpriteManager?.draw?.(g,'currency_chest',['open'],toScreenX(48),GROUND_SURFACE_Y,1,26,0,0,chestProgress);
 
@@ -213,6 +214,13 @@ function renderWorldAboveWater(g, time) {
     if (sx < -50 || sx > w + 50) return;
     drawMarker(g, sx, GROUND_SURFACE_Y, u);
     window.SpriteManager?.drawAlly?.(g, sx, GROUND_SURFACE_Y, u.facing, u, time);
+    if (u.activity === 'BATHE') {
+      g.fillStyle = '#558f8d98';
+      g.fillRect(sx - 10, GROUND_SURFACE_Y - 1, 20, 5);
+      g.fillStyle = '#abd4c5';
+      g.fillRect(sx - 9, GROUND_SURFACE_Y + 3 + Math.round(Math.sin(time * 5)), 7, 1);
+      g.fillRect(sx + 4, GROUND_SURFACE_Y + 1, 8, 1);
+    }
     drawPersonStory(g,sx,GROUND_SURFACE_Y,u,false);
   });
 
