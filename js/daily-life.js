@@ -51,8 +51,9 @@ export function griefEffect(unit) {
 
 export function patrolOffset(unit, state) {
   if (state.phase !== 'DAY_EXPLORE') return 0;
-  const phase = (state.community.time + Number(unit.id) * 2.3) % 24;
-  return Math.round(23 * Math.sin(phase * Math.PI / 12));
+  // Hold each patrol destination until the next leg so guards can plant their feet.
+  const phase = (state.community.time + Number(unit.id) * 2.3) % 18;
+  return phase < 9 ? 0 : -(unit.assignedSide || 1) * 22;
 }
 
 export function takeLeisure(unit, state, dt) {

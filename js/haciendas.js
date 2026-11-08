@@ -1,4 +1,4 @@
-import { BALANCE } from './config.js?v=dd4c4df65f03';
+import { BALANCE } from './config.js?v=2e3f4f93fc28';
 
 const PRISONERS = [-23, 0, 23];
 const REBUILD_TIME = 180;

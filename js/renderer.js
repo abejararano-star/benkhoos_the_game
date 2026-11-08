@@ -1,11 +1,11 @@
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=dd4c4df65f03';
-import { createLighting } from './lighting.js?v=dd4c4df65f03';
-import { RenderInterpolation } from './visual-motion.js?v=dd4c4df65f03';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=dd4c4df65f03';
-import { drawLandscape, drawMist, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=dd4c4df65f03';
-import { haciendaActive } from './haciendas.js?v=dd4c4df65f03';
-import { ROAD_GATES } from './campaign.js?v=dd4c4df65f03';
-import { WATER_LINE_Y } from './config.js?v=dd4c4df65f03';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=2e3f4f93fc28';
+import { createLighting } from './lighting.js?v=2e3f4f93fc28';
+import { RenderInterpolation } from './visual-motion.js?v=2e3f4f93fc28';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=2e3f4f93fc28';
+import { drawLandscape, drawMist, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=2e3f4f93fc28';
+import { haciendaActive } from './haciendas.js?v=2e3f4f93fc28';
+import { ROAD_GATES } from './campaign.js?v=2e3f4f93fc28';
+import { WATER_LINE_Y } from './config.js?v=2e3f4f93fc28';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;

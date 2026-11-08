@@ -4,6 +4,7 @@ import {GaitClock,RenderInterpolation,pixelViewport} from '../js/visual-motion.j
 import {createInitialState} from '../js/world-state.js';
 import {FixedStepper} from '../js/clock.js';
 import {defensePostX} from '../js/ai.js';
+import {patrolOffset} from '../js/daily-life.js';
 
 test('foot phase follows travelled distance equally at 30, 60 and 144 frames per second',()=>{
   const phases=[];
@@ -45,4 +46,12 @@ test('idle guards occupy stable spaced posts and ranged troops stay behind infan
   assert.equal(new Set(posts).size,units.length);
   assert.ok(posts.every((x,i)=>!i||Math.abs(x-posts[i-1])>=26));
   assert.ok(posts[3]<posts[0]);assert.equal(defensePostX(units[1],[...units].reverse(),wall),posts[1]);
+  const state=createInitialState(), guard=units[0];
+  const stops=Array.from({length:36},(_,i)=>{
+    state.community.time=i/2;
+    return patrolOffset(guard,state);
+  });
+  assert.deepEqual(stops,[...Array(18).fill(0),...Array(18).fill(-22)]);
+  state.phase='NIGHT_DEFENSE';
+  assert.equal(patrolOffset(guard,state),0);
 });

@@ -1,4 +1,4 @@
-import { ALTAR_X, TRAIL_TORCHES, torchIsLit } from './exploration.js?v=dd4c4df65f03';
+import { ALTAR_X, TRAIL_TORCHES, torchIsLit } from './exploration.js?v=2e3f4f93fc28';
 
 function drawFlame(g, x, y, flicker, length) {
   g.fillStyle = '#583824'; g.fillRect(x - 1, y + 2, 3, length);

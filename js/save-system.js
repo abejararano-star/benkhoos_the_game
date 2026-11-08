@@ -1,11 +1,11 @@
-import { restoreCommunity } from './community.js?v=dd4c4df65f03';
-import { ensureEcology, seedEcology } from './ecology.js?v=dd4c4df65f03';
-import { seedFrontier } from './exploration.js?v=dd4c4df65f03';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=dd4c4df65f03';
-import { ensurePerson } from './people.js?v=dd4c4df65f03';
-import { ensureSettlement } from './settlement.js?v=dd4c4df65f03';
-import { ensureCampaign } from './campaign.js?v=dd4c4df65f03';
-import { restoreHaciendas } from './haciendas.js?v=dd4c4df65f03';
+import { restoreCommunity } from './community.js?v=2e3f4f93fc28';
+import { ensureEcology, seedEcology } from './ecology.js?v=2e3f4f93fc28';
+import { seedFrontier } from './exploration.js?v=2e3f4f93fc28';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=2e3f4f93fc28';
+import { ensurePerson } from './people.js?v=2e3f4f93fc28';
+import { ensureSettlement } from './settlement.js?v=2e3f4f93fc28';
+import { ensureCampaign } from './campaign.js?v=2e3f4f93fc28';
+import { restoreHaciendas } from './haciendas.js?v=2e3f4f93fc28';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>

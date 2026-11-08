@@ -181,6 +181,11 @@ class BenkosSpriteManager {
   }
 
   drawIdle(ctx, cls, x, y, facing, height, time, actor, animation = 'idle') {
+    // The alternate armed poses shift the hands and weapons by whole pixels.
+    // Keep the planted silhouette until a walk, attack or social action starts.
+    if (animation === 'idle' && ['ARQUERO', 'GUERRERO', 'ESPADACHIN', 'CAMPEON_REAL'].includes(actor.role)) {
+      return this.draw(ctx, cls, ['idle'], x, y, facing, height, 0);
+    }
     const temperament = actor.temperament;
     const period = { RESTLESS: 2.8, CAUTIOUS: 3.7, CARING: 4.4, CALM: 5.4 }[temperament] ?? 4.6;
     const offset = (Number(actor.id) || 0) * .71;

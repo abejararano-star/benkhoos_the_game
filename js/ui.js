@@ -1,13 +1,13 @@
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=dd4c4df65f03';
-import { describeTraits } from './daily-life.js?v=dd4c4df65f03';
-import { equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=dd4c4df65f03';
-import { canMediate, relationshipsFor } from './community.js?v=dd4c4df65f03';
-import { haciendaActive } from './haciendas.js?v=dd4c4df65f03';
-import { ecologyHint } from './ecology.js?v=dd4c4df65f03';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=dd4c4df65f03';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=dd4c4df65f03';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=dd4c4df65f03';
-import { arrivalHint } from './campaign.js?v=dd4c4df65f03';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=2e3f4f93fc28';
+import { describeTraits } from './daily-life.js?v=2e3f4f93fc28';
+import { equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=2e3f4f93fc28';
+import { canMediate, relationshipsFor } from './community.js?v=2e3f4f93fc28';
+import { haciendaActive } from './haciendas.js?v=2e3f4f93fc28';
+import { ecologyHint } from './ecology.js?v=2e3f4f93fc28';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=2e3f4f93fc28';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=2e3f4f93fc28';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=2e3f4f93fc28';
+import { arrivalHint } from './campaign.js?v=2e3f4f93fc28';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);

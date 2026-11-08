@@ -1,16 +1,16 @@
-import { recoverCoins } from './coins.js?v=dd4c4df65f03';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=dd4c4df65f03';
-import { collectEquipment } from './equipment.js?v=dd4c4df65f03';
-import { advanceCrops, tendCrop } from './crops.js?v=dd4c4df65f03';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=dd4c4df65f03';
-import { updateCommunity, joinEncounter } from './community.js?v=dd4c4df65f03';
-import { updateEcology, isHuntable } from './ecology.js?v=dd4c4df65f03';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=dd4c4df65f03';
-import { workConstruction, homeRecovery } from './settlement.js?v=dd4c4df65f03';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=dd4c4df65f03';
-import { ensureCampaign } from './campaign.js?v=dd4c4df65f03';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=dd4c4df65f03';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=dd4c4df65f03';
+import { recoverCoins } from './coins.js?v=2e3f4f93fc28';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=2e3f4f93fc28';
+import { collectEquipment } from './equipment.js?v=2e3f4f93fc28';
+import { advanceCrops, tendCrop } from './crops.js?v=2e3f4f93fc28';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=2e3f4f93fc28';
+import { updateCommunity, joinEncounter } from './community.js?v=2e3f4f93fc28';
+import { updateEcology, isHuntable } from './ecology.js?v=2e3f4f93fc28';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=2e3f4f93fc28';
+import { workConstruction, homeRecovery } from './settlement.js?v=2e3f4f93fc28';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=2e3f4f93fc28';
+import { ensureCampaign } from './campaign.js?v=2e3f4f93fc28';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=2e3f4f93fc28';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=2e3f4f93fc28';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,

@@ -82,4 +82,29 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
   const idle=atlas.sprites.actor_miner.anims.idle[0];assert.equal(logs[0][1],idle.x);assert.equal(logs[0][2],idle.y);
   worker.animSeed=3.6;logs.length=0;manager.drawAlly(ctx,9,246,1,worker,3.6);
   const glance=atlas.sprites.actor_miner.anims.idle[2];assert.equal(logs[0][1],glance.x);assert.equal(logs[0][2],glance.y);
+
+  // A guard in idle or conversation must keep the same planted weapon silhouette.
+  for (const role of ['ARQUERO', 'GUERRERO']) {
+    const guard = { x: 0, id: 1, role, tier: 1, facing: 1, vx: 0 };
+    const sprite = atlas.sprites[manager.personClass(role)];
+    logs.length = 0;
+    const transforms = [];
+    const guardContext = new Proxy({ drawImage: (...args) => logs.push(args), scale: (...args) => transforms.push(args) }, { get: (o, k) => o[k] ?? (() => {}) });
+    for (const time of [0, 1.8, 3.1, 4.2, 5.5]) {
+      guard.animSeed = time;
+      manager.drawAlly(guardContext, 0, 246, 1, guard, time);
+    }
+    guard.activity = 'SOCIAL';
+    guard.socialPose = { kind: 'CHAT', time: 1, index: 0 };
+    manager.drawAlly(guardContext, 0, 246, 1, guard, 5.5);
+    assert.equal(logs.length, 6);
+    assert.ok(logs.every(frame => frame[1] === sprite.anims.idle[0].x && frame[2] === sprite.anims.idle[0].y));
+    assert.deepEqual(transforms, []);
+    guard.activity = 'IDLE';
+    guard.vx = 60;
+    guard.x = 9;
+    guard.animSeed = 5.65;
+    manager.drawAlly(guardContext, 9, 246, 1, guard, 5.65);
+    assert.ok(sprite.anims.walk.some(f => f.x === logs.at(-1)[1] && f.y === logs.at(-1)[2]));
+  }
 });
