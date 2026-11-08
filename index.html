@@ -7,12 +7,12 @@
 <meta name="description" content="Construye, libera y defiende el Palenque de la Matuna. Estrategia y acción para PC.">
 <title>Benkhoos · El Palenque de la Matuna</title>
 <link rel="icon" href="assets/ui/emblem.svg">
-<link rel="stylesheet" href="css/game.css?v=2e3f4f93fc28">
-<script src="js/db.js?v=2e3f4f93fc28" defer>
+<link rel="stylesheet" href="css/game.css?v=8d54c297ea97">
+<script src="js/db.js?v=8d54c297ea97" defer>
 </script>
-<script src="js/sprite_manager.js?v=2e3f4f93fc28" defer>
+<script src="js/sprite_manager.js?v=8d54c297ea97" defer>
 </script>
-<script type="module" src="js/game.js?v=2e3f4f93fc28">
+<script type="module" src="js/game.js?v=8d54c297ea97">
 </script>
 </head>
 <body>
@@ -142,6 +142,8 @@
 </i>
 <i id="minimapHaciendaR" class="hacienda east">
 </i>
+<i id="minimapEstateWest" class="hacienda estate" title="Hacienda del Paso de Jegua"></i>
+<i id="minimapEstateEast" class="hacienda estate" title="Hacienda de la Boca de Marea"></i>
 <i id="minimapAltar" class="minimap-altar hidden" title="Santuario de los Ancestros"></i>
 <i id="minimapBenkos">
 </i>
@@ -314,7 +316,7 @@
 </article>
 </div>
 <p>
-<strong>Objetivo:</strong> recupera las dos haciendas y derrota al gobernador, anunciado por sus mensajeros para asegurar la libertad de la Matuna.</p>
+<strong>Campaña:</strong> libera las haciendas cercanas, vuelve a la casa central y pulsa <kbd>E</kbd> para convocar expediciones. Acompaña a las personas rescatadas y decide en el consejo cómo defender la Matuna.</p>
 <div class="controls-grid">
 <span>
 <kbd>A / D</kbd> Mover · mantén para correr</span>
@@ -415,6 +417,15 @@
 
 <dialog id="peopleDialog" aria-labelledby="personName"><div class="dialog-content people-content"><div class="panel-heading"><div><span class="eyebrow">CADA VIDA TIENE SU HISTORIA</span><h2 id="personName">Gente de la Matuna</h2></div><button id="btnClosePeople" aria-label="Cerrar ficha">×</button></div><label class="person-picker" for="personSelect">Conocer a <select id="personSelect"></select></label><div class="person-profile"><canvas id="personPortrait" width="128" height="160" aria-label="Retrato de la persona"></canvas><div><h3 id="personRole"></h3><p id="personTemperament"></p><span class="eyebrow">DON NATURAL</span><strong id="personGift"></strong><p id="personPreference"></p></div></div><fieldset id="personEquipment"><legend>Equipo del cuartel</legend><p id="personKitStatus"></p><div class="profession-actions"><button id="btnOrderWeapon">Encargar arma</button><button id="btnOrderArmor">Encargar armadura</button></div><p id="personKitFeedback" role="status"></p></fieldset><div id="personAttributes" class="person-attributes"></div><p id="personExperience" class="muted"></p><p id="personCondition" class="muted"></p><p id="personRelations" class="person-relations"></p><p id="personTraits" class="muted"></p><p id="personGrief" class="person-relations"></p><fieldset><legend>Un nuevo camino</legend><label for="personNewRole">Oficio que aprenderá <select id="personNewRole"></select></label><div class="profession-actions"><button id="btnAssignProfession" class="primary">Proponer este oficio</button><button id="btnPersonAuto">Respetar su preferencia</button></div><p id="personFeedback" role="status"></p></fieldset><p class="muted">Cambiar de oficio necesita herramientas del puesto. La persona caminará hasta allí; si hay peligro, buscará refugio antes de entrenar. El don mejora su eficacia y la experiencia se conserva por oficio.</p></div></dialog>
 <dialog id="campaignDialog" aria-labelledby="campaignTitle"><div class="dialog-content wide"><div class="panel-heading"><div><span class="eyebrow">LOS CAMINOS HABLAN</span><h2 id="campaignTitle">Cartas de Cartagena</h2></div><button id="btnCloseCampaign" aria-label="Cerrar cartas">×</button></div><p class="muted">Los emisarios llegan por los caminos con estandarte blanco. No son combatientes. Habla con ellos con E; las cartas no leídas quedan aquí.</p><div id="campaignLetters"></div><button id="btnLetterTreaty" class="hidden">Responder a la propuesta de tregua</button></div></dialog>
+
+<dialog id="storyDialog" class="story-scene" aria-labelledby="storyTitle">
+  <div class="story-scene-content">
+    <header><span id="storyChapter" class="eyebrow"></span><h2 id="storyTitle"></h2></header>
+    <div class="story-dialogue"><canvas id="storyPortrait" width="156" height="164" aria-hidden="true"></canvas><div aria-live="polite"><strong id="storySpeaker"></strong><p id="storyLine"></p></div></div>
+    <div id="storyChoices" class="story-choices"></div>
+    <footer><span id="storyProgress"></span><button id="btnStorySkip">Saltar escena</button><button id="btnStoryNext" class="primary">Continuar</button></footer>
+  </div>
+</dialog>
 
 <dialog id="settlementDialog" aria-labelledby="settlementTitle"><div class="dialog-content settlement-content">
 <div class="panel-heading"><div><span class="eyebrow">DE REFUGIO A GRAN PALENQUE</span><h2 id="settlementTitle">Casa del consejo</h2></div><button id="btnCloseSettlement" aria-label="Volver al juego">×</button></div>

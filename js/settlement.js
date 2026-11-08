@@ -1,4 +1,4 @@
-import { proficiency } from './people.js?v=2e3f4f93fc28';
+import { proficiency } from './people.js?v=8d54c297ea97';
 export const MATERIALS=['Palma y bejuco','Madera de ceiba','Bahareque y cal','Piedra y teja','Cantería tallada'];
 export const HQ_NAMES=['Refugio de la Matuna','Casa del consejo','Casa de bahareque','Cabildo de piedra','Gran Palenque'];
 export const ALTAR_HEIGHT = [0, 53, 57, 65, 73, 83];
@@ -43,7 +43,6 @@ export function upgradeInfo(state,kind,id){
   }
   const [coins,wood,stone,duration]=costs.map(v=>Math.ceil(v*.55));let reason='';
   if(state.settlement.projects.some(p=>p.targetId===target.id))reason='Este edificio ya tiene una obra en marcha.';
-  else if(state.altarTier<next)reason=`Requiere altar de nivel ${next}.`;
   else if(next>state.settlement.level)reason=`Requiere casa central de nivel ${next}.`;
   else if(!state.units.some(u=>u.role==='CONSTRUCTOR'&&u.hp>0))reason='Asigna una persona al oficio de constructor.';
   else if(state.coins<coins||state.resources.wood<wood||state.resources.stone<stone)reason='Faltan materiales o reales en la bolsa.';

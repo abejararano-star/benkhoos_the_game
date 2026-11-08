@@ -38,6 +38,8 @@ try {
   s.settlement.level=3;s.settlement.barracks.level=2;s.settlement.projects.push({id:'hq_4',kind:'hq',targetId:'hq',targetLevel:4,x:0,duration:23,progress:.42});
   s.campaign.orders.push({id:'warning',type:'HERALDO_ALADO',side:1,eta:25,kind:'boss'});
   s.campaign.letters.push({id:'message',day:1,title:'Un mensajero',text:'La patrulla viene del camino este.',read:false});
+  s.story.plan='guides';s.story.treaty='signed';s.story.completed=['hacienda_jegua'];
+  s.story.expedition={site:'hacienda_marea',stage:'assault',party:[44],rescued:[]};
   const payload={jugador_nombre:player,...makeSave(s,80)};
   const first=await request('save.php',payload);assert.equal(first.status,200);assert.equal(first.data.success,true);
   const id=first.data.partida_id;assert.ok(id>0);

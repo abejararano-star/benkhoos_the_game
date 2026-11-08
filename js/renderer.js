@@ -1,11 +1,11 @@
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=2e3f4f93fc28';
-import { createLighting } from './lighting.js?v=2e3f4f93fc28';
-import { RenderInterpolation } from './visual-motion.js?v=2e3f4f93fc28';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=2e3f4f93fc28';
-import { drawLandscape, drawMist, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawHacienda, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=2e3f4f93fc28';
-import { haciendaActive } from './haciendas.js?v=2e3f4f93fc28';
-import { ROAD_GATES } from './campaign.js?v=2e3f4f93fc28';
-import { WATER_LINE_Y } from './config.js?v=2e3f4f93fc28';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=8d54c297ea97';
+import { createLighting } from './lighting.js?v=8d54c297ea97';
+import { RenderInterpolation } from './visual-motion.js?v=8d54c297ea97';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=8d54c297ea97';
+import { drawLandscape, drawMist, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=8d54c297ea97';
+import { haciendaActive } from './haciendas.js?v=8d54c297ea97';
+import { ROAD_GATES } from './campaign.js?v=8d54c297ea97';
+import { WATER_LINE_Y } from './config.js?v=8d54c297ea97';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -113,6 +113,7 @@ function renderWorldAboveWater(g, time) {
 
   drawRiverbank(g, w, GROUND_SURFACE_Y, camX);
   drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X);
+  drawEstateScenery(g, toScreenX, GROUND_SURFACE_Y, w);
   drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion);
   drawVines(g, toScreenX, GROUND_SURFACE_Y, w, settings.reduce_motion ? 0 : time);
   drawVillage(g, toScreenX, GROUND_SURFACE_Y, isNight, time, state.settlement, settings.reduce_motion);
@@ -131,8 +132,12 @@ function renderWorldAboveWater(g, time) {
 
   state.haciendas.forEach((hac) => {
     const sx = toScreenX(hac.x);
-    if (sx < -120 || sx > w + 120) return;
-    drawHacienda(g, sx, GROUND_SURFACE_Y, !haciendaActive(hac), isNight);
+    if (sx < -150 || sx > w + 150) return;
+    if (hac.major) {
+      g.save(); g.translate(sx, GROUND_SURFACE_Y); g.scale(1.47, 1.27);
+      drawHacienda(g, 0, 0, !haciendaActive(hac), isNight);
+      g.restore();
+    } else drawHacienda(g, sx, GROUND_SURFACE_Y, !haciendaActive(hac), isNight);
   });
 
   state.farms.forEach((f) => {
@@ -228,8 +233,9 @@ function renderWorldAboveWater(g, time) {
   });
   for (const hacienda of state.haciendas) {
     const x = toScreenX(hacienda.x);
-    if (x > -80 && x < w + 80 && haciendaActive(hacienda)) {
-      drawCaptiveGate(g, x, GROUND_SURFACE_Y, hacienda, state.units.filter(unit => unit.captiveHacienda === hacienda.id).length);
+    if (x > -100 && x < w + 100 && haciendaActive(hacienda)) {
+      const prisoners = state.units.filter(unit => unit.captiveHacienda === hacienda.id).length;
+      drawCaptiveGate(g, x, GROUND_SURFACE_Y, hacienda, prisoners);
     }
   }
 

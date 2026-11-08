@@ -5,6 +5,7 @@ import { makeSave } from '../js/save-system.js';
 import { ENEMY_CATALOG } from '../js/config.js';
 import { createAnimal } from '../js/ecology.js';
 import { ALTAR_X } from '../js/exploration.js';
+import { ESTATES } from '../js/story.js';
 
 // Run the real game modules against a small browser shell. No logic is copied.
 class Element {
@@ -50,6 +51,9 @@ async function loadState(mutator){const s=inspect().state;mutator(s);saved=makeS
 test('real runtime: campaign, controls, pause, progression, save/load, combat and end states',async()=>{
   assert.equal(inspect().mode,'menu');
   elements.get('btnNewGame').click(); assert.equal(inspect().mode,'playing');
+  assert.equal(elements.get('storyDialog').open,true);
+  elements.get('btnStoryNext').click();assert.equal(elements.get('storySpeaker').textContent,'Benkos');
+  elements.get('btnStorySkip').click();
   assert.equal(inspect().state.units.length,14); assert.equal(inspect().state.benkos.royalArmor,false);
   assert.equal(inspect().state.units.filter(u=>u.role==='FUGITIVO'&&Math.abs(u.x)>1400).length,6);
   await loadState(s=>{s.benkos.x=510;s.benkos.vx=0;});
@@ -102,7 +106,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().state.treasuryCoins, 11);
   assert.equal(inspect().state.wildlife.length, 0);
   // Pay for two upgrades through the normal S interaction at the totem.
-  await loadState(s=>{s.benkos.x=-48;s.benkos.vx=0;s.coins=24;s.armyTier=1;s.altarTier=3;s.settlement.level=3;s.settlement.barracks.level=3;});
+  await loadState(s=>{s.benkos.x=-48;s.benkos.vx=0;s.coins=24;s.armyTier=1;s.altarTier=1;s.skills.slice(1).forEach(sk=>sk.unlocked=false);s.settlement.level=3;s.settlement.barracks.level=3;});
   const beforeRanks = inspect().state.units.map(unit => [unit.id, unit.tier]);
   assert.equal(elements.get('nodeHintCoins').textContent, 'Faltan 6 reales');
   key('KeyS');advance(.23);key('KeyS',true);
@@ -128,6 +132,23 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   advance(5);assert.ok(inspect().state.enemies.every(e=>Number.isFinite(e.x)));
   // A telegraphed enemy attack spends reserves rather than minting free money.
   const enemy=()=>({id:500,type:'SOLDADO_ESPANOL',...ENEMY_CATALOG.SOLDADO_ESPANOL,maxHp:75,x:0,y:268,vx:0,facing:1,phase:1,attackCooldown:0,attackAnimTimer:0,tauntTimer:0,appearTimer:0,stunTimer:0,nettedTimer:0,bleedTimer:0,animTime:0,stolenCoins:0,muzzleFlash:0,trumpetRing:0});
+  await loadState(s=>{s.benkos.x=0;s.timeOfDay=.24;s.phase='DAY_EXPLORE';s.haciendas[0].destroyed=s.haciendas[1].destroyed=true;s.enemies=[];});
+  key('KeyE');assert.equal(elements.get('storyTitle').textContent,'Los caminos de la libertad');
+  elements.get('btnStoryNext').click();elements.get('storyChoices').children[0].click();
+  elements.get('storyChoices').children[0].click();
+  advance(.04);
+  assert.equal(inspect().state.story.expedition.site,ESTATES[0].id);
+  assert.equal(inspect().state.enemies.filter(e=>e.guardSite===ESTATES[0].id).length,3);
+  const siteX=ESTATES[0].x;
+  await loadState(s=>{s.benkos.x=siteX+42;s.benkos.facing=-1;s.benkos.attackTimer=0;s.benkos.attackCooldown=0;s.enemies.forEach(e=>e.attackCooldown=90);s.haciendas[2].hp=5;});
+  advance(.03);assert.equal(elements.get('storyDialog').open,true);elements.get('btnStorySkip').click();
+  key('Space');advance(.5);assert.equal(inspect().state.haciendas[2].hp,5);
+  await loadState(s=>{s.enemies=[];s.benkos.attackTimer=0;s.benkos.attackCooldown=0;});
+  key('Space');advance(.5);assert.equal(inspect().state.story.expedition.stage,'return');
+  assert.equal(inspect().state.story.expedition.rescued.length,5);
+  elements.get('btnStorySkip').click();
+  await loadState(s=>{s.benkos.x=100;for(const u of s.units)if(s.story.expedition.rescued.includes(u.id)){u.x=180;u.liberateAnimTimer=0;} });
+  advance(.06);assert.deepEqual(inspect().state.story.completed,[ESTATES[0].id]);elements.get('btnStorySkip').click();
   await loadState(s=>{s.units=[];s.timeOfDay=.2;s.phase='DAY_EXPLORE';s.benkos.x=0;s.benkos.vx=0;s.benkos.facing=1;s.benkos.attackTimer=0;s.benkos.attackCooldown=0;s.benkos.comboWindow=0;s.benkos.hurtTimer=0;s.benkos.hurtKneelTimer=0;s.enemies=[{...enemy(),x:32,attackCooldown:10},{...enemy(),id:501,x:-20,attackCooldown:10}];});
   key('Space');assert.equal(inspect().state.enemies[0].hp,75);advance(.1);assert.equal(inspect().state.enemies[0].hp,75);
   advance(.13);assert.ok(inspect().state.enemies[0].hp<75);assert.equal(inspect().state.enemies[1].hp,75);
@@ -139,6 +160,6 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   await loadState(s=>{s.benkos.invulnTimer=0;s.coins=0;s.treasuryCoins=0;s.enemies=[enemy()];});
   advance(.5);assert.equal(inspect().mode,'defeat');const overTime=inspect().state.timeOfDay;advance(1);assert.equal(inspect().state.timeOfDay,overTime);
   // A completed campaign can award victory only once.
-  await loadState(s=>{s.status='playing';s.benkos.invulnTimer=0;s.coins=16;s.haciendas.forEach(h=>h.destroyed=true);s.bossesDefeated=1;s.enemies=[{...enemy(),type:'GOBERNADOR_GIRON',isBoss:true,phase:2,hp:0}];});
-  advance(.02);assert.equal(inspect().mode,'victory');const count=records.length;advance(1);assert.equal(records.length,count);
+  await loadState(s=>{s.status='playing';s.benkos.invulnTimer=0;s.coins=16;s.haciendas.forEach(h=>h.destroyed=true);s.story.completed=ESTATES.map(site=>site.id);s.story.finale='witnesses';s.bossesDefeated=1;s.enemies=[{...enemy(),type:'GOBERNADOR_GIRON',isBoss:true,phase:2,hp:0}];});
+  advance(.02);assert.equal(inspect().mode,'victory');assert.equal(elements.get('storyTitle').textContent,'Quienes dieron testimonio');const count=records.length;advance(1);assert.equal(records.length,count);
 });

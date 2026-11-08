@@ -94,19 +94,44 @@ export function drawVines(g, project, ground, width, time) {
 
 export function drawCaptiveGate(g, x, ground, hacienda, captives) {
   const y = ground - 34;
-  for (let i = -38; i <= 38; i += 8) {
+  const half = hacienda.major ? 58 : 40;
+  for (let i = -half + 2; i <= half; i += 8) {
     g.fillStyle = '#291f1a'; g.fillRect(x + i, y, 3, 35);
     g.fillStyle = '#86745a'; g.fillRect(x + i + 1, y + 4, 1, 21);
     g.fillStyle = '#a4936b'; g.fillRect(x + i + 1, y + 26, 1, 1);
   }
-  g.fillStyle = '#393329'; g.fillRect(x - 40, y + 1, 80, 3); g.fillRect(x - 40, y + 26, 80, 3);
-  g.fillStyle = '#8e7959'; g.fillRect(x - 40, y + 1, 80, 1); g.fillRect(x - 40, y + 26, 80, 1);
+  g.fillStyle = '#393329'; g.fillRect(x - half, y + 1, half * 2, 3); g.fillRect(x - half, y + 26, half * 2, 3);
+  g.fillStyle = '#8e7959'; g.fillRect(x - half, y + 1, half * 2, 1); g.fillRect(x - half, y + 26, half * 2, 1);
   g.fillStyle = '#ba9562'; g.fillRect(x + 2, y + 14, 6, 6);
   g.fillStyle = '#4b3e31'; g.fillRect(x + 4, y + 16, 2, 3);
-  g.fillStyle = '#0c1c18'; g.fillRect(x - 35, ground - 107, 70, 5);
-  g.fillStyle = '#d08a62'; g.fillRect(x - 34, ground - 106, 68 * Math.max(0, hacienda.hp / hacienda.maxHp), 3);
+  const labelY = ground - (hacienda.major ? 132 : 107);
+  g.fillStyle = '#0c1c18'; g.fillRect(x - 35, labelY, 70, 5);
+  g.fillStyle = '#d08a62'; g.fillRect(x - 34, labelY + 1, 68 * Math.max(0, hacienda.hp / hacienda.maxHp), 3);
   g.fillStyle = '#f1d8a0'; g.textAlign = 'center'; g.font = '8px monospace';
-  g.fillText(`${captives} ${captives === 1 ? 'cautivo' : 'cautivos'}`, x, ground - 113);
+  g.fillText(captives ? `${captives} ${captives === 1 ? 'cautivo' : 'cautivos'}` : 'Puesto colonial', x, labelY - 6);
+}
+
+const OUTER_SCENERY = [
+  [-4210, 'forest_ceiba', 147], [-3970, 'trail_terrace', 65], [-3750, 'forest_hardwood', 118],
+  [-3630, 'trail_stones', 31], [-3355, 'trail_arch', 83], [-3145, 'forest_ceiba', 161],
+  [-2920, 'trail_fern', 42], [-2740, 'trail_sign', 38],
+  [2720, 'trail_sign', 36], [2910, 'forest_mangrove', 139], [3130, 'trail_reeds', 43],
+  [3295, 'forest_palm', 150], [3535, 'trail_terrace', 49], [3895, 'forest_mangrove', 155],
+  [4060, 'trail_reeds', 43], [4180, 'forest_palm', 123]
+];
+
+export function drawEstateScenery(g, project, ground, width) {
+  for (const [worldX, art, height] of OUTER_SCENERY) {
+    const x = project(worldX);
+    if (x < -170 || x > width + 170) continue;
+    window.SpriteManager?.draw?.(g, art, ['idle'], x, ground, worldX < 0 ? -1 : 1, height, 0);
+  }
+  for (const [worldX, label] of [[-2740, 'PASO DE JEGUA'], [2720, 'BOCA DE MAREA']]) {
+    const x = project(worldX);
+    if (x < -60 || x > width + 60) continue;
+    g.fillStyle = '#19271e'; g.fillRect(x - 39, ground - 49, 78, 12);
+    g.fillStyle = '#e0c491'; g.textAlign = 'center'; g.font = '7px monospace'; g.fillText(label, x, ground - 41);
+  }
 }
 
 export function drawRiverbank(g, width, ground, camera) {

@@ -1,13 +1,14 @@
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=2e3f4f93fc28';
-import { describeTraits } from './daily-life.js?v=2e3f4f93fc28';
-import { equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=2e3f4f93fc28';
-import { canMediate, relationshipsFor } from './community.js?v=2e3f4f93fc28';
-import { haciendaActive } from './haciendas.js?v=2e3f4f93fc28';
-import { ecologyHint } from './ecology.js?v=2e3f4f93fc28';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=2e3f4f93fc28';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=2e3f4f93fc28';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=2e3f4f93fc28';
-import { arrivalHint } from './campaign.js?v=2e3f4f93fc28';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=8d54c297ea97';
+import { describeTraits } from './daily-life.js?v=8d54c297ea97';
+import { armyRequirement, equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=8d54c297ea97';
+import { canMediate, relationshipsFor } from './community.js?v=8d54c297ea97';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=8d54c297ea97';
+import { ecologyHint } from './ecology.js?v=8d54c297ea97';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=8d54c297ea97';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=8d54c297ea97';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=8d54c297ea97';
+import { arrivalHint } from './campaign.js?v=8d54c297ea97';
+import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=8d54c297ea97';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -16,6 +17,7 @@ export function createUI({ state, session, settings, actions }) {
   let prices = [];
   const bagDots=[];for(let i=0;i<state.maxCoins;i++){const dot=document.createElement('i');$('hudBagSlots').append(dot);bagDots.push(dot);}
   let bannerTimer, returnDialog = 'pauseDialog';
+  let cinematic, storyPage = 0;
   const dialogs = [...document.querySelectorAll('dialog')];
   function closeAll() {
     dialogs.forEach(d => { if (d.open) d.close(); });
@@ -33,12 +35,49 @@ export function createUI({ state, session, settings, actions }) {
   }
   function menu() { session.mode = 'menu'; document.body.dataset.mode = 'menu'; open('menuDialog'); }
   function togglePause() {
+    if ($('storyDialog').open) { closeStory(); return; }
     if (session.mode === 'menu' && $('menuDialog').open) return;
     if (session.mode === 'victory' || session.mode === 'defeat') return;
     if ($('modalGuide').open || $('modalLeaderboard').open || $('debugDialog').open || $('peopleDialog').open || $('campaignDialog').open || $('settlementDialog').open) { open(returnDialog); return; }
     if ($('modalPolitics').open) return;
     if ($('pauseDialog').open) resume();
     else { session.mode = 'paused'; open('pauseDialog'); }
+  }
+
+  function openStory(scene) {
+    cinematic = scene;
+    storyPage = 0;
+    open('storyDialog');
+    renderStory();
+  }
+  function renderStory() {
+    const [speaker, line] = cinematic.lines[storyPage];
+    text('storyChapter', cinematic.chapter);
+    text('storyTitle', cinematic.title);
+    text('storySpeaker', speaker);
+    text('storyLine', line);
+    text('storyProgress', `${storyPage + 1} / ${cinematic.lines.length}`);
+    const g = $('storyPortrait').getContext('2d');
+    g.clearRect(0, 0, 156, 164);
+    const cls = { Benkos: 'actor_hero', Wiwa: 'actor_civil', Vigía: 'actor_archer', 'Cautiva liberada': 'actor_captive' }[speaker];
+    if (cls) window.SpriteManager?.draw?.(g, cls, ['idle'], 78, 158, 1, 134, 0);
+    const last = storyPage === cinematic.lines.length - 1;
+    const choices = $('storyChoices');
+    choices.replaceChildren();
+    if (last) for (const [label, action] of cinematic.choices ?? []) {
+      const button = document.createElement('button');
+      button.textContent = label;
+      button.addEventListener('click', action);
+      choices.append(button);
+    }
+    $('btnStoryNext').classList.toggle('hidden', last && !!cinematic.choices?.length);
+    text('btnStoryNext', last ? 'Volver al juego' : 'Continuar');
+    text('btnStorySkip', cinematic.choices?.length ? 'Cerrar consejo' : 'Saltar escena');
+  }
+  function closeStory() {
+    const done = cinematic?.onDone;
+    cinematic = null;
+    if (done) done(); else resume();
   }
   function banner(title, description = '') {
     text('loreBannerMain', title); text('loreBannerSub', description);
@@ -50,7 +89,7 @@ export function createUI({ state, session, settings, actions }) {
     session.mode = status;
     text('resultTitle', status === 'victory' ? 'La Matuna permanece libre' : 'La resistencia necesita un nuevo comienzo');
     text('resultDescription', status === 'victory'
-      ? 'Las dos haciendas han caído y sus gobernadores han sido derrotados. Tu pueblo tiene un futuro.'
+      ? state.story.finale === 'witnesses' ? 'Los testimonios de las personas liberadas ya viajan por los caminos.' : 'La Matuna y sus aliados mantienen abiertos los caminos de refugio.'
       : `Benkos cayó sin plata en la bolsa y el cofre no tenía los ${BALANCE.rescueCost} reales necesarios para rescatarlo.`);
     text('resultStats', `Día ${state.day} · ${state.fugitivesFreed} personas liberadas · ${state.enemiesDefeated} enemigos derrotados · ${state.score} puntos${state.sandbox ? ' · Campaña de prueba' : ''}`);
     open('resultDialog');
@@ -89,19 +128,26 @@ export function createUI({ state, session, settings, actions }) {
     $('hudRoyalArmorBadge').classList.toggle('hidden', !state.benkos.royalArmor);
     const ranks = ['Cimarrón', 'Élite', 'Real'];
     text('hudArmyTierBadge', `Rango ${['I', 'II', 'III'][state.armyTier - 1]} · ${ranks[state.armyTier - 1]}`);
-    text('hudNextTierHint', state.armyTier < 3 ? `Tótem junto a la casa central · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Rango Real · Encarga equipo en F. Armadura de Benkos en C.');
+    text('hudNextTierHint', state.armyTier < 3 ? armyRequirement(state) || `Mantén S en el tótem · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Rango Real · Encarga equipo en F. Armadura de Benkos en C.');
     const count = role => state.units.filter(u => u.role === role).length;
     for (const [suffix, role] of Object.entries({ Constructor:'CONSTRUCTOR', Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
     const mapPercent = x => (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X) * 100;
     $('minimapBenkos').style.left = `${mapPercent(state.benkos.x)}%`;
     $('minimapAltar').style.left = `${mapPercent(ALTAR_X)}%`;
     $('minimapAltar').classList.toggle('hidden', !state.exploration.altarFound);
-    state.haciendas.forEach((h, i) => {
+    localHaciendas(state).forEach((h, i) => {
       const marker = $(`minimapHacienda${i ? 'R' : 'L'}`);
       marker.style.left = `${mapPercent(h.x)}%`;
       marker.style.right = 'auto';
       marker.style.background = haciendaActive(h) ? '#dc8264' : '#91c9a2';
     });
+    for (const site of ESTATES) {
+      const marker = $(site.side < 0 ? 'minimapEstateWest' : 'minimapEstateEast');
+      marker.style.left = `${mapPercent(site.x)}%`;
+      marker.classList.toggle('hidden', storyChapter(state) < 2);
+      marker.classList.toggle('expedition-target', state.story.expedition?.site === site.id);
+      marker.style.background = state.story.completed.includes(site.id) ? '#91c9a2' : '#dcb06f';
+    }
     $('torchStatus').classList.toggle('hidden', state.phase === 'DAY_EXPLORE' && !torchIsLit(state));
     text('torchStatus', torchIsLit(state) ? 'Antorcha encendida · T' : 'Antorcha apagada · T');
     for (const [i, skill] of state.skills.slice(1).entries()) {
@@ -118,19 +164,19 @@ export function createUI({ state, session, settings, actions }) {
       text('bossHudStateBadge', boss.windupTimer > 0 ? 'PREPARA UN ATAQUE' : 'EN COMBATE');
       $('bossHudBar').style.width = `${Math.max(0, boss.hp / boss.maxHp) * 100}%`;
     }
-    const destroyed = state.haciendas.filter(h => h.destroyed).length;
-    if (state.fugitivesFreed < 2) {
-      text('objectiveTitle', 'Un pueblo que resiste');
-      text('objectiveText', `Libera al menos a dos personas (${state.fugitivesFreed}/2). Viaja a una hacienda y rompe su portón con Espacio.`);
-    } else if (!state.exploration.altarFound) {
-      text('objectiveTitle', 'Huellas de los ancestros');
-      text('objectiveText', 'Cruza el riachuelo oeste, pasa la hacienda y busca el arco de piedra del santuario.');
-    } else if (state.armyTier < 3) {
-      text('objectiveTitle', 'Fortalece la Matuna'); text('objectiveText', 'Mejora la casa central con S y reales. Las obras del cuartel están en B y los rangos en el tótem.');
+    const chapter = storyChapter(state);
+    const destroyed = localHaciendas(state).filter(h => h.destroyed).length;
+    if (chapter === 1) {
+      text('objectiveTitle', 'I · Un pueblo que resiste');
+      text('objectiveText', `Libera las haciendas cercanas (${destroyed}/2). Rompe el portón con Espacio tras vencer a sus guardias.`);
+    } else if (chapter === 2) {
+      text('objectiveTitle', 'II · Tierra adentro');
+      text('objectiveText', expeditionObjective(state) || 'Vuelve a la casa central y pulsa E para convocar una expedición.');
     } else {
-      text('objectiveTitle', 'Recupera el territorio'); text('objectiveText', `Haciendas: ${destroyed}/2. Gobernador: ${state.campaign.governorDefeated?'derrotado':'pendiente'}. Los mensajeros anuncian los siguientes movimientos.`);
+      text('objectiveTitle', 'III · La palabra y el hierro');
+      text('objectiveText', finalObjective(state));
     }
-    $('objectiveProgress').style.width = `${Math.min(100, (Math.min(2, state.fugitivesFreed) + state.armyTier - 1 + destroyed + Math.min(2, state.bossesDefeated)) / 8 * 100)}%`;
+    $('objectiveProgress').style.width = `${(destroyed + state.story.completed.length + Number(!!state.story.finale) + Number(state.story.finalWon)) / 6 * 100}%`;
     const armor = $('btnToggleRoyalArmor');
     armor.disabled = !state.armorUnlocked && state.armyTier < 3;
     armor.title = state.armorUnlocked ? 'Alternar armadura · C' : state.armyTier >= 3 ? `Comprar por ${ROYAL_ARMOR_COST} reales · C` : 'Requiere rango Real';
@@ -159,9 +205,13 @@ export function createUI({ state, session, settings, actions }) {
     const crop = farm?.stage ? { PLANT: 'Siembra pendiente', GROW: `Creciendo · ${Math.floor(farm.cropProgress * 100)}%`, RIPE: 'Lista para cosechar', FALLOW: 'En descanso hasta mañana' }[farm.stage] : '';
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
     const hacienda = state.haciendas.find(h => haciendaActive(h) && Math.abs(h.x - state.benkos.x) < 88);
-    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':canMediate(state)?'E · Mediar en la discusión':hacienda?'Espacio · Romper el portón para liberar a los cautivos':social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar');
+    const context = Math.abs(state.benkos.x) < 23 && chapter > 1 ? 'E · Convocar al consejo · B · Obras' :
+      hacienda ? gateRequirement(state, hacienda) || 'Espacio · Romper el portón para liberar a los cautivos' : '';
+    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':canMediate(state)?'E · Mediar en la discusión':context||social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar');
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
+  on('btnStoryNext', () => { if (++storyPage < cinematic.lines.length) renderStory(); else closeStory(); });
+  on('btnStorySkip', closeStory);
   // Escape is managed centrally; let form controls keep normal focus navigation.
   for (const d of dialogs) d.addEventListener('cancel', e => { e.preventDefault(); togglePause(); });
   on('btnNewGame', actions.newGame); on('btnContinue', actions.continueGame);
@@ -185,7 +235,7 @@ export function createUI({ state, session, settings, actions }) {
       const article=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p');
       h.textContent=`Día ${letter.day} · ${letter.title}`;p.textContent=letter.text;article.append(h);article.append(p);list.append(article);letter.read=true;
     }
-    $('btnLetterTreaty').classList.toggle('hidden',state.politicalEventSeen||!letters.some(l=>String(l.id??'').startsWith('letter_')&&String(l.text??'').includes('tregua')));
+    $('btnLetterTreaty').classList.toggle('hidden',!!state.story.finale||state.politicalEventSeen||!letters.some(l=>String(l.id??'').startsWith('letter_')&&String(l.text??'').includes('tregua')));
   });
   on('btnLetterTreaty', () => open('modalPolitics'));
   on('btnCloseCampaign', () => open('pauseDialog'));
@@ -295,7 +345,7 @@ export function createUI({ state, session, settings, actions }) {
     g.fillStyle='#192f23';g.fillRect(0,216,560,24);g.fillStyle='#8c8461';g.fillRect(20,216,520,2);
     window.SpriteManager?.draw?.(g, kind === 'altar' ? altarSprite(level) : `building_${kind}_${level}`,['idle'],280,218,1,kind==='hq'?228:210,0);
     text('previewCaption', kind === 'altar' ? `Altar de nivel ${level} · ${state.skills[level - 1].name}` : `Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
-    text('evolutionPath', `Casa central ${state.settlement.level} → Cuartel ${state.settlement.barracks.level} → Rango militar ${state.armyTier} · Altar ${state.altarTier}`);
+    text('evolutionPath', `Casa central ${state.settlement.level} → Cuartel central ${state.settlement.barracks.level} → Tótem ${state.armyTier} · Santuario ${state.altarTier}: poderes`);
   }
   function renderBuildings(){
     text('settlementTitle',HQ_NAMES[state.settlement.level-1]);
@@ -384,7 +434,7 @@ export function createUI({ state, session, settings, actions }) {
   }
   on('btnAssignProfession',()=>{const res=actions.assignRole(selectedPersonId,$('personNewRole').value);renderPerson();text('personFeedback',res.message);});
   on('btnPersonAuto',()=>{actions.autoRole(selectedPersonId);renderPerson();text('personFeedback','Elegirá su oficio preferido cuando haya herramientas y el camino sea seguro.');});
-  return { update, banner, open, closeAll, resume, menu, result, togglePause, applySettings, openPeople, openSettlement, renderWorldOverlay,
+  return { update, banner, open, openStory, closeAll, resume, menu, result, togglePause, applySettings, openPeople, openSettlement, renderWorldOverlay,
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),
     connection: connected => { text('dbStatusLabel', connected ? 'Guardado en servidor' : 'Guardado local'); $('dbDot').classList.toggle('connected', connected); },

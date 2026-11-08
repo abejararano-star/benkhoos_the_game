@@ -1,8 +1,9 @@
-import { initialCommunity } from './community.js?v=2e3f4f93fc28';
-import { initialEcology } from './ecology.js?v=2e3f4f93fc28';
-import { initialExploration } from './exploration.js?v=2e3f4f93fc28';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=2e3f4f93fc28';
-import { initialSettlement } from './settlement.js?v=2e3f4f93fc28';
+import { initialCommunity } from './community.js?v=8d54c297ea97';
+import { initialStory, majorHaciendas } from './story.js?v=8d54c297ea97';
+import { initialEcology } from './ecology.js?v=8d54c297ea97';
+import { initialExploration } from './exploration.js?v=8d54c297ea97';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=8d54c297ea97';
+import { initialSettlement } from './settlement.js?v=8d54c297ea97';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -38,6 +39,8 @@ const state = {
   activeNodeId: null,
   messengers: [],
   campaign: { version:1, orders:[], letters:[], warnedDays:[], sentDays:[], bossAnnouncements:[], defeatedBosses:[], lastRaidDay:0, heraldDefeated:false, governorDefeated:false },
+
+  story: initialStory(),
 
   benkos: {
     x: -20,
@@ -107,7 +110,8 @@ const state = {
 
   haciendas: [
     { id: 'hac_west', x: -1460, side: -1, hp: 340, maxHp: 340, destroyed: false },
-    { id: 'hac_east', x: 1460,  side: 1,  hp: 340, maxHp: 340, destroyed: false }
+    { id: 'hac_east', x: 1460,  side: 1,  hp: 340, maxHp: 340, destroyed: false },
+    ...majorHaciendas()
   ],
 
   altarSlotsFilled: 0,

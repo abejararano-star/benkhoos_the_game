@@ -1,24 +1,25 @@
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=2e3f4f93fc28';
-import { GROUND_COIN_LIFE } from './coins.js?v=2e3f4f93fc28';
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=2e3f4f93fc28';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=2e3f4f93fc28';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=2e3f4f93fc28';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=2e3f4f93fc28';
-import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=2e3f4f93fc28';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=2e3f4f93fc28';
-import { AfroColombianAudioEngine } from './audio.js?v=2e3f4f93fc28';
-import { createInitialState } from './world-state.js?v=2e3f4f93fc28';
-import { makeSave, restoreSave } from './save-system.js?v=2e3f4f93fc28';
-import { createRenderer } from './renderer.js?v=2e3f4f93fc28';
-import { createSimulation } from './simulation.js?v=2e3f4f93fc28';
-import { FixedStepper } from './clock.js?v=2e3f4f93fc28';
-import { bindInput } from './input.js?v=2e3f4f93fc28';
-import { createUI } from './ui.js?v=2e3f4f93fc28';
-import { chooseDefenseSide } from './ai.js?v=2e3f4f93fc28';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=2e3f4f93fc28';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=2e3f4f93fc28';
-import { conquerHacienda, haciendaActive, updateHaciendas } from './haciendas.js?v=2e3f4f93fc28';
-import { mediateEncounter } from './community.js?v=2e3f4f93fc28';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=8d54c297ea97';
+import { GROUND_COIN_LIFE } from './coins.js?v=8d54c297ea97';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=8d54c297ea97';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=8d54c297ea97';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=8d54c297ea97';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=8d54c297ea97';
+import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=8d54c297ea97';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=8d54c297ea97';
+import { AfroColombianAudioEngine } from './audio.js?v=8d54c297ea97';
+import { createInitialState } from './world-state.js?v=8d54c297ea97';
+import { makeSave, restoreSave } from './save-system.js?v=8d54c297ea97';
+import { createRenderer } from './renderer.js?v=8d54c297ea97';
+import { createSimulation } from './simulation.js?v=8d54c297ea97';
+import { FixedStepper } from './clock.js?v=8d54c297ea97';
+import { bindInput } from './input.js?v=8d54c297ea97';
+import { createUI } from './ui.js?v=8d54c297ea97';
+import { chooseDefenseSide } from './ai.js?v=8d54c297ea97';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=8d54c297ea97';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=8d54c297ea97';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=8d54c297ea97';
+import { mediateEncounter } from './community.js?v=8d54c297ea97';
+import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=8d54c297ea97';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -191,6 +192,77 @@ function addParticles(x, y, count, color, speed = 65) {
 
 function showBanner(mainText, subText = 'MONTES DE MARÍA · 1600') { ui.banner(mainText, subText); }
 
+function openCouncil() {
+  const chapter = storyChapter(state);
+  const story = state.story;
+  if (chapter === 2 && !story.plan) {
+    ui.openStory({ chapter: 'Capítulo II · Tierra adentro', title: 'Los caminos de la libertad', lines: [
+      ['Wiwa', 'Las personas que liberamos hablan de dos haciendas mayores. Una controla el paso de Jegua. La otra vigila la boca de marea.'],
+      ['Benkos', 'Necesitamos llegar hasta sus portones y regresar con la gente. ¿Quién nos mostrará el camino?']
+    ], choices: [
+      ['Escuchar a los guías · menos guardias', () => chooseExpeditionPlan('guides')],
+      ['Marchar a la vista · más guardias y 6 reales al cofre', () => chooseExpeditionPlan('assault')]
+    ] });
+  } else if (chapter === 2) {
+    const mission = story.expedition;
+    const sites = ESTATES.filter(site => !story.completed.includes(site.id));
+    ui.openStory({ chapter: 'Capítulo II · Tierra adentro', title: 'Consejo de expediciones', lines: [
+      ['Wiwa', mission ? `Sigue en marcha la expedición a ${estateById(mission.site).name}.` : 'Elige un destino. Hasta tres aliados aptos de la Matuna se reunirán contigo.']
+    ], choices: mission ? (mission.stage === 'return' ? [] : [['Retirar al grupo', () => {
+      story.expedition = null;
+      ui.resume();
+      showBanner('EL GRUPO VUELVE A SUS PUESTOS', 'Puedes retomar la expedición en el consejo.');
+    }]]) : sites.map(site => [`Partir · ${site.name}`, () => {
+      if (beginExpedition(state, site.id)) {
+        ui.resume();
+        showBanner('LA EXPEDICIÓN SE PONE EN MARCHA', `${site.name} · ${story.expedition.party.length} aliados en la partida.`);
+        updateHUD();
+      } else showBanner('EL PORTÓN SIGUE EN RUINAS', 'Los vigías avisarán cuando el destacamento vuelva a ocupar la hacienda.');
+    }]) });
+  } else if (chapter === 3 && !story.finale) {
+    ui.openStory({ chapter: 'Capítulo III · La palabra y el hierro', title: 'El último consejo', lines: [
+      ['Wiwa', 'Las personas de ambas haciendas llegaron a la Matuna. La noticia ha cruzado los caminos, y Cartagena reúne otra expedición.'],
+      ['Benkos', story.treaty === 'signed' ? 'Ya dimos una oportunidad a la tregua. Guardemos testimonio de quién rompió la palabra.' : 'Tenemos dos caminos. La decisión de hoy dirá cómo responderán los palenques cuando vuelva el peligro.']
+    ], choices: [
+      ['Reunir a los testigos · ataque por el oeste', () => chooseFinale('witnesses')],
+      ['Unir los palenques · ataque por ambos caminos', () => chooseFinale('network')]
+    ] });
+  } else ui.openSettlement();
+}
+
+function chooseExpeditionPlan(plan) {
+  if (state.story.plan) return;
+  state.story.plan = plan;
+  if (plan === 'assault') state.treasuryCoins += 6;
+  openCouncil();
+}
+
+function chooseFinale(choice) {
+  const brokenTruce = state.truceDays > 0 || state.phase === 'TRUCE_NIGHT';
+  if (!startFinale(state, choice)) return;
+  if (!state.campaign.governorDefeated) campaign.sendMessenger('BOSS', choice === 'witnesses' ? -1 : 1);
+  ui.resume();
+  showBanner('EL CONSEJO HA DECIDIDO', brokenTruce ? 'La expedición colonial rompe la tregua. Reúne a la guardia en las murallas.' : 'Vuelve a las murallas y espera los estandartes.');
+  updateHUD();
+}
+
+function updateStoryProgress() {
+  const mission = state.story.expedition;
+  const event = advanceExpedition(state);
+  if (!event) return;
+  const site = estateById(mission.site);
+  if (event === 'approach') ui.openStory({ chapter: 'Capítulo II · El asalto', title: site.name, lines: [
+    ['Vigía', state.story.plan === 'guides' ? 'Los guías nos trajeron fuera del camino principal. Todavía quedan guardias frente al portón.' : 'Nos han visto marchar. Dos hombres más se sumaron a la guarnición.'],
+    ['Benkos', 'Primero la guarnición. Luego el portón. Mantengan despejado el camino de vuelta.']
+  ] });
+  if (event === 'returned') ui.openStory({ chapter: 'Capítulo II · Regreso a la Matuna', title: 'Un sitio junto al fuego', lines: [
+    ['Wiwa', `La gente de ${site.name} está a salvo. El consejo ha reunido ocho reales para el cofre.`],
+    ['Benkos', storyChapter(state) === 3 ? 'Convoca al consejo. Debemos decidir cómo afrontar la respuesta de Cartagena.' : 'Que descansen. Todavía queda gente al otro lado del bosque.']
+  ] });
+  if (event === 'failed') showBanner('LA EXPEDICIÓN HA PERDIDO A LOS RESCATADOS', 'La hacienda puede volver a ocuparse. Podrás intentar otro rescate.');
+  updateHUD();
+}
+
 // ==================== 5. DIEGETIC INTERACTIVE NODES ====================
 function getInteractionNodes() {
   const candidates = [];
@@ -277,8 +349,8 @@ function getInteractionNodes() {
     const isDamaged = w.level > 0 && w.hp < w.maxHp * 0.8;
     if (w.level < 5 || isDamaged) {
       const required = w.level + 1;
-      const unlocked = isDamaged || (required <= state.altarTier && required <= state.settlement.level && required <= state.settlement.barracks.level + 1);
-      const locked = unlocked ? '' : `Requiere altar y casa de nivel ${required} y cuartel de nivel ${required - 1}.`;
+      const unlocked = isDamaged || (required <= state.settlement.level && required <= state.settlement.barracks.level + 1);
+      const locked = unlocked ? '' : `Requiere casa central de nivel ${required} y cuartel de nivel ${required - 1}.`;
       const cost = w.level === 0 ? 2 : (isDamaged ? 2 : w.level * 2 + 1);
       const label = w.level === 0
         ? ' Levantar Empalizada'
@@ -310,7 +382,7 @@ function getInteractionNodes() {
 
   state.farms.forEach((f) => {
     if (f.level < 2) {
-      const locked = f.level === 1 && (state.altarTier < 2 || state.settlement.level < 2) ? 'Requiere altar y casa central de nivel 2.' : '';
+      const locked = f.level === 1 && state.settlement.level < 2 ? 'Requiere casa central de nivel 2.' : '';
       candidates.push({
         id: f.id,
         x: f.x,
@@ -379,7 +451,7 @@ function getNearestInteractiveNode(bx) {
   if (Math.abs(bx) < 23) {
     const info = upgradeInfo(state, 'hq', 'hq');
     return { id: 'node_central_house', x: 0, title: 'Casa central',
-      sub: info.reason || `Mantén S para subir a nivel ${info.next} · E para ver Obras`,
+      sub: info.reason || `Mantén S para subir a nivel ${info.next} · ${storyChapter(state) > 1 ? 'E: Consejo · B: Obras' : 'E para ver Obras'}`,
       locked: !!info.reason, cost: info.coins || 0, getFilled: () => 0,
       purchase: () => requestBuilding(state, 'hq', 'hq') };
   }
@@ -452,7 +524,7 @@ function handleInteractOrMount() {
   }
 
   if (Math.abs(b.x) < 23) {
-    ui.openSettlement();
+    if (storyChapter(state) > 1) openCouncil(); else ui.openSettlement();
     return;
   }
   const cache = nearestTrailCache(state);
@@ -528,6 +600,11 @@ function resolveBenkosHit(){
   }
   state.haciendas.forEach((hac) => {
     if (haciendaActive(hac)&&inStrikeRange(b,hac,reach+25,b.attackFacing)) {
+      const reason = gateRequirement(state, hac);
+      if (reason) {
+        showBanner('PORTÓN CERRADO', reason);
+        return;
+      }
       damageHacienda(hac, baseDmg);
       hitAny = true;
     }
@@ -546,6 +623,7 @@ function damageHacienda(hac, dmg) {
   addFloatingText(hac.x, WATER_LINE_Y - 58, `-${Math.round(dmg)} `, '#fb923c');
   if (hac.hp <= 0) {
     const { first, captives } = conquerHacienda(state, hac);
+    onEstateLiberated(state, hac, captives);
     state.screenShake = 12;
     audio.playSfx('roar');
     addParticles(hac.x, WATER_LINE_Y - 40, 45, '#fde047', 160);
@@ -554,7 +632,14 @@ function damageHacienda(hac, dmg) {
     }
     if (first) state.horses.push({ id: `horse_${nextEntityId++}`, x: hac.x - hac.side * 40, facing: -hac.side, rider: null });
     if (captives.length) audio.playSfx('chainBreak');
-    showBanner('HACIENDA LIBERADA', captives.length ? `${captives.length} personas libres marchan hacia la Matuna. Puedes cubrir su retirada.` : 'El destacamento se ha retirado.');
+    if (hac.major && state.story.expedition?.site === hac.id) {
+      ui.openStory({ chapter: 'Capítulo II · La retirada', title: hac.name, lines: [
+        ['Cautiva liberada', 'Hay gente herida. Llévanos por el camino por el que viniste y avisa si ves estandartes.'],
+        ['Benkos', 'Volvemos juntos a la Matuna. El camino aún tiene patrullas.']
+      ] });
+    } else showBanner('HACIENDA LIBERADA', storyChapter(state) === 2
+      ? 'Vuelve a la casa central y pulsa E. Wiwa ha convocado al consejo.'
+      : `${captives.length} personas libres marchan hacia la Matuna.`);
     updateHUD();
   }
 }
@@ -668,7 +753,8 @@ const campaign = createCampaign({ state, spawnEnemy, nextId: () => nextEntityId+
 const simulation = createSimulation({ state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife,
   showBanner, resolveBenkosHit, triggerBenkosAttack, saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
   addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, campaign, queueReinforcement,
-  nextId: () => nextEntityId++, updateCaptivity: () => updateHaciendas(state, x => spawnCimarron('FUGITIVO', x), Math.max(440, view.width / 2 + 95)) });
+  nextId: () => nextEntityId++, updateStory: updateStoryProgress,
+  updateCaptivity: () => updateHaciendas(state, x => spawnCimarron('FUGITIVO', x), Math.max(440, view.width / 2 + 95), spawnEnemy) });
 const stepper = new FixedStepper(BALANCE.fixedStep);
 
 function resize() {
@@ -688,7 +774,7 @@ function newGame() {
   state.sandbox=reviewMode;
   window.BenkosDB.currentSaveId = null;
   for (const [role, x] of [['ALDEANO',-35],['CONSTRUCTOR',65],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340]]) spawnCimarron(role, x, 1);
-  updateHaciendas(state, x => spawnCimarron('FUGITIVO', x));
+  updateHaciendas(state, x => spawnCimarron('FUGITIVO', x), 440, spawnEnemy);
   seedEcology(state,()=>nextEntityId++);
   seedFrontier(state, () => nextEntityId++);
   if(reviewMode){
@@ -704,6 +790,11 @@ function newGame() {
       state.benkos.x = state.haciendas[0].x + 44;
       state.benkos.facing = -1;
       state.haciendas[0].hp = 22;
+    }
+    if (reviewScene === 'expedition') {
+      state.benkos.x = 0;
+      for (const h of localHaciendas(state)) conquerHacienda(state, h);
+      state.enemies = [];
     }
     if (reviewScene === 'mount') {
       state.benkos.x = -135;
@@ -730,6 +821,10 @@ function newGame() {
   state.cameraX = state.benkos.x; stepper.reset();
   ui.resume(); updateHUD(); audio.init();
   showBanner('BIENVENIDO A LA MATUNA', 'Ataca una hacienda para liberar a sus cautivos. Mejora la casa central con S y reales.');
+  if (!reviewMode) ui.openStory({ chapter: 'Capítulo I · La Matuna', title: 'El camino de la libertad', lines: [
+    ['Wiwa', 'Salimos de Cartagena juntos, pero aquí nadie puede vivir de espaldas al camino. En las haciendas cercanas todavía tienen gente presa.'],
+    ['Benkos', 'Primero levantaremos un refugio. Después iremos por quienes quedaron atrás.']
+  ] });
 }
 function toggleArmor() {
   if (!state.armorUnlocked) {
@@ -764,7 +859,7 @@ function changeSettings(patch) {
 }
 async function saveGameToMySQL(automatic = false) {
   if(reviewMode){if(!automatic)showBanner('Vista temporal: no modifica tus partidas','');return {success:true,storage:'preview'};}
-  if (session.mode === 'menu' || loading || state.status !== 'playing') return;
+  if (session.mode === 'menu' || loading || (state.status !== 'playing' && !(automatic && state.story.finalWon))) return;
   if (saveTask) return saveTask;
   const payload = makeSave(state, nextEntityId);
   ui.busy(true);
@@ -796,16 +891,28 @@ async function loadGameFromMySQL() {
 }
 function finishCampaign(status) {
   if (session.mode === 'victory' || session.mode === 'defeat') return;
-  input?.clear(); ui.result(status); updateHUD();
+  input?.clear();
+  if (status === 'victory') {
+    session.mode = 'victory';
+    ui.openStory({ chapter: 'Epílogo · La memoria de la Matuna', title: state.story.finale === 'witnesses' ? 'Quienes dieron testimonio' : 'Una red de caminos', lines: [
+      ['Wiwa', state.story.finale === 'witnesses' ? 'Los testigos han contado su historia. Una copia de sus palabras saldrá al amanecer con los caminantes.' : 'Los vigías volvieron por ambos caminos. Otros palenques ya saben dónde buscar refugio y a quién pedir ayuda.'],
+      ['Nota histórica', 'Esta campaña imagina sus expediciones y desenlaces. El Benkos Biohó histórico lideró la resistencia cimarrona de la Matuna, negoció con las autoridades coloniales y fue ejecutado en Cartagena en 1621.']
+    ], onDone: () => ui.result(status) });
+    if (saveTask) void saveTask.then(() => saveGameToMySQL(true));
+    else void saveGameToMySQL(true);
+  } else ui.result(status);
+  updateHUD();
   if (!state.sandbox) window.BenkosDB.recordVictory({ dias_sobrevividos: state.day, tropas_reclutadas: state.units.length,
     oleadas_repelidas: Math.max(0, state.waveNumber - (state.enemies.length ? 1 : 0)), jefes_derrotados: state.bossesDefeated,
     plata_total_acumulada: state.coins + state.treasuryCoins, puntuacion_final: state.score, victoria_conseguida: +(status === 'victory') });
 }
 function choosePolitics(accept) {
+  if (state.story.finale) { ui.resume(); return; }
   if (accept && state.coins < 15) return;
+  state.story.treaty = accept ? 'signed' : 'refused';
   if (accept) {
-    state.coins -= 15; state.truceDays = 3; state.enemies = [];
-    state.campaign.orders = state.campaign.orders.filter(order=>order.kind==='boss');
+    state.coins -= 15; state.truceDays = 3; state.enemies = state.enemies.filter(enemy => enemy.guardSite || enemy.finalRaid || enemy.isBoss);
+    state.campaign.orders = state.campaign.orders.filter(order=>order.kind==='boss'||order.kind==='final');
     if (state.timeOfDay>=.68) state.phase='TRUCE_NIGHT';
   }
   else { state.morale = 125; spawnCimarron('CAMPEON_REAL', -1550, 3); spawnSpanishWave(1.2); }

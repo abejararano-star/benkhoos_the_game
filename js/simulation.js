@@ -1,20 +1,21 @@
-import { recoverCoins } from './coins.js?v=2e3f4f93fc28';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=2e3f4f93fc28';
-import { collectEquipment } from './equipment.js?v=2e3f4f93fc28';
-import { advanceCrops, tendCrop } from './crops.js?v=2e3f4f93fc28';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=2e3f4f93fc28';
-import { updateCommunity, joinEncounter } from './community.js?v=2e3f4f93fc28';
-import { updateEcology, isHuntable } from './ecology.js?v=2e3f4f93fc28';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=2e3f4f93fc28';
-import { workConstruction, homeRecovery } from './settlement.js?v=2e3f4f93fc28';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=2e3f4f93fc28';
-import { ensureCampaign } from './campaign.js?v=2e3f4f93fc28';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=2e3f4f93fc28';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=2e3f4f93fc28';
+import { recoverCoins } from './coins.js?v=8d54c297ea97';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=8d54c297ea97';
+import { collectEquipment } from './equipment.js?v=8d54c297ea97';
+import { advanceCrops, tendCrop } from './crops.js?v=8d54c297ea97';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=8d54c297ea97';
+import { updateCommunity, joinEncounter } from './community.js?v=8d54c297ea97';
+import { updateEcology, isHuntable } from './ecology.js?v=8d54c297ea97';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=8d54c297ea97';
+import { workConstruction, homeRecovery } from './settlement.js?v=8d54c297ea97';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=8d54c297ea97';
+import { ensureCampaign, finaleWon } from './campaign.js?v=8d54c297ea97';
+import { expeditionPost } from './story.js?v=8d54c297ea97';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=8d54c297ea97';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=8d54c297ea97';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
-addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId, campaign, queueReinforcement, resolveBenkosHit, triggerBenkosAttack, updateCaptivity } = api;
+addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId, campaign, queueReinforcement, resolveBenkosHit, triggerBenkosAttack, updateCaptivity, updateStory } = api;
 let purchasedNode = null;
 return function updateSimulation(dt) {
   if (state.hitStopTimer > 0) {
@@ -279,7 +280,16 @@ return function updateSimulation(dt) {
       updateHUD();
     })) continue;
     if (collectEquipment(u, state, dt, personMaxHp)) continue;
-    if (joinEncounter(u, state, dt) || takeLeisure(u, state, dt)) continue;
+    const expeditionX = expeditionPost(u, state);
+    if (expeditionX === null && (joinEncounter(u, state, dt) || takeLeisure(u, state, dt))) continue;
+    if (expeditionX !== null && Math.abs(expeditionX - u.x) > 140 && !state.enemies.some(e => e.hp > 0 && Math.abs(e.x - u.x) < 175)) {
+      u.facing = Math.sign(expeditionX - u.x);
+      u.vx = u.facing * (b.mounted ? 220 : 174);
+      u.x += u.vx * dt;
+      u.activity = 'PATROL';
+      u.mood = 'En expedición con Benkos';
+      continue;
+    }
     const fitMult = proficiency(u);
     const weaponRank = u.equipment?.weapon ?? (u.role === 'CAMPEON_REAL' ? u.tier : 1);
     const tierMult = (weaponRank === 3 ? 1.75 : weaponRank === 2 ? 1.35 : 1) * fitMult;
@@ -394,7 +404,7 @@ return function updateSimulation(dt) {
         }
       }
     } else if (u.role === 'CAZADOR') {
-      const postX = u.assignedSide * 270 + patrolOffset(u, state);
+      const postX = expeditionX ?? u.assignedSide * 270 + patrolOffset(u, state);
       const enemyTarget = nearest(u, state.enemies, enemy => enemy.hp > 0 && Math.abs(enemy.x - u.x) < 175);
       if (u.huntCargo && !enemyTarget) {
         const delta = 48 - u.x;
@@ -415,7 +425,7 @@ return function updateSimulation(dt) {
         }
         continue;
       }
-      const prey = state.phase === 'DAY_EXPLORE'
+      const prey = state.phase === 'DAY_EXPLORE' && expeditionX === null
         ? nearest(u, state.wildlife, animal => isHuntable(animal) && Math.abs(animal.x - postX) < 630)
         : null;
       const target = enemyTarget || (prey && Math.abs(prey.x - u.x) < 160 ? prey : null);
@@ -453,16 +463,16 @@ return function updateSimulation(dt) {
       }
     } else if (u.role === 'ARQUERO') {
       const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
-      const postX = defensePostX(u, state.units, activeWall) + patrolOffset(u, state);
+      const postX = expeditionX ?? defensePostX(u, state.units, activeWall) + patrolOffset(u, state);
       if (u.activity === 'KITE') {
         // Keep distance and retain the opportunity to shoot.
-      } else if (Math.abs(postX - u.x) > 3) {
+      } else if (Math.abs(postX - u.x) > (expeditionX === null ? 3 : 14)) {
         u.facing = Math.sign(postX - u.x) || 1;
         u.vx = u.facing * 64;
         u.x += u.vx * dt;
       } else {
         u.vx = 0;
-        u.facing = u.assignedSide;
+        if (expeditionX === null) u.facing = u.assignedSide;
       }
       if (u.attackCooldown <= 0) {
         const enemyTarget = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 200);
@@ -481,10 +491,10 @@ return function updateSimulation(dt) {
       const nearEnemy = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 310);
       const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
       const frontX=activeWall?activeWall.x-u.assignedSide*10:u.assignedSide*285;
-      const guardX = defensePostX(u, state.units, activeWall) + patrolOffset(u, state);
-      const targetX = nearEnemy ? (u.role === 'GUERRERO' ? Math.max(frontX - 85, Math.min(frontX + 85, nearEnemy.x)) : nearEnemy.x) : guardX;
+      const guardX = expeditionX ?? defensePostX(u, state.units, activeWall) + patrolOffset(u, state);
+      const targetX = nearEnemy ? (u.role === 'GUERRERO' && expeditionX === null ? Math.max(frontX - 85, Math.min(frontX + 85, nearEnemy.x)) : nearEnemy.x) : guardX;
 
-      if (Math.abs(targetX-u.x)>(nearEnemy?22:3)) {
+      if (Math.abs(targetX-u.x) > (nearEnemy ? 22 : expeditionX === null ? 3 : 14)) {
         u.facing = Math.sign(targetX - u.x) || 1;
         u.vx = u.facing * moveSpd;
         u.x += u.vx * dt;
@@ -493,6 +503,7 @@ return function updateSimulation(dt) {
       }
 
       if (u.attackCooldown <= 0 && nearEnemy && Math.abs(nearEnemy.x - u.x) <= 42) {
+        u.facing = Math.sign(nearEnemy.x - u.x) || u.facing;
         u.attackCooldown = ALLY_COMBAT[u.role].cooldown;
         u.attackDuration=.46;u.attackAnimTimer=.46;u.activity='ATTACK';
         u.weaponSubMode = u.weaponSubMode === 'SPEAR' ? 'SWORD' : 'SPEAR';
@@ -547,10 +558,7 @@ return function updateSimulation(dt) {
       state.bossesDefeated++;
       const progress = ensureCampaign(state); progress.governorDefeated = true; progress.defeatedBosses.push('GOBERNADOR_GIRON');
       state.score += 5000;
-      showBanner('GOBERNADOR DERROTADO', 'El territorio recuperado permanece libre.');
-      if (state.haciendas.every(h => h.destroyed) && ensureCampaign(state).governorDefeated) {
-        state.status = 'victory';
-      }
+      showBanner('GOBERNADOR DERROTADO', 'Su escolta pierde el mando. Protege a la comunidad hasta que cese el asalto.');
     } else if (en.type === 'HERALDO_ALADO') {
         const progress = ensureCampaign(state); progress.heraldDefeated = true; progress.defeatedBosses.push('HERALDO_ALADO'); state.bossesDefeated++;
         audio.playSfx('trumpet');
@@ -577,7 +585,6 @@ return function updateSimulation(dt) {
       state.enemiesDefeated++;
       if (!en.isBoss) state.score += 100;
       updateHUD();
-      if (state.status === 'victory') finishCampaign('victory');
       continue;
     }
 
@@ -605,6 +612,21 @@ return function updateSimulation(dt) {
     }
 
     const target = nearest(en, state.units, u => u.hp > 0 && u.role !== 'FUGITIVO' && Math.abs(u.x - en.x) < Math.abs(b.x - en.x));
+    if (en.guardSite && Number.isFinite(en.guardX)) {
+      const targetX = target?.x ?? b.x;
+      const returnToPost = Math.abs(targetX - en.guardX) > 245 || Math.abs(en.x - en.guardX) > 265;
+      if (returnToPost) {
+        const step = en.guardX - en.x;
+        en.windupTimer = 0;
+        en.attackReady = false;
+        en.vx = 0;
+        if (Math.abs(step) > 2) {
+          en.facing = Math.sign(step);
+          en.x += en.facing * Math.min(Math.abs(step), en.speed * dt);
+        }
+        continue;
+      }
+    }
     const dirToTarget = Math.sign((target ? target.x : b.x) - en.x) || (en.x > 0 ? -1 : 1);
     en.facing = dirToTarget;
 
@@ -614,7 +636,7 @@ return function updateSimulation(dt) {
 
     const distToBenkos = Math.abs(en.x - b.x);
     const nearAlly = nearest(en, state.units,
-      u => u.hp > 0 && Math.abs(u.x - en.x) <= Math.max(en.range, 34) && Math.sign(u.x - en.x) === dirToTarget
+      u => u.hp > 0 && u.role !== 'FUGITIVO' && Math.abs(u.x - en.x) <= Math.max(en.range, 34) && Math.sign(u.x - en.x) === dirToTarget
     );
     const canAttack = distToBenkos <= (en.type === 'HERALDO_ALADO' ? 170 : en.range) || blockingWall || nearAlly;
     if (!canAttack) { en.attackReady = false; en.windupTimer = 0; }
@@ -819,6 +841,13 @@ return function updateSimulation(dt) {
     ft.y -= 20 * dt;
     ft.life -= dt;
     if (ft.life <= 0) state.floatingTexts.splice(i, 1);
+  }
+  if (state.status !== 'playing') return;
+  updateStory?.();
+  if (finaleWon(state)) {
+    state.story.finalWon = true;
+    state.status = 'victory';
+    finishCampaign('victory');
   }
 }
 }

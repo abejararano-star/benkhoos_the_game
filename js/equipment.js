@@ -17,9 +17,7 @@ export function ensureEquipment(unit) {
 export function armyRequirement(state) {
   const next = state.armyTier + 1;
   if (next > 3) return 'Rango máximo alcanzado.';
-  if (state.altarTier < next) return `Requiere altar de nivel ${next}.`;
-  if (state.settlement.level < next) return `Requiere casa central de nivel ${next}.`;
-  if (state.settlement.barracks.level < next) return `Requiere cuartel de nivel ${next}.`;
+  if (state.settlement.barracks.level < next) return `Requiere cuartel central de nivel ${next}. Amplíalo en Obras (B).`;
   return '';
 }
 

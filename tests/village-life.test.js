@@ -14,9 +14,11 @@ test('a purchased weapon survives reload and only changes when its owner reaches
   const state = createInitialState();
   const unit = person(8, 'ESPADACHIN', 100);
   state.units = [unit];
-  assert.match(armyRequirement(state), /altar/);
+  assert.match(armyRequirement(state), /cuartel central/);
   assert.equal(orderEquipment(unit, 'weapon', state).success, false);
-  state.altarTier = state.settlement.level = state.settlement.barracks.level = state.armyTier = 2;
+  state.settlement.barracks.level = 2;
+  assert.equal(armyRequirement(state), '');
+  state.armyTier = 2;
   const originalHealth = unit.maxHp;
   assert.equal(orderEquipment(unit, 'weapon', state).success, true);
   assert.equal(state.coins, 12);

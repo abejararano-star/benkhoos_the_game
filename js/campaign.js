@@ -1,5 +1,5 @@
-import { WORLD_MAX_X, WORLD_MIN_X } from './config.js?v=2e3f4f93fc28';
-export const ROAD_GATES = Object.freeze([{side:-1,x:WORLD_MIN_X+65,label:'Camino de Cartagena'},{side:1,x:WORLD_MAX_X-65,label:'Camino de la hacienda oriental'}]);
+import { storyChapter } from './story.js?v=8d54c297ea97';
+export const ROAD_GATES = Object.freeze([{side:-1,x:-2485,label:'Camino de Cartagena'},{side:1,x:2485,label:'Camino de la hacienda oriental'}]);
 export function ensureCampaign(state){
   state.messengers??=[];
   if (state.campaign?.version===1 && ['orders','letters','warnedDays','sentDays','bossAnnouncements','defeatedBosses'].every(key=>Array.isArray(state.campaign[key]))) return state.campaign;
@@ -41,10 +41,35 @@ export function dispatchReinforcement(state,type,side=1){
 }
 export function arrivalHint(state){
   const c=ensureCampaign(state),order=c.orders.slice().sort((a,b)=>a.eta-b.eta)[0];
-  if(order)return `${order.kind==='boss'?'Un jefe se aproxima':order.kind==='raid'?'Una patrulla está en marcha':'Llegan refuerzos'} · camino ${order.side<0?'oeste':'este'} · ${Math.ceil(Math.max(0,order.eta))} s hasta el puesto de entrada`;
-  if(state.enemies.length)return `${state.enemies.length===1?'Un enemigo avanza':state.enemies.length+' enemigos avanzan'} por los caminos. Las murallas contienen su marcha.`;
+  if(order)return `${order.kind==='boss'?'Un jefe se aproxima':order.kind==='final'?'La ofensiva final está en marcha':order.kind==='raid'?'Una patrulla está en marcha':'Llegan refuerzos'} · camino ${order.side<0?'oeste':'este'} · ${Math.ceil(Math.max(0,order.eta))} s hasta el puesto de entrada`;
+  const marching = state.enemies.filter(enemy => !enemy.guardSite && enemy.hp > 0).length;
+  if(marching)return `${marching===1?'Un enemigo avanza':marching+' enemigos avanzan'} por los caminos. Las murallas contienen su marcha.`;
   if(state.truceDays>0)return `Tregua: ${state.truceDays} noches protegidas.`;
   return 'Los vigías observan los caminos. Los estandartes anuncian las expediciones.';
+}
+
+export function startFinale(state, choice) {
+  if (storyChapter(state) !== 3 || state.story.finale || !['witnesses', 'network'].includes(choice)) return false;
+  state.story.finale = choice;
+  state.truceDays = 0;
+  if (state.phase === 'TRUCE_NIGHT') state.phase = 'NIGHT_DEFENSE';
+  const western = choice === 'witnesses';
+  const roster = western ? ['SOLDADO_ESPANOL', 'PIQUERO', 'ARCABUCERO'] : ['PIQUERO', 'ARQUERO_COLONIAL', 'SOLDADO_ESPANOL', 'CABALLERO'];
+  const c = ensureCampaign(state);
+  roster.forEach((type, i) => c.orders.push({ id: `final_${i}`, type, side: western || i % 2 === 0 ? -1 : 1, eta: 8 + 5 * i, kind: 'final' }));
+  if (!c.governorDefeated && !c.bossAnnouncements.includes('GOBERNADOR_GIRON') && !state.enemies.some(enemy => enemy.type === 'GOBERNADOR_GIRON')) {
+    announceBoss(state, 'GOBERNADOR_GIRON', western ? -1 : 1, 33);
+    const letter = c.letters.find(item => item.id === 'notice_GOBERNADOR_GIRON');
+    if (letter) letter.text = `La escolta del gobernador se dirige a la Matuna por el camino ${western ? 'oeste' : 'este'}.`;
+  }
+  c.letters.push({ id: 'consejo_final', day: state.day, title: western ? 'Acta de los testigos' : 'Acuerdo entre palenques',
+    text: western ? 'El consejo decidió reunir los testimonios en la Matuna y defender el camino de Cartagena.' : 'El consejo decidió repartir víveres y vigías entre los asentamientos. Los dos caminos quedan bajo vigilancia.', read: false });
+  return true;
+}
+
+export function finaleWon(state) {
+  return !!state.story.finale && state.campaign.governorDefeated &&
+    !state.campaign.orders.some(order => order.kind === 'final') && !state.enemies.some(enemy => enemy.finalRaid && enemy.hp > 0);
 }
 export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
   function sendMessenger(kind,side=-1){
@@ -58,7 +83,7 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
     m.delivered=true;m.state='RETURN';
     const c=ensureCampaign(state);
     c.letters.push({id:`letter_${m.id}`,day:state.day,title:m.name,text:m.text,read:true});
-    if(m.kind==='TREATY'&&!state.politicalEventSeen)onTreaty();
+    if(m.kind==='TREATY'&&!state.politicalEventSeen&&!state.story.finale)onTreaty();
     else showBanner(m.name.toUpperCase(),m.text);
     return true;
   }
@@ -68,16 +93,13 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
       c.warnedDays.push(state.day);sendMessenger('SCOUT',state.day%2?1:-1);
       showBanner('SEÑALES EN EL CAMINO',`Los vigías anuncian ${raidSize(state.day)} hombres para esta noche. Observa los estandartes de la frontera.`);
     }
-    if(state.day>=2&&!state.politicalEventSeen&&!c.sentDays.includes('TREATY')){
+    if(state.day>=2&&!state.politicalEventSeen&&!state.story.finale&&!c.sentDays.includes('TREATY')){
       c.sentDays.push('TREATY');sendMessenger('TREATY',-1);
       showBanner('UN EMISARIO SALE DE CARTAGENA','Trae una propuesta del gobernador. Podrás hablar con él cuando alcance el palenque.');
     }
-    const destroyed=state.haciendas.filter(h=>h.destroyed).length;
+    const destroyed=state.haciendas.filter(h=>!h.major&&h.destroyed).length;
     if((state.day>=4||destroyed>=1)&&announceBoss(state,'HERALDO_ALADO',1,35)){
       showBanner('TROMPETAS AL OTRO LADO DEL BOSQUE','El Heraldo prepara su entrada por el camino oriental. Tienes tiempo para reagruparte.');
-    }
-    if(destroyed===2&&announceBoss(state,'GOBERNADOR_GIRON',-1,45)){
-      sendMessenger('BOSS',-1);showBanner('EL GOBERNADOR HA RECIBIDO NOTICIAS','Su estandarte parte de Cartagena. La batalla final llegará por el camino oeste.');
     }
     for(let i=c.orders.length-1;i>=0;i--){
       if (state.truceDays>0 || state.phase==='TRUCE_NIGHT') continue;
@@ -86,6 +108,7 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
         const gate=ROAD_GATES.find(g=>g.side===order.side);
         const enemy=spawnEnemy(order.type,order.side,gate.x);
         enemy.originSide=order.side;enemy.arrivalTimer=1.2;enemy.appearTimer=1.2;
+        if (order.kind === 'final') enemy.finalRaid = true;
         if(order.kind==='boss')showBanner('UN ESTANDARTE CRUZA LA FRONTERA',order.type==='GOBERNADOR_GIRON'?'García Girón entra por el camino de Cartagena.':'El Heraldo ha llegado al puesto oriental.');
         c.orders.splice(i,1);
       }
@@ -101,7 +124,8 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
         if(m.waitTimer>90){m.state='RETURN';if(!m.delivered){c.letters.push({id:`letter_${m.id}`,day:state.day,title:m.name,text:m.text,read:false});m.delivered=true;}}
       }else{
         m.vx=m.side*100;m.facing=m.side;m.x+=m.vx*dt;
-        if(m.x < WORLD_MIN_X - 70 || m.x > WORLD_MAX_X + 70)state.messengers.splice(i,1);
+        const gate = ROAD_GATES.find(g => g.side === m.side);
+        if ((m.x - gate.x) * m.side > 70) state.messengers.splice(i,1);
       }
     }
   }

@@ -862,6 +862,22 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 .context-hint { position:absolute; bottom:5px; left:50%; transform:translateX(-50%); font-size:9px; color:#c6d4bd; text-shadow:0 2px 4px #000; white-space:nowrap; }
 #campaignLetters article { border-left:2px solid var(--line); padding:0 0 0 18px; margin-top:28px; }
 #campaignLetters p { color:var(--muted); font-size:12px; }
+.story-scene{width:min(760px,94vw);max-height:90vh;padding:0;overflow:auto;border:1px solid #a3844f;background:#101d19;color:#f1e6ca}
+.story-scene::backdrop{background:#080f0cd6}
+.story-scene-content{padding:clamp(20px,4vw,42px);background:linear-gradient(110deg,#10201cf5 14%,#10201cdd 72%,#10201cb5),url('../assets/atlas/jungle_paths_v11.png') left top/auto 200%}
+.story-scene header{border-bottom:1px solid #d0ac694d;padding-bottom:14px}
+.story-scene h2{font:600 clamp(26px,4vw,46px) Georgia,serif;margin:8px 0 0}
+.story-dialogue{display:grid;grid-template-columns:minmax(70px,150px) 1fr;align-items:center;gap:clamp(12px,4vw,34px);min-height:166px;padding:10px 0}
+.story-dialogue canvas{width:100%;height:auto;image-rendering:pixelated}
+.story-dialogue strong{color:#e6c485}
+.story-dialogue p{font:clamp(15px,2vw,20px)/1.55 Georgia,serif;max-width:46ch;margin:7px 0}
+.story-choices{display:grid;gap:8px}
+.story-choices button{text-align:left}
+.story-scene footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:16px}
+#storyProgress{margin-right:auto;color:#d0b37e;font:12px monospace}
+.minimap .estate{width:7px;height:7px;border-radius:2px}
+.minimap .expedition-target{outline:1px solid #fff2bc;outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){body:not(.reduce-motion) .story-scene[open] .story-dialogue{animation:story-reveal .35s ease-out}@keyframes story-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}}
 @media(max-height:650px) { .campaign-notice { bottom:142px; font-size:9px; padding:6px 12px; } .person-profile { grid-template-columns:90px 1fr; } .person-profile canvas { width:90px; height:112px; } }
 
 /* Architecture and the material economy. */

@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=2e3f4f93fc28';
-import { strikeEnemy } from './combat.js?v=2e3f4f93fc28';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=8d54c297ea97';
+import { strikeEnemy } from './combat.js?v=8d54c297ea97';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -22,7 +22,7 @@ export function ensureAnimal(a){
 }
 export function ensureEcology(state){
   state.ecology??=initialEcology();const e=state.ecology;
-  if(!e||Array.isArray(e)||!Array.isArray(e.streams)||![2,4].includes(e.streams.length))throw Error('Riachuelos inválidos.');
+  if(!e||Array.isArray(e)||!Array.isArray(e.streams)||![2,4,6].includes(e.streams.length))throw Error('Riachuelos inválidos.');
   if(!Number.isFinite(e.time)||e.time<0)e.time=0;
   if(new Set(e.streams.map(c=>c.id)).size!==e.streams.length)throw Error('Riachuelos duplicados.');
   for(const creek of e.streams){if(!Number.isFinite(creek.x)||!Number.isFinite(creek.fishStock)||!Number.isFinite(creek.regrow))throw Error('Riachuelo dañado.');creek.fishStock=clamp(Math.floor(creek.fishStock),0,3);}

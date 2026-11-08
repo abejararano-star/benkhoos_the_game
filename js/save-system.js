@@ -1,11 +1,12 @@
-import { restoreCommunity } from './community.js?v=2e3f4f93fc28';
-import { ensureEcology, seedEcology } from './ecology.js?v=2e3f4f93fc28';
-import { seedFrontier } from './exploration.js?v=2e3f4f93fc28';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=2e3f4f93fc28';
-import { ensurePerson } from './people.js?v=2e3f4f93fc28';
-import { ensureSettlement } from './settlement.js?v=2e3f4f93fc28';
-import { ensureCampaign } from './campaign.js?v=2e3f4f93fc28';
-import { restoreHaciendas } from './haciendas.js?v=2e3f4f93fc28';
+import { restoreCommunity } from './community.js?v=8d54c297ea97';
+import { ensureEcology, seedEcology } from './ecology.js?v=8d54c297ea97';
+import { seedFrontier } from './exploration.js?v=8d54c297ea97';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=8d54c297ea97';
+import { ensurePerson } from './people.js?v=8d54c297ea97';
+import { ensureSettlement } from './settlement.js?v=8d54c297ea97';
+import { ensureCampaign } from './campaign.js?v=8d54c297ea97';
+import { restoreHaciendas } from './haciendas.js?v=8d54c297ea97';
+import { restoreStory } from './story.js?v=8d54c297ea97';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -125,12 +126,13 @@ export function restoreSave(save, defaults) {
   restoreCommunity(next);
   next.enemies.forEach(e=>{if(e.type==='BANDOLERO')e.range=ENEMY_CATALOG.BANDOLERO.range;});
   ensureSettlement(next);
-  restoreHaciendas(next);
   ensureEcology(next);
   // Add new tool stations to old worlds without replacing their existing stocks.
   for (const rack of defaults.toolRacks) if (!next.toolRacks.some(r=>r.id===rack.id)) next.toolRacks.push(clone(rack));
   next.toolRacks.forEach(r=>{r.x=STATION_X[r.role]??r.x;});
   const campaign = ensureCampaign(next);
+  restoreStory(next, !save.snapshot?.state?.story);
+  restoreHaciendas(next);
   if (!Array.isArray(campaign.orders) || !Array.isArray(campaign.letters) || campaign.orders.some(o => !ENEMY_CATALOG[o.type] || !Number.isFinite(o.eta) || ![-1,1].includes(o.side))) throw new Error('La ruta de campaña está dañada.');
   if (save.save_version < 3 && next.timeOfDay >= .68) campaign.lastRaidDay = next.day;
   const checkNumbers = value => {

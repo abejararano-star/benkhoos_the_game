@@ -1,6 +1,8 @@
-import { BALANCE } from './config.js?v=2e3f4f93fc28';
+import { BALANCE } from './config.js?v=8d54c297ea97';
+import { estateById } from './story.js?v=8d54c297ea97';
 
 const PRISONERS = [-23, 0, 23];
+const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];
 const REBUILD_TIME = 180;
 const campaignTime = state => (state.day - 1 + state.timeOfDay) * BALANCE.dayDuration;
 export const haciendaActive = hacienda => !hacienda.destroyed || hacienda.reoccupied === true;
@@ -18,7 +20,7 @@ export function restoreHaciendas(state) {
     if (unit.role !== 'FUGITIVO') continue;
     const assigned = state.haciendas.find(h => h.id === unit.captiveHacienda);
     if (assigned && haciendaActive(assigned)) continue;
-    const hacienda = assigned ?? state.haciendas.slice().sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x))[0];
+    const hacienda = assigned ?? state.haciendas.filter(h => !h.major).sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x))[0];
     if (hacienda && haciendaActive(hacienda)) {
       const held = state.units.filter(person => person.captiveHacienda === hacienda.id).length;
       unit.captiveHacienda = hacienda.id;
@@ -28,22 +30,44 @@ export function restoreHaciendas(state) {
   }
 }
 
-export function updateHaciendas(state, spawnCaptive, distanceFromView = 440) {
+export function updateHaciendas(state, spawnCaptive, distanceFromView = 440, spawnGuard) {
   for (const hacienda of state.haciendas) {
+    if (hacienda.major && (state.story.completed.includes(hacienda.id) || state.story.expedition?.site !== hacienda.id && !hacienda.destroyed)) continue;
+    if (state.story.expedition?.site === hacienda.id && state.story.expedition.stage === 'return') continue;
     const offScreen = Math.min(Math.abs(state.cameraX - hacienda.x), Math.abs(state.benkos.x - hacienda.x)) > distanceFromView;
     if (!haciendaActive(hacienda) && campaignTime(state) >= hacienda.rebuildAt && offScreen) {
       hacienda.reoccupied = true;
       hacienda.hp = hacienda.maxHp;
       hacienda.captivesPlaced = false;
+      hacienda.garrisonPlaced = false;
     }
-    if (!haciendaActive(hacienda) || hacienda.captivesPlaced) continue;
-    const existing = state.units.filter(unit => unit.captiveHacienda === hacienda.id && unit.role === 'FUGITIVO').length;
-    for (const offset of PRISONERS.slice(existing)) {
-      const unit = spawnCaptive(hacienda.x + offset);
-      unit.captiveHacienda = hacienda.id;
+    if (!haciendaActive(hacienda)) continue;
+    if (!hacienda.captivesPlaced) {
+      const positions = hacienda.major ? LARGE_PRISON.slice(0, hacienda.prisoners) : PRISONERS;
+      const existing = state.units.filter(unit => unit.captiveHacienda === hacienda.id && unit.role === 'FUGITIVO').length;
+      for (const offset of positions.slice(existing)) {
+        const unit = spawnCaptive(hacienda.x + offset);
+        unit.captiveHacienda = hacienda.id;
+      }
+      hacienda.captivesPlaced = true;
     }
-    hacienda.captivesPlaced = true;
+    if (!spawnGuard || hacienda.garrisonPlaced) continue;
+    const estate = estateById(hacienda.id);
+    const roster = estate ? [...estate.roster] : hacienda.id === 'hac_east' ? ['SOLDADO_ESPANOL'] : [];
+    if (estate && state.story.plan === 'assault') roster.push('SOLDADO_ESPANOL', 'PIQUERO');
+    for (const [index, type] of roster.entries()) {
+      const post = hacienda.x + hacienda.side * (-95 + index * 38);
+      const guard = spawnGuard(type, hacienda.side, post);
+      guard.guardSite = hacienda.id;
+      guard.guardX = post;
+    }
+    hacienda.garrisonPlaced = true;
   }
+}
+
+export function gateRequirement(state, site) {
+  if (site.major && state.story.expedition?.site !== site.id) return 'Convoca esta expedición en la casa central con E.';
+  return state.enemies.some(enemy => enemy.guardSite === site.id && enemy.hp > 0) ? 'Derrota a la guarnición antes de abrir el portón.' : '';
 }
 
 function releaseCaptive(state, unit) {

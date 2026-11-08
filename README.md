@@ -1,6 +1,6 @@
 # Benkhoos · El Palenque de la Matuna
 
-Juego de estrategia y acción para **PC**. Explora, libera a los fugitivos, organiza la producción y defiende la Matuna. La campaña termina al recuperar las dos haciendas y derrotar al gobernador, o si Benkos cae sin fondos para un rescate.
+Juego de estrategia y acción para **PC**. Organiza la Matuna, rescata a personas esclavizadas en las haciendas y decide con el consejo cómo responder a Cartagena.
 
 ## Jugar con XAMPP
 
@@ -49,6 +49,14 @@ Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro ofici
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
 
+## Los caminos de la libertad · edición 13
+
+La campaña se desarrolla en tres capítulos. En el primero, libera las haciendas próximas. En el segundo, pulsa **E** frente a la casa central para convocar al consejo y organizar expediciones al Paso de Jegua y la Boca de Marea. Puedes llevar hasta tres aliados. Vence a la guarnición, rompe el portón y vuelve a la Matuna con las personas rescatadas. Si las pierdes a todas, puedes volver a intentarlo cuando el puesto se ocupe de nuevo. En el tercer capítulo, el consejo elige a quién proteger y por dónde se librará la última defensa.
+
+El **tótem** exige el nivel correspondiente del **cuartel central** y los reales indicados. El cuartel y las viviendas dependen de la casa central. Las murallas dependen de la casa y del cuartel. El altar se usa para los poderes del jaguar.
+
+La campaña imagina los destinos, diálogos, combates y decisiones. La Matuna, la resistencia liderada por Benkos Biohó, sus negociaciones con las autoridades coloniales y su ejecución en Cartagena en 1621 forman parte del contexto histórico. [Biografía de Benkos Biohó, Banco de la República](https://enciclopedia.banrepcultural.org/Benkos_Bioh%C3%B3)
+
 ## Casa central y rescates · edición 12
 
 Mantén **S** frente a la casa central o compra su evolución en **B**. Los niveles II a V cuestan 6, 8, 12 y 16 reales de la bolsa. Cada mejora se aplica al pagar. Las obras pagadas de la casa central se terminan al cargar una partida anterior. Las viviendas y el cuartel se encargan desde Obras con los requisitos de sus fichas.
@@ -69,7 +77,7 @@ Las texturas de suelo, los fondos y los elementos del sendero se generaron con I
 
 Mantén **S** ante el altar para subirlo de nivel y cambiar su arquitectura. Las viviendas y el cuartel siguen el nivel de la casa, y las murallas y granjas muestran sus requisitos. **B** abre las obras y permite comparar los cinco diseños del altar. Los círculos sobre los puestos o edificios muestran el precio en reales y se esconden durante el combate.
 
-El tótem desbloquea los rangos Élite y Real cuando se han construido el altar, la casa y el cuartel del nivel necesario. En **F** puedes encargar una pieza para lanceros, arqueros y espadachines. El encargo se paga una sola vez. Su dueño recoge la pieza en el cuartel durante el día, cuando el camino es seguro. El arma y la armadura se compran por separado. Solo el arma mejora el daño y solo la armadura aumenta la salud máxima. Para Benkos, **C** compra la armadura por ocho reales una vez disponible el rango Real y después permite alternarla.
+El tótem desbloquea los rangos Élite y Real al alcanzar el nivel necesario del cuartel central. En **F** puedes encargar una pieza para lanceros, arqueros y espadachines. El encargo se paga una sola vez. Su dueño recoge la pieza en el cuartel durante el día, cuando el camino es seguro. El arma y la armadura se compran por separado. El arma mejora el daño y la armadura aumenta la salud máxima. Para Benkos, **C** compra la armadura por ocho reales una vez disponible el rango Real y después permite alternarla.
 
 Las personas generan rasgos estables como inteligencia, dedicación, ímpetu, valor, curiosidad y carisma. Hablan con sus vecinos y algunas amistades se convierten en parejas. Si alguien cae, sus personas cercanas pasan un duelo temporal que se refleja en su apariencia y eficacia. Durante el día, los civiles pueden pasear, bañarse, jugar con un animal tranquilo o descansar en casa. La guardia y los cazadores patrullan y atienden su puesto. Los cazadores persiguen presas y entregan la comida y la plata al cofre. Las granjas necesitan siembra, tiempo de crecimiento y una cosecha antes de volver a producir al día siguiente.
 
