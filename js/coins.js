@@ -1,4 +1,4 @@
-import { WATER_LINE_Y } from './config.js?v=e3b7c8bc5de3';
+import { WATER_LINE_Y } from './config.js?v=dd4c4df65f03';
 
 export const GROUND_COIN_LIFE = 150;
 const DUTY = ['GUERRERO', 'ESPADACHIN', 'ARQUERO', 'CAMPEON_REAL', 'CABALLERO_ALIADO', 'CAZADOR', 'FUGITIVO'];

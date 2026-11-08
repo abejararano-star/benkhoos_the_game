@@ -9,7 +9,7 @@ function world(species){const s=createInitialState();s.benkos.x=0;if(species)s.w
 test('migration seeds seven species without duplicate animals or identifiers',()=>{
   const s=world();s.wildlife=[createAnimal(1,'CAPYBARA',-560)];let id=2;seedEcology(s,()=>id++);
   const count=s.wildlife.length;seedEcology(s,()=>id++);assert.equal(s.wildlife.length,count);
-  assert.equal(new Set(s.wildlife.map(a=>a.id)).size,count);assert.equal(new Set(s.wildlife.map(a=>a.species)).size,Object.keys(SPECIES).length);
+  assert.equal(new Set(s.wildlife.map(a=>a.id)).size,count);assert.equal(new Set(s.wildlife.map(a=>a.species)).size,Object.keys(SPECIES).filter(key=>key!=='SNAKE').length);
 });
 test('feeding spends food once, builds trust, and protects a familiar animal from hunters',()=>{
   const s=world('CAPYBARA');interactEcology(s);assert.equal(s.resources.food,4);assert.equal(s.wildlife[0].trust,1);assert.equal(isHuntable(s.wildlife[0]),false);
@@ -43,6 +43,26 @@ test('fishing requires time, is cancelled by movement, and consumes a replenishi
 test('forest fruit can only be collected once per stream each day',()=>{
   const s=world();s.benkos.x=-740;interactEcology(s);assert.equal(s.resources.food,6);interactEcology(s);assert.equal(s.resources.food,6);
   s.day++;interactEcology(s);assert.equal(s.resources.food,7);
+});
+
+test('jaguars strike colonial enemies and culebras warn before biting or retreat from light', () => {
+  const jaguar = world('JAGUAR');
+  jaguar.wildlife[0].trust = 2;
+  jaguar.enemies.push({x: 29, hp: 40});
+  let bites = 0;
+  updateEcology(jaguar, .1, {damagePlayer: () => bites++});
+  assert.equal(jaguar.enemies[0].hp, 16);
+  assert.equal(bites, 0);
+  const snake = world('SNAKE');
+  updateEcology(snake, .3, {damagePlayer: () => bites++});
+  assert.equal(snake.wildlife[0].state, 'WARN');
+  assert.equal(bites, 0);
+  updateEcology(snake, .3, {damagePlayer: () => bites++});
+  assert.equal(bites, 1);
+  const lit = world('SNAKE');
+  updateEcology(lit, .6, {torchLit: true, damagePlayer: () => bites++});
+  assert.equal(lit.wildlife[0].state, 'FLEE');
+  assert.equal(bites, 1);
 });
 test('animals, trust, food and water stocks survive saves; old attacks do not deal damage twice on migration',()=>{
   const s=world('TURTLE');s.ecology.seeded=true;s.wildlife[0].trust=2;s.ecology.streams[0].fishStock=1;

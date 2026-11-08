@@ -19,7 +19,11 @@ class Element {
   getContext(){return context;}
 }
 const gradient={addColorStop(){}};
-const context=new Proxy({createLinearGradient:()=>gradient,createRadialGradient:()=>gradient,measureText:t=>({width:t.length*5})},{get:(o,k)=>o[k]??(()=>{})});
+const context=new Proxy({
+  createLinearGradient: (...args) => { assert.equal(args.length, 4); return gradient; },
+  createRadialGradient: (...args) => { assert.equal(args.length, 6); return gradient; },
+  measureText:t=>({width:t.length*5})
+},{get:(o,k)=>o[k]??(()=>{})});
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const elements=new Map([...html.matchAll(/id="([^"]+)"/g)].map(m=>[m[1],new Element(m[1])]));
 const skills=['dash','ceiba','roar','jaguar'].map(id=>{const el=new Element();el.dataset.skill=id;return el;});
@@ -46,9 +50,9 @@ async function loadState(mutator){const s=inspect().state;mutator(s);saved=makeS
 test('real runtime: campaign, controls, pause, progression, save/load, combat and end states',async()=>{
   assert.equal(inspect().mode,'menu');
   elements.get('btnNewGame').click(); assert.equal(inspect().mode,'playing');
-  assert.equal(inspect().state.units.length,10); assert.equal(inspect().state.benkos.royalArmor,false);
-  await loadState(s=>{s.benkos.x=510;s.benkos.vx=0;});key('KeyS');advance(.3);key('KeyS',true);
-  assert.ok(inspect().state.fugitivesFreed>=1);assert.equal(inspect().state.trees.find(t=>t.x===535).markedForChop,false);
+  assert.equal(inspect().state.units.length,14); assert.equal(inspect().state.benkos.royalArmor,false);
+  assert.equal(inspect().state.units.filter(u=>u.role==='FUGITIVO'&&Math.abs(u.x)>1400).length,6);
+  await loadState(s=>{s.benkos.x=510;s.benkos.vx=0;});
   key('KeyC');assert.equal(inspect().state.benkos.royalArmor,false);
   const startX=inspect().state.benkos.x;key('KeyD');advance(1);key('KeyD',true);const moved=inspect().state.benkos.x;assert.ok(moved-startX>60);
   key('Escape');const frozen=inspect().state.timeOfDay;advance(2);assert.equal(inspect().state.timeOfDay,frozen);
@@ -60,9 +64,13 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   const selectedId=Number(elements.get('personSelect').value);elements.get('personNewRole').value='MINERO';elements.get('btnAssignProfession').click();
   assert.equal(inspect().state.units.find(u=>u.id===selectedId).requestedRole,'MINERO');
   elements.get('btnClosePeople').click();key('Escape');
-  await loadState(s => { s.benkos.x = 0; });
+  await loadState(s => { s.benkos.x = 0; s.coins = 24; });
   key('KeyE');assert.equal(elements.get('settlementDialog').open,true);
   elements.get('btnResumeConstruction').click();
+  key('KeyS');advance(1.3);key('KeyS',true);advance(.02);
+  assert.equal(inspect().state.altarTier, 1);
+  assert.equal(inspect().state.settlement.level, 2);
+  assert.equal(inspect().state.coins, 18);
   await loadState(s => { s.benkos.x = ALTAR_X + 12; });
   key('KeyS');advance(1.48);key('KeyS',true);
   assert.equal(inspect().state.altarTier, 2);
@@ -70,9 +78,18 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   await loadState(s => { s.benkos.x = 0; });
   key('KeyB');assert.equal(elements.get('settlementDialog').open,true);
   const beforeBuild=inspect().state.coins;elements.get('buildingCards').children[0].children.find(c=>c.listeners.click)?.click();
-  assert.equal(inspect().state.coins,beforeBuild-6);assert.equal(inspect().state.settlement.projects.length,1);
+  assert.equal(inspect().state.coins,beforeBuild-8);assert.equal(inspect().state.settlement.projects.length,0);
   const buildingTime=inspect().state.timeOfDay;advance(1);assert.equal(inspect().state.timeOfDay,buildingTime);
-  elements.get('btnResumeConstruction').click();advance(15);assert.equal(inspect().state.settlement.level,2);
+  elements.get('btnResumeConstruction').click();assert.equal(inspect().state.settlement.level,3);
+  await loadState(s => { s.benkos.x = s.haciendas[0].x + 45; s.benkos.facing = -1; s.haciendas[0].hp = 10; });
+  const captiveIds = inspect().state.units.filter(u=>u.captiveHacienda==='hac_west').map(u=>u.id);
+  assert.equal(captiveIds.length,3);
+  key('KeyS');advance(.65);key('KeyS',true);
+  assert.equal(inspect().state.fugitivesFreed,0);
+  key('Space');advance(.4);
+  assert.equal(inspect().state.fugitivesFreed,3);
+  assert.ok(inspect().state.units.filter(u=>captiveIds.includes(u.id)).every(u=>u.escortHome));
+  await loadState(s => { s.benkos.x = 0; });
   await loadState(s=>{s.enemies=[];s.resources={wood:0,stone:0};s.units=['LENADOR','MINERO'].map(role=>s.units.find(u=>u.role===role));for(const u of s.units){u.x=48;u.vx=0;u.carryingSack=true;u.requestedRole=null;if(u.role==='LENADOR')u.cargoWood=6;}});
   advance(.05);assert.equal(inspect().state.resources.wood,6);assert.equal(inspect().state.resources.stone,2);
   assert.ok(inspect().state.units.every(u=>!u.carryingSack));

@@ -1,4 +1,12 @@
-import { ALTAR_X, torchIsLit } from './exploration.js?v=e3b7c8bc5de3';
+import { ALTAR_X, TRAIL_TORCHES, torchIsLit } from './exploration.js?v=dd4c4df65f03';
+
+function drawFlame(g, x, y, flicker, length) {
+  g.fillStyle = '#583824'; g.fillRect(x - 1, y + 2, 3, length);
+  g.fillStyle = '#c99350'; g.fillRect(x, y + 4, 1, length - 4);
+  g.fillStyle = '#dd692f'; g.fillRect(x - 2, y - 3, 5, 7);
+  g.fillStyle = '#f9b858'; g.fillRect(x - 1, y - 5 - Math.round(flicker * .5), 3, 7);
+  g.fillStyle = '#ffe3a0'; g.fillRect(x, y - 2, 2, 4);
+}
 
 export function createLighting() {
   const mask = document.createElement('canvas');
@@ -7,11 +15,13 @@ export function createLighting() {
   return function lightScene(g, state, toScreen, playerX, ground, width, time, reduceMotion) {
     const night = state.phase !== 'DAY_EXPLORE';
     const lit = torchIsLit(state);
-    if (!night && !lit) return;
     const flicker = reduceMotion ? 0 : Math.sin(time * 6) * 2 + Math.sin(time * 11) * .9;
     const torchX = playerX + state.benkos.facing * (state.benkos.mounted ? -11 : -9);
     const torchY = ground - (state.benkos.mounted ? 46 : 32);
     const lights = [];
+    const posts = TRAIL_TORCHES.map(toScreen).filter(x => x > -60 && x < width + 60);
+    if (!night && !lit && !posts.length) return;
+    for (const x of posts) lights.push({ x, y: ground - 32, radius: 62 + flicker, warmth: night ? .21 : .08 });
     if (lit) lights.push({ x: torchX, y: torchY, radius: 107 + flicker, warmth: .20 });
     if (night) {
       lights.push({ x: toScreen(70), y: ground - 9, radius: 62, warmth: .15 });
@@ -49,14 +59,7 @@ export function createLighting() {
       g.fillStyle = glow;
       g.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     }
-    if (lit) {
-      const x = Math.round(torchX);
-      const y = Math.round(torchY);
-      g.fillStyle = '#583824'; g.fillRect(x - 1, y + 2, 3, 13);
-      g.fillStyle = '#c99350'; g.fillRect(x, y + 4, 1, 7);
-      g.fillStyle = '#dd692f'; g.fillRect(x - 2, y - 3, 5, 7);
-      g.fillStyle = '#f9b858'; g.fillRect(x - 1, y - 5 - Math.round(flicker * .5), 3, 7);
-      g.fillStyle = '#ffe3a0'; g.fillRect(x, y - 2, 2, 4);
-    }
+    for (const x of posts) drawFlame(g, x, ground - 32, flicker, 30);
+    if (lit) drawFlame(g, Math.round(torchX), Math.round(torchY), flicker, 13);
   };
 }

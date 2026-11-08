@@ -1,20 +1,21 @@
-import { recoverCoins } from './coins.js?v=e3b7c8bc5de3';
-import { discoverAltar } from './exploration.js?v=e3b7c8bc5de3';
-import { collectEquipment } from './equipment.js?v=e3b7c8bc5de3';
-import { advanceCrops, tendCrop } from './crops.js?v=e3b7c8bc5de3';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=e3b7c8bc5de3';
-import { updateCommunity, joinEncounter } from './community.js?v=e3b7c8bc5de3';
-import { updateEcology, isHuntable } from './ecology.js?v=e3b7c8bc5de3';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=e3b7c8bc5de3';
-import { workConstruction, homeRecovery } from './settlement.js?v=e3b7c8bc5de3';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=e3b7c8bc5de3';
-import { ensureCampaign } from './campaign.js?v=e3b7c8bc5de3';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=e3b7c8bc5de3';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=e3b7c8bc5de3';
+import { recoverCoins } from './coins.js?v=dd4c4df65f03';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=dd4c4df65f03';
+import { collectEquipment } from './equipment.js?v=dd4c4df65f03';
+import { advanceCrops, tendCrop } from './crops.js?v=dd4c4df65f03';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=dd4c4df65f03';
+import { updateCommunity, joinEncounter } from './community.js?v=dd4c4df65f03';
+import { updateEcology, isHuntable } from './ecology.js?v=dd4c4df65f03';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=dd4c4df65f03';
+import { workConstruction, homeRecovery } from './settlement.js?v=dd4c4df65f03';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=dd4c4df65f03';
+import { ensureCampaign } from './campaign.js?v=dd4c4df65f03';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=dd4c4df65f03';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=dd4c4df65f03';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
-addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId, campaign, queueReinforcement, resolveBenkosHit, triggerBenkosAttack } = api;
+addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId, campaign, queueReinforcement, resolveBenkosHit, triggerBenkosAttack, updateCaptivity } = api;
+let purchasedNode = null;
 return function updateSimulation(dt) {
   if (state.hitStopTimer > 0) {
     state.hitStopTimer -= dt;
@@ -60,6 +61,7 @@ return function updateSimulation(dt) {
 
 
   campaign?.update(dt);
+  updateCaptivity?.();
   audio.update(dt, state.phase);
 
   b.animTime += dt;
@@ -108,9 +110,11 @@ return function updateSimulation(dt) {
   state.cameraX += (b.x - state.cameraX) * Math.min(1, dt * 7.5);
 
   if (discoverAltar(state)) {
-    showBanner('SANTUARIO DE LOS ANCESTROS', 'Ofrenda plata con S. El altar abrirá nuevas obras en la casa central.');
+    showBanner('SANTUARIO DE LOS ANCESTROS', 'Ofrenda plata con S para despertar los poderes del jaguar.');
     updateHUD();
   }
+  const foundCache = revealTrailCache(state);
+  if (foundCache) addFloatingText(foundCache.x, WATER_LINE_Y - 35, 'Brillo entre las hojas · E al acercarte', '#e4cb85');
   const activeNode = getNearestInteractiveNode(b.x);
   const currentNodeId = activeNode ? activeNode.id : null;
   if (currentNodeId !== state.activeNodeId) {
@@ -120,12 +124,24 @@ return function updateSimulation(dt) {
   }
 
   const isHoldingPay = keys['KeyS'] || keys['ArrowDown'] || keys['KeyK'] || state.touchHoldPay;
+  if (!isHoldingPay || purchasedNode !== currentNodeId) purchasedNode = null;
   if (isHoldingPay && !activeNode?.locked) {
     state.holdPayTimer += dt;
     if (activeNode) {
       if (state.holdPayTimer >= 0.22) {
         state.holdPayTimer = 0;
-        if (state.coins > 0) {
+        if (activeNode.purchase) {
+          if (purchasedNode !== currentNodeId) {
+            const result = activeNode.purchase();
+            if (result.success) {
+              purchasedNode = currentNodeId;
+              b.payTimer = .35;
+              audio.playSlotDing(0);
+              addFloatingText(activeNode.x, WATER_LINE_Y - 95, result.message, '#e4cb85');
+              updateHUD();
+            }
+          }
+        } else if (state.coins > 0) {
           state.coins--; b.payTimer=.35;
           const filled = activeNode.getFilled() + 1;
           activeNode.setFilled(filled);
@@ -183,26 +199,11 @@ return function updateSimulation(dt) {
       continue;
     }
 
-    let claimed = false;
-    for (let j = 0; j < state.units.length; j++) {
-      const u = state.units[j];
-      if (!c.fallsInRiver && Math.abs(u.x - c.x) < 18 && u.role === 'FUGITIVO') {
-        u.role = 'ALDEANO';
-        state.fugitivesFreed++;
-        u.liberateAnimTimer = 1.2;
-        audio.playSfx('chainBreak');
-        addParticles(u.x, WATER_LINE_Y - 18, 16, '#94a3b8', 95);
-        addParticles(u.x, WATER_LINE_Y - 22, 10, '#fde047', 65);
-        addFloatingText(u.x, WATER_LINE_Y - 42, ' ¡Cadenas Rotas! ¡Libre!', '#fde047');
-        updateHUD();
-        claimed = true;
-        break;
-      }
-    }
-    if (claimed || c.life <= 0) state.droppedCoins.splice(i, 1);
+    if (c.life <= 0) state.droppedCoins.splice(i, 1);
   }
 
   updateEcology(state, dt, {
+    torchLit: torchIsLit(state),
     damagePlayer: hitBenkosKingdomStyle,
     notice: (x, message) => {
       addFloatingText(x, WATER_LINE_Y - 45, message, '#c8be88');
@@ -233,7 +234,10 @@ return function updateSimulation(dt) {
     showBanner('EL PALENQUE ESTÁ DE LUTO', unit.name);
     updateHUD();
   }
-  updateCommunity(state, dt);
+  updateCommunity(state, dt, x => {
+    addFloatingText(x, WATER_LINE_Y - 66, '+2 moral · apoyo entre vecinos', '#d4df99');
+    updateHUD();
+  });
   // Allied work and defense
   const moraleMult = state.morale / 100;
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
@@ -248,8 +252,27 @@ return function updateSimulation(dt) {
       u.liberateAnimTimer -= dt;
       continue;
     }
+    if (u.role === 'FUGITIVO') {
+      u.vx = 0;
+      u.activity = 'CAPTIVE';
+      u.mood = 'Cautivo en la hacienda';
+      continue;
+    }
 
     if(updatePerson(u,state,dt,Math.abs(u.x)<600?homeRecovery(state):1))continue;
+    if (u.escortHome) {
+      if (Math.abs(u.x) > 275) {
+        u.facing = -Math.sign(u.x);
+        u.vx = u.facing * 86;
+        u.x += u.vx * dt;
+        u.activity = 'ESCORT';
+        u.mood = 'Camino al palenque';
+        continue;
+      }
+      delete u.escortHome;
+      u.vx = 0;
+      addFloatingText(u.x, WATER_LINE_Y - 45, `${u.name.split(' ')[0]} llegó a salvo`, '#d0dc9a');
+    }
     if (recoverCoins(u, state, dt, (worker, amount) => {
       addFloatingText(48, WATER_LINE_Y - 42, `+${amount} ${amount === 1 ? 'real recuperado' : 'reales recuperados'} · ${worker.name.split(' ')[0]}`, '#e4cb85');
       audio.playSfx('coinPickup');
@@ -265,22 +288,6 @@ return function updateSimulation(dt) {
       const done=workConstruction(u,state,dt);
       if(u.activity==='BUILD'&&Math.random()<dt*3)addParticles(u.x,WATER_LINE_Y-38,2,'#c9ab75',30);
       if(done){addFloatingText(done.x,WATER_LINE_Y-95,'Obra terminada · nivel '+done.targetLevel,'#d6c78e');updateHUD();}
-    } else if (u.role === 'FUGITIVO') {
-      const dangerEnemy = state.enemies.find((en) => Math.abs(en.x - u.x) < 90);
-      const nearCoin = state.droppedCoins.find((c) => !c.fallsInRiver && Math.abs(c.x - u.x) < 120);
-      if (dangerEnemy) {
-        const fleeDir = Math.sign(u.x - dangerEnemy.x) || 1;
-        u.facing = fleeDir;
-        u.vx = fleeDir * 72;
-        u.x += u.vx * dt;
-      } else if (nearCoin) {
-        const dir = Math.sign(nearCoin.x - u.x) || 1;
-        u.vx = dir * 52;
-        u.facing = dir;
-        u.x += u.vx * dt;
-      } else {
-        u.vx = 0;
-      }
     } else if (u.role === 'ALDEANO') {
       const rack = chooseToolRack(u, state);
       if (rack) {

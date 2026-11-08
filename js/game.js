@@ -1,22 +1,24 @@
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=e3b7c8bc5de3';
-import { GROUND_COIN_LIFE } from './coins.js?v=e3b7c8bc5de3';
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=e3b7c8bc5de3';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=e3b7c8bc5de3';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=e3b7c8bc5de3';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=e3b7c8bc5de3';
-import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=e3b7c8bc5de3';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=e3b7c8bc5de3';
-import { AfroColombianAudioEngine } from './audio.js?v=e3b7c8bc5de3';
-import { createInitialState } from './world-state.js?v=e3b7c8bc5de3';
-import { makeSave, restoreSave } from './save-system.js?v=e3b7c8bc5de3';
-import { createRenderer } from './renderer.js?v=e3b7c8bc5de3';
-import { createSimulation } from './simulation.js?v=e3b7c8bc5de3';
-import { FixedStepper } from './clock.js?v=e3b7c8bc5de3';
-import { bindInput } from './input.js?v=e3b7c8bc5de3';
-import { createUI } from './ui.js?v=e3b7c8bc5de3';
-import { chooseDefenseSide } from './ai.js?v=e3b7c8bc5de3';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=e3b7c8bc5de3';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=e3b7c8bc5de3';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=dd4c4df65f03';
+import { GROUND_COIN_LIFE } from './coins.js?v=dd4c4df65f03';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=dd4c4df65f03';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=dd4c4df65f03';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=dd4c4df65f03';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=dd4c4df65f03';
+import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=dd4c4df65f03';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=dd4c4df65f03';
+import { AfroColombianAudioEngine } from './audio.js?v=dd4c4df65f03';
+import { createInitialState } from './world-state.js?v=dd4c4df65f03';
+import { makeSave, restoreSave } from './save-system.js?v=dd4c4df65f03';
+import { createRenderer } from './renderer.js?v=dd4c4df65f03';
+import { createSimulation } from './simulation.js?v=dd4c4df65f03';
+import { FixedStepper } from './clock.js?v=dd4c4df65f03';
+import { bindInput } from './input.js?v=dd4c4df65f03';
+import { createUI } from './ui.js?v=dd4c4df65f03';
+import { chooseDefenseSide } from './ai.js?v=dd4c4df65f03';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=dd4c4df65f03';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign } from './campaign.js?v=dd4c4df65f03';
+import { conquerHacienda, haciendaActive, updateHaciendas } from './haciendas.js?v=dd4c4df65f03';
+import { mediateEncounter } from './community.js?v=dd4c4df65f03';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -228,7 +230,7 @@ function getInteractionNodes() {
         state.altarTier = nextSkill.level;
         audio.playSfx('roar');
         addParticles(ALTAR_X, WATER_LINE_Y - 36, 26, '#fde047', 110);
-        showBanner(`¡PODER DEL JAGUAR DESBLOQUEADO: ${nextSkill.name.toUpperCase()}!`, `Altar de nivel ${state.altarTier}. Ya puedes encargar la siguiente mejora de la casa central.`);
+        showBanner(`¡PODER DEL JAGUAR DESBLOQUEADO: ${nextSkill.name.toUpperCase()}!`, `Altar de nivel ${state.altarTier}.`);
         updateHUD();
       }
     });
@@ -366,19 +368,20 @@ function worldPrices() {
     const frame = sprite?.anims.idle[0];
     const height = 11 + (frame ? (frame.ay - frame.top) * size / sprite.ref : size * .78);
     prices.push({
-      id: 'works_' + id, x: info.target.x, height, cost: info.coins,
-      paid: job ? info.coins : 0, locked: !job && !!info.reason, title: title + ' · B', works: true
+      id: kind === 'hq' ? 'node_central_house' : 'works_' + id, x: info.target.x, height, cost: info.coins,
+      paid: job ? info.coins : 0, locked: !job && !!info.reason, title: title + ' · ' + (kind === 'hq' ? 'S' : 'B'), works: kind !== 'hq'
     });
   }
   return prices;
 }
 
 function getNearestInteractiveNode(bx) {
-  if (state.units.some(u => u.role === 'FUGITIVO' && Math.abs(u.x - bx) < 36)) return null;
   if (Math.abs(bx) < 23) {
     const info = upgradeInfo(state, 'hq', 'hq');
-    return { id: 'node_central_house', x: 0, title: 'Casa central', sub: 'Pulsa E o B para abrir las obras',
-      locked: 'Obras', cost: info.coins || 0, getFilled: () => 0 };
+    return { id: 'node_central_house', x: 0, title: 'Casa central',
+      sub: info.reason || `Mantén S para subir a nivel ${info.next} · E para ver Obras`,
+      locked: !!info.reason, cost: info.coins || 0, getFilled: () => 0,
+      purchase: () => requestBuilding(state, 'hq', 'hq') };
   }
   let best = null;
   let bestDist = 34;
@@ -427,6 +430,11 @@ function handleInteractOrMount() {
   if (!isPlaying()) return;
   const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x - b.x) < 60);
   if (messenger && campaign.readMessenger(messenger)) return;
+  if (mediateEncounter(state)) {
+    showBanner('BENKOS MEDIA EN LA DISCUSIÓN', 'Los dos vecinos se calman y mejoran su relación.');
+    updateHUD();
+    return;
+  }
   const freeHorse = state.horses.find((h) => !h.rider && Math.abs(h.x - b.x) < 38);
   if (b.mounted) {
     b.mounted = false;
@@ -519,7 +527,7 @@ function resolveBenkosHit(){
     }
   }
   state.haciendas.forEach((hac) => {
-    if (!hac.destroyed&&inStrikeRange(b,hac,reach+25,b.attackFacing)) {
+    if (haciendaActive(hac)&&inStrikeRange(b,hac,reach+25,b.attackFacing)) {
       damageHacienda(hac, baseDmg);
       hitAny = true;
     }
@@ -536,19 +544,18 @@ function damageHacienda(hac, dmg) {
   hac.hp -= dmg;
   addParticles(hac.x, WATER_LINE_Y - 35, 8, '#f97316', 90);
   addFloatingText(hac.x, WATER_LINE_Y - 58, `-${Math.round(dmg)} `, '#fb923c');
-  if (hac.hp <= 0 && !hac.destroyed) {
-    hac.destroyed = true;
+  if (hac.hp <= 0) {
+    const { first, captives } = conquerHacienda(state, hac);
     state.screenShake = 12;
     audio.playSfx('roar');
     addParticles(hac.x, WATER_LINE_Y - 40, 45, '#fde047', 160);
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < (first ? 12 : 4); i++) {
       spawnPhysicalCoin(hac.x + (Math.random() * 40 - 20), WATER_LINE_Y - 30, (Math.random() - 0.5) * 140, -140 - Math.random() * 50, true, false);
     }
-    for (let i = 0; i < 3; i++) {
-      spawnCimarron('FUGITIVO', hac.x + (Math.random() * 50 - 25));
-    }
-    state.horses.push({ id: `horse_${nextEntityId++}`, x: hac.x - hac.side * 40, facing: -hac.side, rider: null });
-    showBanner('HACIENDA RECUPERADA', 'Tres personas pueden alcanzar la libertad. Los mensajeros llevarán noticias a Cartagena.');
+    if (first) state.horses.push({ id: `horse_${nextEntityId++}`, x: hac.x - hac.side * 40, facing: -hac.side, rider: null });
+    if (captives.length) audio.playSfx('chainBreak');
+    showBanner('HACIENDA LIBERADA', captives.length ? `${captives.length} personas libres marchan hacia la Matuna. Puedes cubrir su retirada.` : 'El destacamento se ha retirado.');
+    updateHUD();
   }
 }
 
@@ -661,7 +668,7 @@ const campaign = createCampaign({ state, spawnEnemy, nextId: () => nextEntityId+
 const simulation = createSimulation({ state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife,
   showBanner, resolveBenkosHit, triggerBenkosAttack, saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
   addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, campaign, queueReinforcement,
-  nextId: () => nextEntityId++ });
+  nextId: () => nextEntityId++, updateCaptivity: () => updateHaciendas(state, x => spawnCimarron('FUGITIVO', x), Math.max(440, view.width / 2 + 95)) });
 const stepper = new FixedStepper(BALANCE.fixedStep);
 
 function resize() {
@@ -680,7 +687,8 @@ function newGame() {
   session.hasCampaign = true;
   state.sandbox=reviewMode;
   window.BenkosDB.currentSaveId = null;
-  for (const [role, x] of [['ALDEANO',-35],['CONSTRUCTOR',65],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340],['FUGITIVO',-490],['FUGITIVO',510]]) spawnCimarron(role, x, 1);
+  for (const [role, x] of [['ALDEANO',-35],['CONSTRUCTOR',65],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340]]) spawnCimarron(role, x, 1);
+  updateHaciendas(state, x => spawnCimarron('FUGITIVO', x));
   seedEcology(state,()=>nextEntityId++);
   seedFrontier(state, () => nextEntityId++);
   if(reviewMode){
@@ -692,6 +700,11 @@ function newGame() {
       state.phase = 'NIGHT_DEFENSE';
     }
     if(reviewScene==='creek')state.benkos.x=-850;
+    if (reviewScene === 'hacienda') {
+      state.benkos.x = state.haciendas[0].x + 44;
+      state.benkos.facing = -1;
+      state.haciendas[0].hp = 22;
+    }
     if (reviewScene === 'mount') {
       state.benkos.x = -135;
       state.armorUnlocked = true;
@@ -716,7 +729,7 @@ function newGame() {
   }
   state.cameraX = state.benkos.x; stepper.reset();
   ui.resume(); updateHUD(); audio.init();
-  showBanner('BIENVENIDO A LA MATUNA', 'Libera a los fugitivos fuera de las murallas. El cofre de Wiwa protege tu futuro.');
+  showBanner('BIENVENIDO A LA MATUNA', 'Ataca una hacienda para liberar a sus cautivos. Mejora la casa central con S y reales.');
 }
 function toggleArmor() {
   if (!state.armorUnlocked) {

@@ -5,11 +5,12 @@ export function drawLandscape(g, width, ground, camera, night, time) {
     g.save();g.globalAlpha=night?.7:1;
     manager.drawBackdrop(g,'jungle_far',width,ground,camera,.12,ground+12);
     g.globalAlpha=night?.72:.86;
-    manager.drawBackdrop(g,'jungle_near',width,ground,camera,.29,ground*.93);
+    manager.drawBackdrop(g,'jungle_near',width,ground+1,camera,.29,ground+4);
     const edge = Math.max(0, Math.min(1, (Math.abs(camera) - 1320) / 430));
     if (edge > 0) {
       g.globalAlpha = edge * (night ? .8 : 1);
-      manager.drawBackdrop(g, camera < 0 ? 'biome_ravine' : 'biome_mangrove', width, ground, camera, .38, ground + 4);
+      const regionCamera = camera - Math.sign(camera) * 1840;
+      manager.drawBackdrop(g, camera < 0 ? 'biome_ravine' : 'biome_mangrove', width, ground, regionCamera, .38, ground + 4);
     }
     g.restore();
     if(night){g.fillStyle='#0b282c35';g.fillRect(0,0,width,ground);}
@@ -45,6 +46,67 @@ export function drawLandscape(g, width, ground, camera, night, time) {
     }
     g.globalAlpha = 1;
   }
+}
+
+export function drawMist(g, width, ground, camera, night, time) {
+  const mist = g.createLinearGradient(0, ground - 104, 0, ground + 1);
+  mist.addColorStop(0, '#c1d7c200');
+  mist.addColorStop(.66, night ? '#89b0ad20' : '#c1d7c238');
+  mist.addColorStop(1, '#c1d7c209');
+  g.fillStyle = mist;
+  g.fillRect(0, ground - 104, width, 105);
+  for (let i = 0; i < 3; i++) {
+    const x = ((i * 247 + time * (2 + i) - camera * .18) % (width + 270) + width + 270) % (width + 270) - 135;
+    const y = ground - 26 - i * 17;
+    g.save();
+    g.translate(Math.round(x), y); g.scale(1, .21);
+    const patch = g.createRadialGradient(0, 0, 0, 0, 0, 128);
+    patch.addColorStop(0, night ? '#abc5bc23' : '#d7e2c334');
+    patch.addColorStop(1, '#d7e2c300');
+    g.fillStyle = patch;
+    g.fillRect(-128, -128, 256, 256);
+    g.restore();
+  }
+}
+
+export function drawVines(g, project, ground, width, time) {
+  for (const [anchor, length, side] of [[-2320, 85, 1], [-1990, 112, -1], [-1270, 94, -1], [1755, 96, 1], [2088, 107, -1], [2440, 85, 1]]) {
+    const x = project(anchor);
+    if (x < -65 || x > width + 65) continue;
+    for (let strand = 0; strand < 3; strand++) {
+      const top = ground - 221 - strand * 7;
+      const end = length + 68 - strand * 13;
+      for (let step = 0; step < end; step += 3) {
+        const dx = Math.round(Math.sin(step / 21 + time * .48 + strand) * (4 + step / 18));
+        const sx = x + side * (strand * 8 + dx);
+        const y = top + step;
+        g.fillStyle = '#263c24'; g.fillRect(sx - 1, y, 3, 5);
+        g.fillStyle = '#718451'; g.fillRect(sx, y, 1, 4);
+        if (step % 18 === 0) {
+          const leafSide = (step / 18 + strand) % 2 ? -1 : 1;
+          g.fillStyle = '#4c6940'; g.fillRect(sx + (leafSide < 0 ? -5 : 1), y, 6, 3);
+          g.fillStyle = '#829352'; g.fillRect(sx + leafSide * 3, y, 2, 1);
+        }
+      }
+    }
+  }
+}
+
+export function drawCaptiveGate(g, x, ground, hacienda, captives) {
+  const y = ground - 34;
+  for (let i = -38; i <= 38; i += 8) {
+    g.fillStyle = '#291f1a'; g.fillRect(x + i, y, 3, 35);
+    g.fillStyle = '#86745a'; g.fillRect(x + i + 1, y + 4, 1, 21);
+    g.fillStyle = '#a4936b'; g.fillRect(x + i + 1, y + 26, 1, 1);
+  }
+  g.fillStyle = '#393329'; g.fillRect(x - 40, y + 1, 80, 3); g.fillRect(x - 40, y + 26, 80, 3);
+  g.fillStyle = '#8e7959'; g.fillRect(x - 40, y + 1, 80, 1); g.fillRect(x - 40, y + 26, 80, 1);
+  g.fillStyle = '#ba9562'; g.fillRect(x + 2, y + 14, 6, 6);
+  g.fillStyle = '#4b3e31'; g.fillRect(x + 4, y + 16, 2, 3);
+  g.fillStyle = '#0c1c18'; g.fillRect(x - 35, ground - 107, 70, 5);
+  g.fillStyle = '#d08a62'; g.fillRect(x - 34, ground - 106, 68 * Math.max(0, hacienda.hp / hacienda.maxHp), 3);
+  g.fillStyle = '#f1d8a0'; g.textAlign = 'center'; g.font = '8px monospace';
+  g.fillText(`${captives} ${captives === 1 ? 'cautivo' : 'cautivos'}`, x, ground - 113);
 }
 
 export function drawRiverbank(g, width, ground, camera) {
@@ -166,17 +228,46 @@ export function drawHacienda(g, x, ground, destroyed, night) {
     g.fillStyle = '#91b28c'; g.fillRect(x - 2, ground - 31, 2, 25); g.fillRect(x, ground - 31, 18, 9);
     return;
   }
-  g.fillStyle = night ? '#77695a' : '#d3bd94'; g.fillRect(x - 38, ground - 58, 76, 58);
-  g.fillStyle = night ? '#633d35' : '#965440';
-  for (let k = 0; k < 5; k++) g.fillRect(x - 43 + k * 4, ground - 62 - k * 3, 86 - k * 8, 4);
-  g.fillStyle = '#443c2f'; g.fillRect(x - 7, ground - 28, 14, 28);
-  for (const dx of [-27,-15,15,27]) {
-    g.fillStyle = '#5b5946'; g.fillRect(x + dx - 3, ground - 47, 7, 12);
-    g.fillStyle = '#c5a56e'; g.fillRect(x + dx, ground - 47, 1, 12);
+  const plaster = night ? ['#77695a', '#897a66', '#625743'] : ['#c7a97b', '#e2c79a', '#a48259'];
+  g.fillStyle = '#463b2b'; g.fillRect(x - 43, ground - 57, 88, 57);
+  g.fillStyle = plaster[0]; g.fillRect(x - 41, ground - 57, 81, 52);
+  for (let i = 0; i < 38; i++) {
+    g.fillStyle = plaster[i % 3];
+    g.fillRect(x - 39 + i * 17 % 78, ground - 50 + i * 11 % 46, 2 + i % 6, 1 + i % 2);
   }
-  g.fillStyle = '#aa926e'; g.fillRect(x - 38, ground - 8, 76, 3);
-  g.fillStyle = '#af6953'; g.fillRect(x + 30, ground - 88, 15, 10);
-  g.fillStyle = '#b5aa88'; g.fillRect(x + 29, ground - 90, 2, 30);
+  g.fillStyle = plaster[2]; g.fillRect(x - 42, ground - 54, 85, 4);
+  const tiles = night ? ['#7f5540', '#684233', '#533429'] : ['#ba784f', '#97573c', '#6f3e2f'];
+  for (let row = 0; row < 6; row++) {
+    const left = x - 49 + row * 3;
+    const width = 101 - row * 6;
+    const top = ground - 58 - row * 4;
+    g.fillStyle = tiles[2]; g.fillRect(left, top, width, 5);
+    for (let col = row % 2 * 3; col < width - 2; col += 6) {
+      g.fillStyle = tiles[(col + row) % 3 === 0 ? 1 : 0];
+      g.fillRect(left + col, top, Math.min(5, width - col), 3);
+    }
+  }
+  g.fillStyle = '#4a3b2a'; g.fillRect(x - 44, ground - 55, 88, 3);
+  for (const dx of [-26, 26]) {
+    const sx = x + dx;
+    g.fillStyle = plaster[1]; g.fillRect(sx - 8, ground - 49, 16, 17);
+    g.fillStyle = '#302d24'; g.fillRect(sx - 6, ground - 47, 12, 13);
+    g.fillStyle = '#856746'; g.fillRect(sx - 1, ground - 47, 2, 13); g.fillRect(sx - 6, ground - 43, 12, 1);
+    g.fillStyle = '#6d5138'; g.fillRect(sx - 8, ground - 33, 16, 2);
+  }
+  g.fillStyle = plaster[1]; g.fillRect(x - 11, ground - 39, 22, 39);
+  g.fillStyle = '#533e2a'; g.fillRect(x - 9, ground - 35, 18, 35);
+  for (let i = -7; i < 9; i += 4) {
+    g.fillStyle = '#785438'; g.fillRect(x + i, ground - 33, 2, 29);
+  }
+  for (let i = -43; i < 44; i += 9) {
+    g.fillStyle = plaster[2]; g.fillRect(x + i, ground - 6, 8, 4);
+    g.fillStyle = plaster[1]; g.fillRect(x + i, ground - 6, 6, 1);
+  }
+  g.fillStyle = '#6e573e'; g.fillRect(x + 29, ground - 94, 3, 31);
+  g.fillStyle = '#b49b6d'; g.fillRect(x + 30, ground - 94, 1, 27);
+  g.fillStyle = '#87574b'; g.fillRect(x + 32, ground - 92, 17, 11);
+  g.fillStyle = '#d6ab70'; g.fillRect(x + 33, ground - 91, 14, 1); g.fillRect(x + 33, ground - 83, 14, 1);
 }
 
 export function drawMarker(g, x, ground, entity, enemy = false) {

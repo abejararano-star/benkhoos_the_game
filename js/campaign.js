@@ -1,4 +1,4 @@
-import { WORLD_MAX_X, WORLD_MIN_X } from './config.js?v=e3b7c8bc5de3';
+import { WORLD_MAX_X, WORLD_MIN_X } from './config.js?v=dd4c4df65f03';
 export const ROAD_GATES = Object.freeze([{side:-1,x:WORLD_MIN_X+65,label:'Camino de Cartagena'},{side:1,x:WORLD_MAX_X-65,label:'Camino de la hacienda oriental'}]);
 export function ensureCampaign(state){
   state.messengers??=[];

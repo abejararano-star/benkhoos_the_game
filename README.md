@@ -49,9 +49,17 @@ Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro ofici
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
 
+## Casa central y rescates · edición 12
+
+Mantén **S** frente a la casa central o compra su evolución en **B**. Los niveles II a V cuestan 6, 8, 12 y 16 reales de la bolsa. Cada mejora se aplica al pagar. Las obras pagadas de la casa central se terminan al cargar una partida anterior. Las viviendas y el cuartel se encargan desde Obras con los requisitos de sus fichas.
+
+Las haciendas empiezan con tres cautivos. Ataca el portón con **Espacio** para liberarlos y protege su camino a la Matuna, donde buscarán oficio. Pasados tres minutos de juego, un nuevo destacamento puede ocupar la hacienda cuando esté fuera de vista. La primera conquista sigue contando para la campaña.
+
+Las amistades y las parejas recuperan ánimo y reducen su cansancio al compartir un rato. Puedes mediar con **E** antes de que una discusión llegue a los golpes. El jaguar puede atacar a las patrullas. La antorcha hace retroceder a las culebras y ayuda a descubrir cofres ocultos antes de llegar a ellos. Abre los cofres con **E**.
+
 ## Senderos y Santuario de los Ancestros · edición 11
 
-Pulsa **E** frente a la casa central o **B** desde cualquier lugar para abrir Obras. Para encontrar el altar, sal hacia el oeste, cruza el riachuelo y sigue las piedras talladas más allá de la hacienda. El santuario aparece en el mapa al descubrirlo. Mantén **S** junto al altar para ofrendar y habilitar las siguientes mejoras del palenque. Las partidas anteriores conservan el nivel del altar. Las ofrendas incompletas de su antigua ubicación regresan al cofre.
+Pulsa **E** frente a la casa central o **B** desde cualquier lugar para abrir Obras. Para encontrar el altar, sal hacia el oeste, cruza el riachuelo y sigue las piedras talladas más allá de la hacienda. El santuario aparece en el mapa al descubrirlo. Mantén **S** junto al altar para ofrendar y desbloquear los poderes del jaguar. Las partidas anteriores conservan el nivel del altar. Las ofrendas incompletas de su antigua ubicación regresan al cofre.
 
 El mapa se extiende hasta el Mirador de la Ceiba por el oeste y el Manglar de la Marea por el este. Ambos senderos tienen fauna, un riachuelo y un alijo que se abre con **E**. Al anochecer Benkos enciende la antorcha. Pulsa **T** para apagarla o volver a encenderla. Los reales caídos en tierra duran 150 segundos. Los civiles cercanos pueden recoger los que Benkos pierda en combate y llevarlos al cofre si el camino es seguro.
 
@@ -59,7 +67,7 @@ Las texturas de suelo, los fondos y los elementos del sendero se generaron con I
 
 ## Evolución, equipo y vida cotidiana · edición 10
 
-Mantén **S** ante el altar para subirlo de nivel. Cada mejora cambia su arquitectura y abre el mismo nivel de la casa central. Las viviendas y el cuartel siguen el nivel de la casa, y las murallas y granjas muestran sus requisitos. **B** abre las obras y permite comparar los cinco diseños del altar. Cada círculo sobre un puesto o edificio representa un real. La franja de interacción explica los requisitos y los círculos se esconden durante el combate.
+Mantén **S** ante el altar para subirlo de nivel y cambiar su arquitectura. Las viviendas y el cuartel siguen el nivel de la casa, y las murallas y granjas muestran sus requisitos. **B** abre las obras y permite comparar los cinco diseños del altar. Los círculos sobre los puestos o edificios muestran el precio en reales y se esconden durante el combate.
 
 El tótem desbloquea los rangos Élite y Real cuando se han construido el altar, la casa y el cuartel del nivel necesario. En **F** puedes encargar una pieza para lanceros, arqueros y espadachines. El encargo se paga una sola vez. Su dueño recoge la pieza en el cuartel durante el día, cuando el camino es seguro. El arma y la armadura se compran por separado. Solo el arma mejora el daño y solo la armadura aumenta la salud máxima. Para Benkos, **C** compra la armadura por ocho reales una vez disponible el rango Real y después permite alternarla.
 
@@ -105,7 +113,7 @@ Tras editar el cliente o regenerar atlas, ejecuta `npm run client:stamp` antes d
 
 La tecla **B** abre las obras y un catálogo visual de los cinco niveles. La casa central evoluciona de palma a madera, bahareque, piedra con teja y cantería tallada. Cada nivel permite mejorar las tres viviendas y el cuartel hasta ese mismo nivel. Las viviendas añaden un 15% de recuperación adicional por nivel a quienes descansan o se recuperan en el poblado; el cuartel añade un 6% de daño por nivel a las tropas. Casa central y cuartel de nivel IV/V permiten mejorar las murallas a esos niveles; sus materiales y siluetas cambian.
 
-Cada obra descuenta reales de la bolsa, madera y piedra una sola vez. Un constructor debe caminar al edificio y trabajar: con amenazas o heridas se refugia y la obra queda pendiente. Las partidas nuevas empiezan con un constructor; en una partida anterior, propón este oficio a alguien desde **F** y equipa su puesto de martillos si hace falta. Se conserva el progreso de las obras al guardar.
+Las obras de viviendas y cuartel descuentan reales y materiales una sola vez. Un constructor camina al edificio y trabaja mientras sea seguro. Las partidas nuevas empiezan con un constructor. Puedes proponer este oficio desde **F** y equipar el puesto de martillos si hace falta. El avance de las obras se guarda con la partida.
 
 Los leñadores entregan entre 4 y 6 unidades de madera por árbol, según su fuerza; los mineros entregan 2 de piedra por viaje además de la plata. La carga se lleva físicamente al cofre. Los árboles talados vuelven a crecer tres días después. Para cambiar de oficio, una persona termina primero su entrega.
 

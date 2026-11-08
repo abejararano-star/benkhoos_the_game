@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createInitialState } from '../js/world-state.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
 import { ensurePerson } from '../js/people.js';
-import { updateCommunity, joinEncounter, relationshipsFor } from '../js/community.js';
+import { updateCommunity, joinEncounter, mediateEncounter, relationshipsFor } from '../js/community.js';
 
 function neighbors(first, second) {
   const state = createInitialState();
@@ -19,17 +19,31 @@ test('friendly neighbors form a lasting friendship and laugh together', () => {
   const state = neighbors('CARING', 'CALM');
   updateCommunity(state, 6);
   assert.equal(state.community.encounter.kind, 'CHAT');
-  updateCommunity(state, 3.2);
+  updateCommunity(state, 4.4);
   updateCommunity(state, 1 / 60);
   updateCommunity(state, 27);
   assert.equal(state.community.encounter.kind, 'LAUGH');
-  for (const unit of state.units) assert.ok(joinEncounter(unit, state, 1 / 60));
+  state.units.forEach(unit => { unit.fatigue = 30; });
+  for (let i = 0; i < 60; i++) for (const unit of state.units) assert.ok(joinEncounter(unit, state, 1 / 60));
+  assert.ok(state.units.every(unit => unit.vx === 0));
+  updateCommunity(state, 2.6);
+  assert.ok(state.units.every(unit => unit.fatigue === 18));
+  assert.equal(state.morale, 102);
   const save = makeSave(state, 3);
   const { state: loaded } = restoreSave(save, createInitialState());
   assert.equal(loaded.community.encounter, null);
   assert.equal(loaded.units[0].socialPose, undefined);
   assert.equal(relationshipsFor(loaded.units[0], loaded)[0].score, 3);
   assert.equal(relationshipsFor(loaded.units[1], loaded)[0].name, loaded.units[0].name);
+});
+
+test('Benkos can mediate before a scuffle does damage', () => {
+  const state = neighbors('RESTLESS', 'CAUTIOUS');
+  const health = state.units.map(unit => unit.hp);
+  updateCommunity(state, 6);
+  assert.ok(mediateEncounter(state));
+  assert.equal(state.community.encounter, null);
+  assert.ok(state.units.every((unit, i) => unit.hp === health[i] && unit.lastScuffleDay === state.day));
 });
 
 test('a scuffle only costs its participants a little health once per day', () => {

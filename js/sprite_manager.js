@@ -105,16 +105,44 @@ class BenkosSpriteManager {
   }
 
   drawBackdrop(ctx,cls,width,ground,camera,factor,height){
-    if(!this.has(cls))return false;const sp=this.atlas[cls],f=sp.anims.idle[0],scale=height/sp.ref,tile=f.w*scale;
-    const offset=((camera*factor)%tile+tile)%tile;
-    for(let x=-offset-tile;x<width+tile;x+=tile)this.draw(ctx,cls,['idle'],x+tile/2,ground,1,height,0);
+    if (!this.has(cls)) return false;
+    const sp = this.atlas[cls], frame = sp.anims.idle[0];
+    const scale = Math.max(height / frame.h, (width + 56) / frame.w);
+    const span = Math.ceil(frame.w * scale);
+    const offset = Math.max(0, Math.min(span - width, (span - width) / 2 + camera * factor));
+    const drawnHeight = Math.ceil(frame.h * scale);
+    ctx.drawImage(this.sheets[sp.sheet], frame.x, frame.y, frame.w, frame.h,
+      -Math.round(offset), ground - drawnHeight, span, drawnHeight);
+    return true;
+  }
+
+  drawSnake(ctx, x, y, a) {
+    const warning = a.state === 'WARN';
+    const phase = this.reduceMotion || !a.vx ? 0 : a.animTime * 12;
+    ctx.save();
+    ctx.translate(Math.round(x), Math.round(y));
+    ctx.scale(a.facing || 1, 1);
+    ctx.fillStyle = '#141e16'; ctx.fillRect(-15, -2, 26, 3);
+    for (let i = 0; i < 8; i++) {
+      const px = -15 + i * 3;
+      const py = -3 - Math.round(Math.sin(i * 1.15 + phase) * 2) - (warning ? Math.max(0, i - 4) * 2 : 0);
+      ctx.fillStyle = '#303923'; ctx.fillRect(px, py - 1, 5, 5);
+      ctx.fillStyle = i % 2 ? '#aa8c48' : '#71804b'; ctx.fillRect(px, py, 4, 2);
+    }
+    const head = warning ? -9 : -4;
+    ctx.fillStyle = '#575d35'; ctx.fillRect(8, head - 1, 6, 4);
+    ctx.fillStyle = '#e2bf68'; ctx.fillRect(11, head, 1, 1);
+    if (warning) { ctx.fillStyle = '#ca7352'; ctx.fillRect(14, head + 1, 3, 1); }
+    ctx.restore();
     return true;
   }
   drawAnimal(ctx,x,y,a,time){
+    if (a.species === 'SNAKE') return this.drawSnake(ctx, x, y, a);
     const cls='animal_'+(a.species||'CAPYBARA'),height={CAPYBARA:19,DEER:31,BOAR:23,MONKEY:23,MACAW:23,TURTLE:12,JAGUAR:28}[a.species]||19;
     const t=a.animTime??time,gait=this.motion?.sample(a,t);
     const anim=a.hurtTimer>0||a.state==='CHARGE'?'hurt':a.state==='EAT'?'eat':gait?.moving||Math.abs(a.vx)>2?'walk':'idle';
-    return this.draw(ctx,cls,[anim],x,y,a.facing,height,t,6,anim==='walk'?(gait?.phase??0):null);
+    const pounce = a.pounceTimer > 0 ? Math.sin(a.pounceTimer / .32 * Math.PI) : 0;
+    return this.draw(ctx,cls,[pounce ? 'walk' : anim],x+(a.facing||1)*pounce*7,y-pounce*4,a.facing,height,t,6,pounce ? .62 : anim==='walk'?(gait?.phase??0):null);
   }
 
   personClass(role, tier = 1, weapon = 1) {
@@ -164,20 +192,23 @@ class BenkosSpriteManager {
 
   drawSocial(ctx, cls, x, y, facing, height, unit) {
     const { kind, time, index } = unit.socialPose;
-    const speaker = Math.floor(time / .8) % 2 === index;
+    const speaker = Math.floor(time / 1.8) % 2 === index;
     const laugh = kind === 'LAUGH' || kind === 'ROMANCE';
     const scuffle = kind === 'SCUFFLE';
     const hit = scuffle && time >= 1.15 && time < 1.48;
     const windup = scuffle && time >= .6 && time < 1.15;
     const gesture = !scuffle && unit.role === 'ALDEANO' && (speaker || laugh);
     const animation = hit ? 'hurt' : gesture ? 'action' : 'idle';
-    const lean = scuffle ? (hit ? -.13 : windup ? .13 : 0) : speaker ? .035 : -.012;
-    const pose = this.reduceMotion ? null : {
-      tilt: lean,
-      stretch: 1 + (laugh ? Math.sin(time * 19 + index) * .035 : Math.sin(time * 6) * .014)
-    };
-    const progress = gesture ? (time * (laugh ? 2 : 1)) % 1 : speaker ? .4 : 0;
-    return this.draw(ctx, cls, [animation], x, y, facing, height, 0, 0, progress, pose);
+    const pose = this.reduceMotion || !scuffle ? null : { tilt: hit ? -.12 : windup ? .1 : 0, stretch: 1 };
+    const progress = gesture && !this.reduceMotion ? .35 : 0;
+    const drawn = this.draw(ctx, cls, [animation, 'idle'], x, y, facing, height, 0, 0, progress, pose);
+    if (drawn && speaker && !scuffle) {
+      const sx = Math.round(x), sy = Math.round(y - height - 9);
+      ctx.fillStyle = '#172a23'; ctx.fillRect(sx - 7, sy - 3, 14, 7); ctx.fillRect(sx - 3, sy + 4, 2, 2);
+      ctx.fillStyle = laugh ? '#dfbc75' : '#c7ccad';
+      for (let i = -4; i <= 4; i += 4) ctx.fillRect(sx + i, sy, 1, 1);
+    }
+    return drawn;
   }
 
   drawBenkos(ctx, x, y, facing, player, time) {
@@ -233,7 +264,7 @@ class BenkosSpriteManager {
     if (unit.hurtTimer > 0) {
       return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0, 0, 1 - unit.hurtTimer / .4);
     }
-    if (unit.socialPose && unit.activity === 'SOCIAL') {
+    if (unit.socialPose && unit.activity === 'SOCIAL' && !unit.vx) {
       return this.drawSocial(ctx, cls, x, y, facing, height, unit);
     }
     if (unit.liberateAnimTimer > 0) {

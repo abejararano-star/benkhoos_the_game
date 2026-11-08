@@ -41,7 +41,7 @@ export class RenderInterpolation {
 }
 
 export function pixelViewport(width,height){
-  const scale=Math.max(1,Math.round(Math.min(width/420,height/255)));
+  const scale=Math.max(1,Math.floor(Math.min(width/410,height/272)));
   const logicalWidth=Math.floor(width/scale),logicalHeight=Math.floor(height/scale);
   return {width:logicalWidth,height:logicalHeight,waterLine:Math.round(logicalHeight*.81),scale};
 }

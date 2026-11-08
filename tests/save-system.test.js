@@ -4,12 +4,13 @@ import { createInitialState } from '../js/world-state.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
 import { ensurePerson } from '../js/people.js';
 import { seedFrontier } from '../js/exploration.js';
+import { conquerHacienda } from '../js/haciendas.js';
 
 test('v3 restores the complete world, including zero values, tier 3, damage and unlocks', () => {
   const s = createInitialState();
   Object.assign(s, { day: 7, armyTier: 3, coins: 0, treasuryCoins: 0, timeOfDay: 0, armorUnlocked: true, bossesDefeated: 1, politicalEventSeen: true });
   s.benkos.x = 0; s.benkos.spirit = 0; s.benkos.mounted = true;
-  s.walls[0].hp = 23; s.farms[0].cropProgress = .73; s.haciendas[0].destroyed = true; s.trees[0].chopped = true;
+  s.walls[0].hp = 23; s.farms[0].cropProgress = .73; conquerHacienda(s,s.haciendas[0]); s.trees[0].chopped = true;
   s.skills[1].unlocked = true;
   s.units = [{ id: 77, role:'GUERRERO', tier:3, x:12, hp:13, maxHp:213, carryingSack:false }];
   s.units.forEach(ensurePerson);

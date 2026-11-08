@@ -1,10 +1,11 @@
-import { restoreCommunity } from './community.js?v=e3b7c8bc5de3';
-import { ensureEcology, seedEcology } from './ecology.js?v=e3b7c8bc5de3';
-import { seedFrontier } from './exploration.js?v=e3b7c8bc5de3';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=e3b7c8bc5de3';
-import { ensurePerson } from './people.js?v=e3b7c8bc5de3';
-import { ensureSettlement } from './settlement.js?v=e3b7c8bc5de3';
-import { ensureCampaign } from './campaign.js?v=e3b7c8bc5de3';
+import { restoreCommunity } from './community.js?v=dd4c4df65f03';
+import { ensureEcology, seedEcology } from './ecology.js?v=dd4c4df65f03';
+import { seedFrontier } from './exploration.js?v=dd4c4df65f03';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=dd4c4df65f03';
+import { ensurePerson } from './people.js?v=dd4c4df65f03';
+import { ensureSettlement } from './settlement.js?v=dd4c4df65f03';
+import { ensureCampaign } from './campaign.js?v=dd4c4df65f03';
+import { restoreHaciendas } from './haciendas.js?v=dd4c4df65f03';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -124,6 +125,7 @@ export function restoreSave(save, defaults) {
   restoreCommunity(next);
   next.enemies.forEach(e=>{if(e.type==='BANDOLERO')e.range=ENEMY_CATALOG.BANDOLERO.range;});
   ensureSettlement(next);
+  restoreHaciendas(next);
   ensureEcology(next);
   // Add new tool stations to old worlds without replacing their existing stocks.
   for (const rack of defaults.toolRacks) if (!next.toolRacks.some(r=>r.id===rack.id)) next.toolRacks.push(clone(rack));

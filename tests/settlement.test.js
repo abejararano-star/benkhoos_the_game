@@ -6,37 +6,41 @@ import {requestBuilding,workConstruction,upgradeInfo,homeRecovery} from '../js/s
 import {makeSave,restoreSave} from '../js/save-system.js';
 
 function world(){const s=createInitialState();const u={id:1,role:'CONSTRUCTOR',tier:1,hp:90,maxHp:90,x:100};ensurePerson(u);s.units=[u];return s;}
-test('construction charges once, needs a builder at the site and unlocks later materials',()=>{
+test('the central house upgrades instantly while homes still need a builder at the site',()=>{
   const s=world(),u=s.units[0];s.coins=24;s.resources={wood:100,stone:100};
-  assert.match(requestBuilding(s,'hq').message, /altar de nivel 2/);
-  assert.equal(s.coins, 24);
-  s.altarTier = 2;
   assert.equal(requestBuilding(s,'home','home_inner').success,false);
-  assert.equal(requestBuilding(s,'hq').success,true);assert.equal(s.coins,18);assert.equal(s.resources.wood,96);
-  assert.equal(requestBuilding(s,'hq').success,false);assert.equal(s.coins,18);
-  workConstruction(u,s,.1);assert.equal(s.settlement.projects[0].progress,0);assert.ok(u.x<100);
-  for(let i=0;i<900;i++)workConstruction(u,s,1/60);
+  assert.equal(requestBuilding(s,'hq').success,true);assert.equal(s.coins,18);assert.equal(s.resources.wood,100);
   assert.equal(s.settlement.level,2);assert.equal(s.settlement.projects.length,0);
+  s.altarTier = 2;
   assert.equal(requestBuilding(s,'home','home_inner').success,true);
+  const balance = s.coins;
+  assert.equal(requestBuilding(s,'home','home_inner').success,false);assert.equal(s.coins,balance);
+  workConstruction(u,s,.1);assert.equal(s.settlement.projects[0].progress,0);assert.ok(u.x<100);
   u.x=-245;for(let i=0;i<900;i++)workConstruction(u,s,1/60);
   assert.equal(s.settlement.homes[1].level,2);assert.ok(homeRecovery(s)>1);
 });
 test('all five central-house stages are reachable and the last stage cannot spend again',()=>{
-  const s=world();s.resources={wood:1000,stone:1000};
-  for(let next=2;next<=5;next++){s.altarTier=next;s.coins=24;s.units[0].x=0;assert.equal(requestBuilding(s,'hq').success,true);for(let i=0;i<2500;i++)workConstruction(s.units[0],s,1/60);assert.equal(s.settlement.level,next);}
+  const s=world();s.resources={wood:0,stone:0};s.units=[];
+  for(let next=2;next<=5;next++){s.coins=24;assert.equal(requestBuilding(s,'hq').success,true);assert.equal(s.settlement.level,next);}
+  assert.equal(s.altarTier,1);
   const before=s.coins;assert.equal(requestBuilding(s,'hq').success,false);assert.equal(s.coins,before);
 });
-test('no builder or missing resources cannot create or partially pay for an upgrade',()=>{
-  const s=world();s.altarTier=2;s.units=[];const before=structuredClone(s.resources);assert.equal(requestBuilding(s,'hq').success,false);assert.deepEqual(s.resources,before);
-  s.units=world().units;s.resources.wood=0;assert.equal(requestBuilding(s,'hq').success,false);assert.equal(s.coins,16);
-  assert.ok(upgradeInfo(s,'hq').reason);
+test('too few coins do not change the central house or consume the balance',()=>{
+  const s=world();s.coins=5;assert.match(upgradeInfo(s,'hq').reason,/1 real /);
+  assert.equal(requestBuilding(s,'hq').success,false);assert.equal(s.coins,5);assert.equal(s.settlement.level,1);
 });
 test('materials, cargo, buildings and unfinished work survive saves; old v3 worlds gain stations',()=>{
-  const s=world();s.altarTier=2;requestBuilding(s,'hq');s.units[0].cargoWood=5;s.settlement.projects[0].progress=.43;
+  const s=world();s.altarTier=2;requestBuilding(s,'hq');requestBuilding(s,'home','home_inner');s.units[0].cargoWood=5;s.settlement.projects[0].progress=.43;
   const loaded=restoreSave(makeSave(s,100),createInitialState()).state;
   for(const key of ['resources','settlement','units'])assert.deepEqual(loaded[key],s[key]);
   const old=makeSave(s,100);delete old.snapshot.state.resources;delete old.snapshot.state.settlement;old.snapshot.state.toolRacks=old.snapshot.state.toolRacks.filter(r=>r.role!=='CONSTRUCTOR');
   const migrated=restoreSave(old,createInitialState()).state;assert.equal(migrated.settlement.level,1);assert.equal(migrated.resources.wood,8);assert.ok(migrated.toolRacks.some(r=>r.role==='CONSTRUCTOR'));
+});
+
+test('an already paid central house project completes on load without another payment',()=>{
+  const s=world();s.coins=2;s.settlement.projects.push({id:'hq_2',kind:'hq',targetId:'hq',targetLevel:2,x:0,progress:.42,duration:10});
+  const loaded=restoreSave(makeSave(s,100),createInitialState()).state;
+  assert.equal(loaded.settlement.level,2);assert.equal(loaded.settlement.projects.length,0);assert.equal(loaded.coins,2);
 });
 
 test('invalid unfinished projects cannot crash the live simulation on load',()=>{

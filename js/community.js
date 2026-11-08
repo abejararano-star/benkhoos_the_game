@@ -23,7 +23,7 @@ function firstImpression(a, b) {
 function available(unit, state) {
   return unit.role !== 'FUGITIVO' && unit.role !== 'CABALLERO_ALIADO' && unit.hp >= unit.maxHp * .75 &&
     Math.abs(unit.x) < 610 && unit.fear < 25 && !unit.hurtTimer && !unit.requestedRole &&
-    !unit.carryingSack && !unit.recoveredCoins && !unit.pendingShot && !unit.pendingStrike && !unit.liberateAnimTimer && !unit.kitOrder && !unit.leisure &&
+    !unit.escortHome && !unit.carryingSack && !unit.recoveredCoins && !unit.pendingShot && !unit.pendingStrike && !unit.liberateAnimTimer && !unit.kitOrder && !unit.leisure &&
     !(unit.attackAnimTimer > 0) && !['BUILD', 'CHOP', 'TRAINING', 'FLEE', 'KITE', 'REST', 'RECOVER'].includes(unit.activity) &&
     !state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - unit.x) < SAFE_DISTANCE);
 }
@@ -60,7 +60,7 @@ export function restoreCommunity(state) {
   }
 }
 
-export function updateCommunity(state, dt) {
+export function updateCommunity(state, dt, onSupport) {
   const community = state.community;
   community.time += dt;
   const encounter = community.encounter;
@@ -75,6 +75,18 @@ export function updateCommunity(state, dt) {
       return;
     }
     encounter.elapsed += dt;
+    if (['LAUGH', 'ROMANCE'].includes(encounter.kind) && encounter.elapsed >= 2.5) {
+      const relation = community.relations.find(link => link.key === pairKey(...participants));
+      if (relation && relation.supportDay !== state.day) {
+        relation.supportDay = state.day;
+        for (const unit of participants) {
+          unit.fatigue = Math.max(0, unit.fatigue - 12);
+          unit.fear = Math.max(0, unit.fear - 8);
+        }
+        state.morale = Math.min(125, state.morale + 2);
+        onSupport?.(participants[0].x);
+      }
+    }
     if (encounter.kind === 'SCUFFLE' && !encounter.hit && encounter.elapsed >= 1.15) {
       encounter.hit = true;
       for (const unit of participants) {
@@ -133,24 +145,47 @@ export function updateCommunity(state, dt) {
   relation.score = Math.max(-5, Math.min(5, relation.score + (kind === 'SCUFFLE' ? -1 : 1)));
   relation.meetings = (relation.meetings ?? 0) + 1;
   relation.lastAt = community.time;
-  community.encounter = { people: [a.id, b.id], kind, elapsed: 0, duration: kind === 'SCUFFLE' ? 2.25 : kind === 'ROMANCE' ? 4 : 3.2, hit: false };
+  const center = (a.x + b.x) / 2;
+  const direction = Math.sign(b.x - a.x) || 1;
+  const halfSpacing = kind === 'SCUFFLE' ? 12 : 15;
+  community.encounter = { people: [a.id, b.id], positions: [center - direction * halfSpacing, center + direction * halfSpacing],
+    kind, elapsed: 0, duration: kind === 'SCUFFLE' ? 2.25 : 4.4, hit: false };
 }
 
 export function joinEncounter(unit, state, dt) {
   const encounter = state.community.encounter;
   const index = encounter?.people.indexOf(unit.id) ?? -1;
   if (index < 0) return false;
-  const other = state.units.find(person => person.id === encounter.people[1 - index]);
-  if (!other) return false;
-  const direction = Math.sign(other.x - unit.x) || (index === 0 ? 1 : -1);
-  const spacing = encounter.kind === 'SCUFFLE' ? 24 : 29;
-  const gap = Math.abs(other.x - unit.x) - spacing;
-  unit.facing = direction;
-  unit.vx = Math.abs(gap) > 2 ? direction * Math.sign(gap) * Math.min(32, Math.abs(gap) * 4) : 0;
-  unit.x += unit.vx * dt;
+  const target = encounter.positions[index];
+  const delta = target - unit.x;
+  const step = Math.sign(delta) * Math.min(Math.abs(delta), dt * 34);
+  unit.x += step;
+  unit.vx = dt > 0 ? step / dt : 0;
+  unit.facing = Math.abs(delta) > 1 ? Math.sign(delta) : Math.sign(encounter.positions[1 - index] - target);
   unit.activity = 'SOCIAL';
   unit.socialPose = { kind: encounter.kind, time: encounter.elapsed, index };
   unit.mood = { CHAT: 'Conversando', LAUGH: 'Riendo con una amistad', SCUFFLE: 'En un altercado', ROMANCE: 'Compartiendo un rato con su pareja' }[encounter.kind];
+  return true;
+}
+
+export function canMediate(state) {
+  const encounter = state.community.encounter;
+  return encounter?.kind === 'SCUFFLE' && !encounter.hit && encounter.positions.some(x => Math.abs(x - state.benkos.x) < 52);
+}
+
+export function mediateEncounter(state) {
+  if (!canMediate(state)) return false;
+  const { community } = state;
+  const encounter = community.encounter;
+  const relation = community.relations.find(link => link.people.every(id => encounter.people.includes(id)));
+  if (relation) relation.score = Math.min(5, relation.score + 2);
+  for (const unit of state.units) if (encounter.people.includes(unit.id)) {
+    delete unit.socialPose;
+    unit.activity = 'IDLE';
+    unit.lastScuffleDay = state.day;
+  }
+  community.encounter = null;
+  community.nextAt = community.time + INTERVAL;
   return true;
 }
 

@@ -1,12 +1,13 @@
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=e3b7c8bc5de3';
-import { describeTraits } from './daily-life.js?v=e3b7c8bc5de3';
-import { equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=e3b7c8bc5de3';
-import { relationshipsFor } from './community.js?v=e3b7c8bc5de3';
-import { ecologyHint } from './ecology.js?v=e3b7c8bc5de3';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=e3b7c8bc5de3';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=e3b7c8bc5de3';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=e3b7c8bc5de3';
-import { arrivalHint } from './campaign.js?v=e3b7c8bc5de3';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=dd4c4df65f03';
+import { describeTraits } from './daily-life.js?v=dd4c4df65f03';
+import { equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=dd4c4df65f03';
+import { canMediate, relationshipsFor } from './community.js?v=dd4c4df65f03';
+import { haciendaActive } from './haciendas.js?v=dd4c4df65f03';
+import { ecologyHint } from './ecology.js?v=dd4c4df65f03';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=dd4c4df65f03';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=dd4c4df65f03';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=dd4c4df65f03';
+import { arrivalHint } from './campaign.js?v=dd4c4df65f03';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -62,7 +63,7 @@ export function createUI({ state, session, settings, actions }) {
       text('nodeHintDescription', node.sub.replaceAll('[S]', 'S').replace(/\(\d+ reales?\s*\)/g, '').trim());
       const remaining = Math.max(0, node.cost - (node.getFilled() || 0));
       const unit = remaining === 1 ? 'real' : 'reales';
-      text('nodeHintCoins', node.cost === 0 ? 'Nivel máximo' : `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
+      text('nodeHintCoins', node.cost === 0 ? 'Nivel máximo' : node.purchase ? `${node.cost} reales` : `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
     }
     text('hudCoins', state.coins); text('hudMaxCoins', state.maxCoins); text('hudTreasury', state.treasuryCoins);
     const freeSlots = state.maxCoins - state.coins;
@@ -99,7 +100,7 @@ export function createUI({ state, session, settings, actions }) {
       const marker = $(`minimapHacienda${i ? 'R' : 'L'}`);
       marker.style.left = `${mapPercent(h.x)}%`;
       marker.style.right = 'auto';
-      marker.style.background = h.destroyed ? '#91c9a2' : '#dc8264';
+      marker.style.background = haciendaActive(h) ? '#dc8264' : '#91c9a2';
     });
     $('torchStatus').classList.toggle('hidden', state.phase === 'DAY_EXPLORE' && !torchIsLit(state));
     text('torchStatus', torchIsLit(state) ? 'Antorcha encendida · T' : 'Antorcha apagada · T');
@@ -120,12 +121,12 @@ export function createUI({ state, session, settings, actions }) {
     const destroyed = state.haciendas.filter(h => h.destroyed).length;
     if (state.fugitivesFreed < 2) {
       text('objectiveTitle', 'Un pueblo que resiste');
-      text('objectiveText', `Libera a dos fugitivos fuera de las murallas (${state.fugitivesFreed}/2). Mantén S cerca de ellos para lanzar plata.`);
+      text('objectiveText', `Libera al menos a dos personas (${state.fugitivesFreed}/2). Viaja a una hacienda y rompe su portón con Espacio.`);
     } else if (!state.exploration.altarFound) {
       text('objectiveTitle', 'Huellas de los ancestros');
       text('objectiveText', 'Cruza el riachuelo oeste, pasa la hacienda y busca el arco de piedra del santuario.');
     } else if (state.armyTier < 3) {
-      text('objectiveTitle', 'Fortalece la Matuna'); text('objectiveText', 'Ofrenda en el santuario y vuelve a la casa central para abrir obras con E o B.');
+      text('objectiveTitle', 'Fortalece la Matuna'); text('objectiveText', 'Mejora la casa central con S y reales. Las obras del cuartel están en B y los rangos en el tótem.');
     } else {
       text('objectiveTitle', 'Recupera el territorio'); text('objectiveText', `Haciendas: ${destroyed}/2. Gobernador: ${state.campaign.governorDefeated?'derrotado':'pendiente'}. Los mensajeros anuncian los siguientes movimientos.`);
     }
@@ -157,7 +158,8 @@ export function createUI({ state, session, settings, actions }) {
     const farm = state.farms.find(field => field.level > 0 && Math.abs(field.x - state.benkos.x) < 45);
     const crop = farm?.stage ? { PLANT: 'Siembra pendiente', GROW: `Creciendo · ${Math.floor(farm.cropProgress * 100)}%`, RIPE: 'Lista para cosechar', FALLOW: 'En descanso hasta mañana' }[farm.stage] : '';
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
-    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar');
+    const hacienda = state.haciendas.find(h => haciendaActive(h) && Math.abs(h.x - state.benkos.x) < 88);
+    text('contextHint', messenger?'E · Escuchar al mensajero de Cartagena':canMediate(state)?'E · Mediar en la discusión':hacienda?'Espacio · Romper el portón para liberar a los cautivos':social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar');
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   // Escape is managed centrally; let form controls keep normal focus navigation.
@@ -262,11 +264,16 @@ export function createUI({ state, session, settings, actions }) {
           el.dataset.signature = signature;
           el.className = 'world-label world-price' + (price.locked ? ' price-locked' : '') + (nearby ? ' price-active' : '');
           el.title = `${price.title} · ${price.paid}/${price.cost} reales`;
-          const coins = Array.from({ length: price.cost }, (_, index) => {
+          const coins = Array.from({ length: price.cost > 8 ? 1 : price.cost }, (_, index) => {
             const coin = document.createElement('i');
-            if (index < price.paid) coin.className = 'filled';
+            if (price.cost > 8 ? price.paid === price.cost : index < price.paid) coin.className = 'filled';
             return coin;
           });
+          if (price.cost > 8) {
+            const count = document.createElement('b');
+            count.textContent = price.paid ? `${price.paid}/${price.cost}` : `×${price.cost}`;
+            coins.push(count);
+          }
           if (price.works || price.locked) {
             const sign = document.createElement('span');
             sign.textContent = price.works ? 'B' : '×';
@@ -278,7 +285,7 @@ export function createUI({ state, session, settings, actions }) {
         el.style.display = '';
       }
     }
-    const notices=state.floatingTexts.filter(ft=>/^-\d+/.test(ft.text.trim())).slice(-2);
+    const notices=state.floatingTexts.filter(ft=>/^(-\d+|\+2 moral|Brillo entre|Casa central|.* llegó a salvo)/.test(ft.text.trim())).slice(-2);
     notices.forEach((ft,i)=>{const line=ft.text.replace(/\s+/g,' ').replace('Cosecha Entregada','cosecha').replace('Plata de Mina','plata').trim();label('notice:'+i,'resource-label',layout.x(ft),layout.y(ft)-22+layout.ground-246,line,Math.max(100,Math.min(230,line.length*6+20)),true);});
     for(const [key,el]of worldLabels)if(!active.has(key))el.style.display='none';
   }
@@ -288,7 +295,7 @@ export function createUI({ state, session, settings, actions }) {
     g.fillStyle='#192f23';g.fillRect(0,216,560,24);g.fillStyle='#8c8461';g.fillRect(20,216,520,2);
     window.SpriteManager?.draw?.(g, kind === 'altar' ? altarSprite(level) : `building_${kind}_${level}`,['idle'],280,218,1,kind==='hq'?228:210,0);
     text('previewCaption', kind === 'altar' ? `Altar de nivel ${level} · ${state.skills[level - 1].name}` : `Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
-    text('evolutionPath', `Altar ${state.altarTier} → Casa central ${state.settlement.level} → Cuartel ${state.settlement.barracks.level} → Rango militar ${state.armyTier}`);
+    text('evolutionPath', `Casa central ${state.settlement.level} → Cuartel ${state.settlement.barracks.level} → Rango militar ${state.armyTier} · Altar ${state.altarTier}`);
   }
   function renderBuildings(){
     text('settlementTitle',HQ_NAMES[state.settlement.level-1]);
@@ -299,7 +306,7 @@ export function createUI({ state, session, settings, actions }) {
       const info=upgradeInfo(state,kind,id),card=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p'),btn=document.createElement('button');
       h.textContent=`${label} · ${info.target.level}/5`;p.textContent=MATERIALS[info.target.level-1];card.append(h);card.append(p);
       const job=state.settlement.projects.find(p=>p.targetId===id);
-      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra pagada · ${Math.floor(job.progress*100)}%`:(info.next?`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de trabajo`:info.reason);card.append(cost);
+      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra pagada · ${Math.floor(job.progress*100)}%`:(info.next?kind==='hq'?`${info.coins} reales · Mejora inmediata`:`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de trabajo`:info.reason);card.append(cost);
       if (info.next && !job) {
         const balance = document.createElement('small');
         const missing = Math.max(0, info.coins - state.coins);
@@ -308,11 +315,11 @@ export function createUI({ state, session, settings, actions }) {
         card.append(balance);
       }
       btn.textContent=info.next?`Evolucionar a nivel ${info.next}`:'Evolución máxima';btn.disabled=!!info.reason;btn.title=info.reason||`Construir con ${MATERIALS[info.next-1]}`;
-      btn.addEventListener('click',()=>{const result=actions.build(kind,id);text('buildingFeedback',result.message);renderBuildings();update();});card.append(btn);
+      btn.addEventListener('click',()=>{const result=actions.build(kind,id);if (result.success && kind === 'hq') $('previewLevel').value = String(state.settlement.level);text('buildingFeedback',result.message);renderBuildings();previewBuilding();update();});card.append(btn);
       if(info.reason&&info.next){const why=document.createElement('small');why.textContent=info.reason;card.append(why);}cards.append(card);
     }
   }
-  function openSettlement(){returnDialog='pauseDialog';open('settlementDialog');$('previewLevel').value=String(state.settlement.level);$('previewKind').value='hq';renderBuildings();previewBuilding();text('buildingFeedback', state.exploration.altarFound ? 'Las obras avanzan mientras juegas. Los constructores se refugian si hay peligro.' : 'El santuario está al oeste, más allá del riachuelo y de la hacienda. Su altar abre las obras de la casa central.');}
+  function openSettlement(){returnDialog='pauseDialog';open('settlementDialog');$('previewLevel').value=String(state.settlement.level);$('previewKind').value='hq';renderBuildings();previewBuilding();text('buildingFeedback','La casa central evoluciona al pagar con reales de la bolsa. También puedes mantener S frente a la casa.');}
   on('btnSettlement',openSettlement);on('btnSettlementPause',openSettlement);on('btnCloseSettlement',resume);on('btnResumeConstruction',resume);
   $('previewKind').addEventListener('change',previewBuilding);$('previewLevel').addEventListener('change',previewBuilding);
   let selectedPersonId=null;
