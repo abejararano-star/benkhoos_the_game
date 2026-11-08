@@ -1,4 +1,4 @@
-import { INFANTRY } from './equipment.js?v=af0647a73f93';
+import { INFANTRY } from './equipment.js?v=645f44b03ee0';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,

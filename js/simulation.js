@@ -1,22 +1,27 @@
-import { recoverCoins } from './coins.js?v=af0647a73f93';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=af0647a73f93';
-import { collectEquipment } from './equipment.js?v=af0647a73f93';
-import { advanceCrops, tendCrop } from './crops.js?v=af0647a73f93';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=af0647a73f93';
-import { updateCommunity, joinEncounter } from './community.js?v=af0647a73f93';
-import { updateEcology, isHuntable } from './ecology.js?v=af0647a73f93';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=af0647a73f93';
-import { workConstruction, homeRecovery } from './settlement.js?v=af0647a73f93';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=af0647a73f93';
-import { ensureCampaign, finaleWon } from './campaign.js?v=af0647a73f93';
-import { expeditionFormation } from './story.js?v=af0647a73f93';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=af0647a73f93';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=af0647a73f93';
+import { recoverCoins } from './coins.js?v=645f44b03ee0';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=645f44b03ee0';
+import { collectEquipment } from './equipment.js?v=645f44b03ee0';
+import { advanceCrops, tendCrop } from './crops.js?v=645f44b03ee0';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=645f44b03ee0';
+import { updateCommunity, joinEncounter } from './community.js?v=645f44b03ee0';
+import { updateEcology, isHuntable } from './ecology.js?v=645f44b03ee0';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=645f44b03ee0';
+import { advanceConstruction, workConstruction, homeRecovery } from './settlement.js?v=645f44b03ee0';
+import { advanceParticle, emitEffect } from './effects.js?v=645f44b03ee0';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=645f44b03ee0';
+import { ensureCampaign, finaleWon } from './campaign.js?v=645f44b03ee0';
+import { expeditionFormation } from './story.js?v=645f44b03ee0';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=645f44b03ee0';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=645f44b03ee0';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
 addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, nextId, campaign, queueReinforcement, resolveBenkosHit, triggerBenkosAttack, updateCaptivity, updateStory } = api;
-let purchasedNode = null;
+function damageWall(wall, damage, y, direction) {
+  wall.hp = Math.max(0, wall.hp - damage);
+  emitEffect(state, wall.level >= 4 ? 'stone' : 'wood', wall.x, y, direction, wall.hp ? .6 : 2.4);
+  if (!wall.hp) emitEffect(state, 'dust', wall.x, WATER_LINE_Y - 13, direction, 1.8);
+}
 return function updateSimulation(dt) {
   if (state.hitStopTimer > 0) {
     state.hitStopTimer -= dt;
@@ -28,6 +33,14 @@ return function updateSimulation(dt) {
 
   const prevTime = state.timeOfDay;
   if (state.status !== 'playing') return;
+  advanceConstruction(state, dt, job => {
+    const sanctuary = job.kind === 'altar';
+    emitEffect(state, job.kind === 'rack' || sanctuary ? 'spark' : 'dust', job.x, WATER_LINE_Y - 20);
+    addFloatingText(job.x, WATER_LINE_Y - 65, job.kind === 'rack' ? 'Equipo forjado' : 'Obra terminada', '#d6c78e');
+    audio.playSfx(sanctuary ? 'roar' : 'pickaxe');
+    if (sanctuary) showBanner('NUEVO PODER DEL JAGUAR', state.skills.find(skill => skill.level === job.targetLevel).name);
+    updateHUD();
+  });
   state.timeOfDay += dt / BALANCE.dayDuration;
   if (state.timeOfDay >= 0.68 && prevTime < 0.68) {
     if (state.truceDays > 0) {
@@ -67,7 +80,13 @@ return function updateSimulation(dt) {
 
   b.animTime += dt;
   b.payTimer=Math.max(0,(b.payTimer??0)-dt);
-  if(Math.abs(b.vx)>60){b.stepDust=(b.stepDust??0)+dt;if(b.stepDust>.18){b.stepDust=0;addParticles(b.x,WATER_LINE_Y-22,1,b.inStream?'#9fcac0':'#ac9670',12);}}
+  if (Math.abs(b.vx) > 60) {
+    b.stepDust = (b.stepDust ?? 0) + dt;
+    if (b.stepDust > .18) {
+      b.stepDust = 0;
+      emitEffect(state, b.inStream ? 'water' : 'dust', b.x, WATER_LINE_Y - 3, -b.facing, b.inStream ? .5 : .2);
+    }
+  }
   if(advancePlayerAttack(b,dt))resolveBenkosHit?.();
   if(!b.attackTimer&&b.queuedAttack){b.queuedAttack=false;triggerBenkosAttack?.();}
   if (b.dashTimer > 0) b.dashTimer -= dt;
@@ -125,22 +144,21 @@ return function updateSimulation(dt) {
   }
 
   const isHoldingPay = keys['KeyS'] || keys['ArrowDown'] || keys['KeyK'] || state.touchHoldPay;
-  if (!isHoldingPay || purchasedNode !== currentNodeId) purchasedNode = null;
   if (isHoldingPay && !activeNode?.locked) {
     state.holdPayTimer += dt;
     if (activeNode) {
       if (state.holdPayTimer >= 0.22) {
         state.holdPayTimer = 0;
         if (activeNode.purchase) {
-          if (purchasedNode !== currentNodeId) {
-            const result = activeNode.purchase();
-            if (result.success) {
-              purchasedNode = currentNodeId;
-              b.payTimer = .35;
-              audio.playSlotDing(0);
-              addFloatingText(activeNode.x, WATER_LINE_Y - 95, result.message, '#e4cb85');
-              updateHUD();
-            }
+          const result = activeNode.purchase();
+          if (result.success) {
+            b.payTimer = .35;
+            audio.playSlotDing(result.paid - 1);
+            addParticles(activeNode.x, WATER_LINE_Y - 46, 5, '#fde047', 45);
+            updateHUD();
+          } else {
+            addFloatingText(b.x, WATER_LINE_Y - 46, result.message, '#f87171');
+            state.holdPayTimer = -.35;
           }
         } else if (state.coins > 0) {
           state.coins--; b.payTimer=.35;
@@ -246,9 +264,10 @@ return function updateSimulation(dt) {
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
     ensurePerson(u);
+    if (u.kitOrder?.remaining > 0) u.kitOrder.remaining = Math.max(0, u.kitOrder.remaining - dt);
     updateGrief(u, dt);
     u.animSeed = (u.animSeed ?? 0) + dt;
-    advanceAllyAction(u,state,dt,(enemy,damage)=>{addParticles(enemy.x,WATER_LINE_Y-20,5,'#d7bd8b',45);audio.playSfx('slash');});
+    advanceAllyAction(u,state,dt,enemy=>{emitEffect(state,'blood',enemy.x,WATER_LINE_Y-20,u.facing,.65);audio.playSfx('slash');});
     if (u.attackCooldown > 0) u.attackCooldown -= dt;
     if (u.attackAnimTimer > 0) u.attackAnimTimer -= dt;
     if (u.liberateAnimTimer > 0) {
@@ -297,9 +316,8 @@ return function updateSimulation(dt) {
     const tierMult = (weaponRank === 3 ? 1.75 : weaponRank === 2 ? 1.35 : 1) * fitMult;
 
     if (u.role === 'CONSTRUCTOR') {
-      const done=workConstruction(u,state,dt);
-      if(u.activity==='BUILD'&&Math.random()<dt*3)addParticles(u.x,WATER_LINE_Y-38,2,'#c9ab75',30);
-      if(done){addFloatingText(done.x,WATER_LINE_Y-95,'Obra terminada · nivel '+done.targetLevel,'#d6c78e');updateHUD();}
+      workConstruction(u,state,dt);
+      if(u.activity==='BUILD'&&Math.random()<dt*3)emitEffect(state,'wood',u.x,WATER_LINE_Y-27,u.facing,.3);
     } else if (u.role === 'ALDEANO') {
       const rack = chooseToolRack(u, state);
       if (rack) {
@@ -732,9 +750,8 @@ return function updateSimulation(dt) {
         en.attackCooldown = 1.1;
       en.attackReady = false;
         en.attackAnimTimer = 0.35;
-        blockingWall.hp = Math.max(0, blockingWall.hp - en.dmg);
+        damageWall(blockingWall, en.dmg, WATER_LINE_Y - 22, en.facing);
         audio.playSfx('slash');
-        addParticles(blockingWall.x, WATER_LINE_Y - 22, 6, '#d97706', 50);
         addFloatingText(blockingWall.x, WATER_LINE_Y - 44, `Muralla -${Math.round(en.dmg)}`, '#fbbf24');
       }
     } else if (nearAlly) {
@@ -744,7 +761,7 @@ return function updateSimulation(dt) {
         en.attackAnimTimer = 0.35;
         reactToDamage(nearAlly, en.dmg, en.facing);
         audio.playSfx('slash');
-        addParticles(nearAlly.x, WATER_LINE_Y - 20, 6, '#ef4444', 55);
+        emitEffect(state, nearAlly.equipment?.armor > 1 ? 'spark' : 'blood', nearAlly.x, WATER_LINE_Y - 20, en.facing, .7);
         addFloatingText(nearAlly.x, WATER_LINE_Y - 38, `-${Math.round(en.dmg)}`, '#f87171');
         nearAlly.vx = en.facing * 60;
 
@@ -779,7 +796,7 @@ return function updateSimulation(dt) {
             en.nettedTimer = en.isBoss ? 1.4 : 3.2;
             addFloatingText(en.x, WATER_LINE_Y - 46, ' ¡Atrapado en Red!', '#fde047');
           }
-          addParticles(en.x, p.y, 4, p.color, 45);
+          if (!p.isNet) emitEffect(state, 'blood', en.x, p.y, Math.sign(p.vx), .65);
           hit = true;
           break;
         }
@@ -800,8 +817,7 @@ return function updateSimulation(dt) {
       // Proyectil enemigo: verifica impacto en muralla defensiva
       const hitWall = state.walls.find(w => w.level > 0 && w.hp > 0 && Math.abs(p.x - w.x) < 16);
       if (hitWall) {
-        hitWall.hp = Math.max(0, hitWall.hp - p.dmg);
-        addParticles(hitWall.x, p.y, 6, '#d97706', 45);
+        damageWall(hitWall, p.dmg, p.y, Math.sign(p.vx));
         audio.playSfx('slash');
         hit = true;
       } else {
@@ -809,7 +825,7 @@ return function updateSimulation(dt) {
         const hitAlly = state.units.find(u => u.hp > 0 && (u.role === 'GUERRERO' || u.role === 'CAMPEON_REAL') && Math.abs(p.x - u.x) < 14);
         if (hitAlly) {
           reactToDamage(hitAlly, p.dmg, Math.sign(p.vx));
-          addParticles(hitAlly.x, p.y, 5, '#fde047', 50);
+          emitEffect(state, hitAlly.equipment?.armor > 1 ? 'spark' : 'blood', hitAlly.x, p.y, Math.sign(p.vx), .6);
           audio.playSfx('slash');
           hit = true;
         } else if (Math.abs(p.x - b.x) < 14) {
@@ -832,10 +848,7 @@ return function updateSimulation(dt) {
 
   for (let i = state.particles.length - 1; i >= 0; i--) {
     const pt = state.particles[i];
-    pt.x += pt.vx * dt;
-    pt.y += pt.vy * dt;
-    pt.vy += 180 * dt;
-    pt.life -= dt;
+    advanceParticle(pt, dt);
     if (pt.life <= 0) state.particles.splice(i, 1);
   }
 

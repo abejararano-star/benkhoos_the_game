@@ -1,15 +1,15 @@
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=af0647a73f93';
-import { describeTraits } from './daily-life.js?v=af0647a73f93';
-import { armyRequirement, equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=af0647a73f93';
-import { canMediate, relationshipsFor } from './community.js?v=af0647a73f93';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=af0647a73f93';
-import { ecologyHint } from './ecology.js?v=af0647a73f93';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=af0647a73f93';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=af0647a73f93';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=af0647a73f93';
-import { arrivalHint } from './campaign.js?v=af0647a73f93';
-import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=af0647a73f93';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=af0647a73f93';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=645f44b03ee0';
+import { describeTraits } from './daily-life.js?v=645f44b03ee0';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=645f44b03ee0';
+import { canMediate, relationshipsFor } from './community.js?v=645f44b03ee0';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=645f44b03ee0';
+import { ecologyHint } from './ecology.js?v=645f44b03ee0';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=645f44b03ee0';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=645f44b03ee0';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=645f44b03ee0';
+import { arrivalHint } from './campaign.js?v=645f44b03ee0';
+import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=645f44b03ee0';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=645f44b03ee0';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -19,6 +19,7 @@ export function createUI({ state, session, settings, actions }) {
   const bagDots=[];for(let i=0;i<state.maxCoins;i++){const dot=document.createElement('i');$('hudBagSlots').append(dot);bagDots.push(dot);}
   let bannerTimer, returnDialog = 'pauseDialog';
   let cinematic, storyPage = 0;
+  let armoryFromWorks = false;
   let chartSites = [], selectedSite, mapFromPause = false;
   const chartMarkers = new Map();
   const dialogs = [...document.querySelectorAll('dialog')];
@@ -38,6 +39,7 @@ export function createUI({ state, session, settings, actions }) {
   }
   function menu() { session.mode = 'menu'; document.body.dataset.mode = 'menu'; open('menuDialog'); }
   function togglePause() {
+    if ($('armoryDialog').open) { closeArmory(); return; }
     if ($('storyDialog').open) { closeStory(); return; }
     if ($('mapDialog').open) { closeMap(); return; }
     if (session.mode === 'menu' && $('menuDialog').open) return;
@@ -158,7 +160,8 @@ export function createUI({ state, session, settings, actions }) {
       text('nodeHintDescription', node.sub.replaceAll('[S]', 'S').replace(/\(\d+ reales?\s*\)/g, '').trim());
       const remaining = Math.max(0, node.cost - (node.getFilled() || 0));
       const unit = remaining === 1 ? 'real' : 'reales';
-      text('nodeHintCoins', node.cost === 0 ? 'Nivel máximo' : node.purchase ? `${node.cost} reales` : `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
+      text('nodeHintCoins', node.job ? `${Math.ceil((1 - node.job.progress) * node.job.duration)} s` :
+        node.cost === 0 ? 'Nivel máximo' : node.purchase ? `${node.getFilled()}/${node.cost} reales` : `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
     }
     text('hudCoins', state.coins); text('hudMaxCoins', state.maxCoins); text('hudTreasury', state.treasuryCoins);
     const freeSlots = state.maxCoins - state.coins;
@@ -184,7 +187,7 @@ export function createUI({ state, session, settings, actions }) {
     $('hudRoyalArmorBadge').classList.toggle('hidden', !state.benkos.royalArmor);
     const ranks = ['Cimarrón', 'Élite', 'Real'];
     text('hudArmyTierBadge', `Rango ${['I', 'II', 'III'][state.armyTier - 1]} · ${ranks[state.armyTier - 1]}`);
-    text('hudNextTierHint', state.armyTier < 3 ? armyRequirement(state) || `Mantén S en el tótem · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Rango Real · Encarga equipo en F. Armadura de Benkos en C.');
+    text('hudNextTierHint', state.armyTier < 3 ? armyRequirement(state) || `Mantén S en el tótem · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Rango Real · Abre la Armería con G. Armadura de Benkos en C.');
     const count = role => state.units.filter(u => u.role === role).length;
     for (const [suffix, role] of Object.entries({ Constructor:'CONSTRUCTOR', Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
     const mapPercent = x => (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X) * 100;
@@ -407,33 +410,91 @@ export function createUI({ state, session, settings, actions }) {
     g.fillStyle='#192f23';g.fillRect(0,216,560,24);g.fillStyle='#8c8461';g.fillRect(20,216,520,2);
     window.SpriteManager?.draw?.(g, kind === 'altar' ? altarSprite(level) : `building_${kind}_${level}`,['idle'],280,218,1,kind==='hq'?228:210,0);
     text('previewCaption', kind === 'altar' ? `Altar de nivel ${level} · ${state.skills[level - 1].name}` : `Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
-    text('evolutionPath', `Casa central ${state.settlement.level} → Cuartel central ${state.settlement.barracks.level} → Tótem ${state.armyTier} · Santuario ${state.altarTier}: poderes`);
+    text('evolutionPath', `Casa del Cuartel ${state.settlement.level} → Tótem ${state.armyTier} · Santuario ${state.altarTier}: poderes`);
   }
-  function renderBuildings(){
+  function renderBuildings(focusId){
     text('settlementTitle',HQ_NAMES[state.settlement.level-1]);
     text('settlementResources',`${state.coins} reales en la bolsa · ${state.resources.wood} madera · ${state.resources.stone} piedra · ${state.units.filter(u=>u.role==='CONSTRUCTOR').length} constructores`);
     const cards=$('buildingCards');cards.replaceChildren();
-    const entries=[['hq','hq','Casa central'],['barracks','barracks','Cuartel central'],...state.settlement.homes.map((h,i)=>['home',h.id,`Vivienda ${i+1}`])];
+    const entries=[['hq','hq','Casa del Cuartel'],...state.settlement.homes.map((h,i)=>['home',h.id,`Vivienda ${i+1}`])];
     for(const [kind,id,label] of entries){
       const info=upgradeInfo(state,kind,id),card=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p'),btn=document.createElement('button');
       h.textContent=`${label} · ${info.target.level}/5`;p.textContent=MATERIALS[info.target.level-1];card.append(h);card.append(p);
-      const job=state.settlement.projects.find(p=>p.targetId===id);
-      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra pagada · ${Math.floor(job.progress*100)}%`:(info.next?kind==='hq'?`${info.coins} reales · Mejora inmediata`:`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de trabajo`:info.reason);card.append(cost);
+      const job=info.job;
+      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra en marcha · ${Math.ceil((1-job.progress)*job.duration)} s restantes`:(info.next?kind==='hq'?`${info.coins} reales · ${info.duration} s de obra`:`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de obra`:info.reason);card.append(cost);
       if (info.next && !job) {
         const balance = document.createElement('small');
-        const missing = Math.max(0, info.coins - state.coins);
         balance.className = 'building-coin-balance';
-        balance.textContent = missing === 0 ? 'Plata suficiente' : missing === 1 ? 'Falta 1 real en la bolsa' : `Faltan ${missing} reales en la bolsa`;
+        balance.textContent = `${info.paid} de ${info.coins} reales aportados`;
         card.append(balance);
       }
-      btn.textContent=info.next?`Evolucionar a nivel ${info.next}`:'Evolución máxima';btn.disabled=!!info.reason;btn.title=info.reason||`Construir con ${MATERIALS[info.next-1]}`;
-      btn.addEventListener('click',()=>{const result=actions.build(kind,id);if (result.success && kind === 'hq') $('previewLevel').value = String(state.settlement.level);text('buildingFeedback',result.message);renderBuildings();previewBuilding();update();});card.append(btn);
+      btn.textContent=job?'En construcción':info.next?'Aportar 1 real':'Evolución máxima';btn.disabled=!!info.reason || state.coins<1;btn.title=info.reason||`Construir con ${MATERIALS[info.next-1]}`;
+      btn.addEventListener('click',()=>{const result=actions.build(kind,id);text('buildingFeedback',result.message);renderBuildings(id);update();});card.append(btn);
       if(info.reason&&info.next){const why=document.createElement('small');why.textContent=info.reason;card.append(why);}cards.append(card);
+      if (focusId === id && !btn.disabled) btn.focus?.();
     }
   }
-  function openSettlement(){returnDialog='pauseDialog';open('settlementDialog');$('previewLevel').value=String(state.settlement.level);$('previewKind').value='hq';renderBuildings();previewBuilding();text('buildingFeedback','La casa central evoluciona al pagar con reales de la bolsa. También puedes mantener S frente a la casa.');}
+  function openSettlement(){returnDialog='pauseDialog';open('settlementDialog');$('previewLevel').value=String(state.settlement.level);$('previewKind').value='hq';renderBuildings();previewBuilding();text('buildingFeedback','Aporta un real por vez. Mantén S frente a la Casa del Cuartel para aportarlos seguidos.');}
   on('btnSettlement',openSettlement);on('btnSettlementPause',openSettlement);on('btnCloseSettlement',resume);on('btnResumeConstruction',resume);
   $('previewKind').addEventListener('change',previewBuilding);$('previewLevel').addEventListener('change',previewBuilding);
+  function armoryUnit() {
+    return state.units.find(unit => unit.id === Number($('armoryPerson').value) && unit.hp > 0 && INFANTRY.includes(unit.role));
+  }
+  function renderArmory() {
+    const unit = armoryUnit();
+    const rank = Number($('armoryRank').value);
+    const model = unit ?? { role: 'GUERRERO', equipment: { weapon: 1, armor: 1 } };
+    text('armoryStatus', `Rango desbloqueado: ${RANK_NAMES[state.armyTier - 1]} · ${state.coins} reales en la bolsa`);
+    for (const [piece, key] of [['weapon', 'Weapon'], ['armor', 'Armor']]) {
+      const offer = equipmentOffer(model, piece, state, rank);
+      const preview = $('armory' + key + 'Preview').getContext('2d');
+      preview.clearRect(0, 0, 184, 145);
+      const appearance = { ...model.equipment, [piece]: rank };
+      const sprite = window.SpriteManager?.personClass?.(model.role, appearance.armor, appearance.weapon);
+      if (sprite) window.SpriteManager.draw(preview, sprite, ['idle'], 92, 139, 1, 128, 0);
+      text('armory' + key + 'Title', `${offer.item} · ${RANK_NAMES[rank - 1]}`);
+      const pending = unit?.kitOrder;
+      const note = !unit ? 'Hace falta un arquero, lancero o espadachín.' : pending ?
+        `Encargo pendiente: ${pending.item} ${RANK_NAMES[pending.rank - 1]}${pending.remaining > 0 ? ' · en la forja' : ' · listo para recoger'}.` :
+        offer.reason || `Equipo actual: ${RANK_NAMES[unit.equipment[piece] - 1]}.`;
+      text('armory' + key + 'Note', note);
+      const button = $('btnArmory' + key);
+      button.disabled = !unit || !!offer.reason;
+      text('btnArmory' + key, `Encargar · ${offer.cost} reales`);
+    }
+  }
+  function openArmory() {
+    armoryFromWorks = $('settlementDialog').open;
+    const people = $('armoryPerson');
+    const ranks = $('armoryRank');
+    people.replaceChildren(); ranks.replaceChildren();
+    const eligible = state.units.filter(unit => unit.hp > 0 && INFANTRY.includes(unit.role));
+    for (const unit of eligible) {
+      const option = document.createElement('option');
+      option.value = unit.id; option.textContent = `${unit.name} · ${ROLE_NAMES[unit.role]}`; people.append(option);
+    }
+    people.value = eligible[0]?.id ?? '';
+    for (let rank = 1; rank <= state.armyTier; rank++) {
+      const option = document.createElement('option');
+      option.value = rank; option.textContent = RANK_NAMES[rank - 1]; ranks.append(option);
+    }
+    ranks.value = String(state.armyTier);
+    text('armoryFeedback', 'Los combatientes recogen su pieza en la Casa del Cuartel cuando termina la forja.');
+    renderArmory(); open('armoryDialog');
+  }
+  function closeArmory() { if (armoryFromWorks) openSettlement(); else resume(); }
+  function toggleArmory(playing) {
+    if ($('armoryDialog').open) closeArmory();
+    else if (playing || $('settlementDialog').open) openArmory();
+    else return false;
+    return true;
+  }
+  on('btnArmyArmory', openArmory); on('btnWorksArmory', openArmory); on('btnCloseArmory', closeArmory);
+  $('armoryPerson').addEventListener('change', renderArmory); $('armoryRank').addEventListener('change', renderArmory);
+  for (const [piece, id] of [['weapon', 'btnArmoryWeapon'], ['armor', 'btnArmoryArmor']]) on(id, () => {
+    const result = actions.orderKit(armoryUnit(), piece, Number($('armoryRank').value));
+    text('armoryFeedback', result.message); renderArmory(); update();
+  });
   let selectedPersonId=null;
   function renderPerson(){
     const u=state.units.find(n=>n.id===selectedPersonId);if(!u)return;
@@ -496,7 +557,7 @@ export function createUI({ state, session, settings, actions }) {
   }
   on('btnAssignProfession',()=>{const res=actions.assignRole(selectedPersonId,$('personNewRole').value);renderPerson();text('personFeedback',res.message);});
   on('btnPersonAuto',()=>{actions.autoRole(selectedPersonId);renderPerson();text('personFeedback','Elegirá su oficio preferido cuando haya herramientas y el camino sea seguro.');});
-  return { update, banner, open, openStory, closeAll, resume, menu, result, togglePause, toggleMap, applySettings, openPeople, openSettlement, renderWorldOverlay,
+  return { update, banner, open, openStory, closeAll, resume, menu, result, togglePause, toggleMap, toggleArmory, applySettings, openPeople, openSettlement, renderWorldOverlay,
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),
     connection: connected => { text('dbStatusLabel', connected ? 'Guardado en servidor' : 'Guardado local'); $('dbDot').classList.toggle('connected', connected); },

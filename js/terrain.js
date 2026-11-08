@@ -69,6 +69,22 @@ export function drawMist(g, width, ground, camera, night, time) {
   }
 }
 
+export function drawAmbientMotes(g, width, ground, camera, night, time) {
+  const left = camera - width / 2;
+  for (let cell = Math.floor((left - 30) / 47); cell <= (left + width + 30) / 47; cell++) {
+    const seed = Math.sin(cell * 73.13) * 5237.55;
+    const phase = seed - Math.floor(seed);
+    const flow = time * (.35 + phase * .4) + phase * Math.PI * 2;
+    const x = Math.round(cell * 47 - left + Math.sin(flow) * 15);
+    const y = Math.round(ground - 8 - phase * (night ? 67 : 118) + Math.cos(flow * .73) * 8);
+    if (night && phase > .66) continue;
+    g.globalAlpha = (night ? .52 : .25) * (.65 + .35 * Math.sin(flow * 1.8) ** 2);
+    g.fillStyle = night ? '#d4e49b' : '#eee2a3';
+    g.fillRect(x, y, phase > .55 ? 2 : 1, 1);
+  }
+  g.globalAlpha = 1;
+}
+
 export function drawVines(g, project, ground, width, time) {
   for (const [anchor, length, side] of [[-2320, 85, 1], [-1990, 112, -1], [-1270, 94, -1], [1755, 96, 1], [2088, 107, -1], [2440, 85, 1]]) {
     const x = project(anchor);
@@ -168,8 +184,8 @@ export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, fore
   }
 }
 
-export function drawVillage(g,toScreen,ground,night,time,settlement,reduceMotion=false) {
-  const sm=window.SpriteManager, buildings=[{kind:'hq',x:0,level:settlement.level,h:124},...settlement.homes.map(h=>({...h,kind:'home',h:80})),{...settlement.barracks,kind:'barracks',h:96}];
+export function drawVillage(g,toScreen,ground,night,time,settlement,armyTier,reduceMotion=false) {
+  const sm=window.SpriteManager, buildings=[{kind:'hq',x:0,level:settlement.level,h:124},...settlement.homes.map(h=>({...h,kind:'home',h:80}))];
   for(const b of buildings){
     const x=toScreen(b.x),y=ground-6;
     g.fillStyle='#14261a55';g.beginPath();g.ellipse(x,y+2,b.h*.48,5,0,0,Math.PI*2);g.fill();
@@ -184,17 +200,43 @@ export function drawVillage(g,toScreen,ground,night,time,settlement,reduceMotion
     g.fillStyle='#6d8b4d';for(let k=0;k<3;k++)g.fillRect(x+b.h*.37+2+k*2,y-17+k%2*2,2,8);
     g.fillStyle='#69452f';for(let k=0;k<3;k++)g.fillRect(x-b.h*.4+k*3,y-4-k%2*3,14,3);
   }
-  for(const job of settlement.projects){
-    const x=toScreen(job.x),w=job.kind==='hq'?115:75,h=job.kind==='hq'?95:65;
-    g.strokeStyle='#b19562';g.lineWidth=2;
-    for(const dx of [-w/2,w/2]){g.beginPath();g.moveTo(x+dx,ground);g.lineTo(x+dx,ground-h);g.stroke();}
-    for(let y=18;y<h;y+=20){g.beginPath();g.moveTo(x-w/2-4,ground-y);g.lineTo(x+w/2+4,ground-y);g.stroke();}
-    g.fillStyle='#12241d';g.fillRect(x-30,ground-h-13,60,6);g.fillStyle='#c5ad75';g.fillRect(x-29,ground-h-12,58*job.progress,4);
-    g.fillStyle='#efdcac';g.font='6px monospace';g.textAlign='center';g.fillText('EN CONSTRUCCIÓN',x,ground-h-18);
+  const rack = toScreen(-29);
+  g.fillStyle='#3d3022';g.fillRect(rack-12,ground-28,24,25);
+  g.fillStyle='#9b7444';g.fillRect(rack-13,ground-27,26,2);g.fillRect(rack-13,ground-5,26,2);
+  for (let weapon = 0; weapon < armyTier; weapon++) {
+    const x = rack - 8 + weapon * 8;
+    g.fillStyle = '#a87843'; g.fillRect(x, ground - 28, 2, 21);
+    g.fillStyle = ['#a5b2a5', '#d0d7b6', '#e4c271'][weapon];
+    g.fillRect(x - 1, ground - 35, 4, 8); g.fillRect(x, ground - 37, 2, 2);
+  }
+  if (armyTier > 1) {
+    g.fillStyle=armyTier===3?'#d4ad62':'#adbaa5';g.fillRect(rack+4,ground-23,7,8);g.fillRect(rack+5,ground-15,5,2);
+    g.fillStyle='#50574a';g.fillRect(rack+6,ground-20,3,4);
   }
   if(sm?.draw?.(g,'landmark_fire',['idle'],toScreen(70),ground,1,16,0))return;
   const x=toScreen(70);g.fillStyle='#5b402a';g.fillRect(x-7,ground-5,14,4);
   g.fillStyle='#d29a50';g.fillRect(x-4,ground-12,8,7);g.fillStyle='#e9c77e';g.fillRect(x-2,ground-16-(reduceMotion?0:Math.round(Math.sin(time*4))),4,9);
+}
+
+export function drawConstructionSites(g, toScreen, ground, width, projects) {
+  const sizes = { hq: [118, 108], home: [78, 64], wall: [36, 48], farm: [57, 32], rack: [45, 55], altar: [49, 64] };
+  for (const job of projects) {
+    const x = toScreen(job.x);
+    if (x < -80 || x > width + 80) continue;
+    const [w, h] = sizes[job.kind];
+    if (job.kind !== 'rack') {
+      for (const dx of [-w / 2, w / 2]) {
+        g.fillStyle = '#624629'; g.fillRect(x + dx - 1, ground - h, 4, h);
+        g.fillStyle = '#d2ac6b'; g.fillRect(x + dx, ground - h, 1, h);
+        for (let y = 15; y < h; y += 20) { g.fillStyle = '#efe0ae'; g.fillRect(x + dx - 2, ground - y, 5, 2); }
+      }
+      g.fillStyle = '#a77f49'; g.fillRect(x - w / 2 - 3, ground - h + 7, w + 6, 3);
+    }
+    g.fillStyle = '#12241d'; g.fillRect(x - 24, ground - h - 12, 48, 5);
+    g.fillStyle = '#dbb879'; g.fillRect(x - 23, ground - h - 11, 46 * job.progress, 3);
+    g.fillStyle = '#efdcac'; g.font = '7px monospace'; g.textAlign = 'center';
+    g.fillText(job.kind === 'rack' ? 'FORJANDO' : 'EN OBRA', x, ground - h - 17);
+  }
 }
 
 export function drawToolStand(g,x,ground,rack,tier,night){

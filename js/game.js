@@ -1,25 +1,26 @@
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=af0647a73f93';
-import { GROUND_COIN_LIFE } from './coins.js?v=af0647a73f93';
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=af0647a73f93';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=af0647a73f93';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=af0647a73f93';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=af0647a73f93';
-import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=af0647a73f93';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=af0647a73f93';
-import { AfroColombianAudioEngine } from './audio.js?v=af0647a73f93';
-import { createInitialState } from './world-state.js?v=af0647a73f93';
-import { makeSave, restoreSave } from './save-system.js?v=af0647a73f93';
-import { createRenderer } from './renderer.js?v=af0647a73f93';
-import { createSimulation } from './simulation.js?v=af0647a73f93';
-import { FixedStepper } from './clock.js?v=af0647a73f93';
-import { bindInput } from './input.js?v=af0647a73f93';
-import { createUI } from './ui.js?v=af0647a73f93';
-import { chooseDefenseSide } from './ai.js?v=af0647a73f93';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=af0647a73f93';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=af0647a73f93';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=af0647a73f93';
-import { mediateEncounter } from './community.js?v=af0647a73f93';
-import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=af0647a73f93';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=645f44b03ee0';
+import { GROUND_COIN_LIFE } from './coins.js?v=645f44b03ee0';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=645f44b03ee0';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=645f44b03ee0';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=645f44b03ee0';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=645f44b03ee0';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT } from './settlement.js?v=645f44b03ee0';
+import { emitEffect } from './effects.js?v=645f44b03ee0';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=645f44b03ee0';
+import { AfroColombianAudioEngine } from './audio.js?v=645f44b03ee0';
+import { createInitialState } from './world-state.js?v=645f44b03ee0';
+import { makeSave, restoreSave } from './save-system.js?v=645f44b03ee0';
+import { createRenderer } from './renderer.js?v=645f44b03ee0';
+import { createSimulation } from './simulation.js?v=645f44b03ee0';
+import { FixedStepper } from './clock.js?v=645f44b03ee0';
+import { bindInput } from './input.js?v=645f44b03ee0';
+import { createUI } from './ui.js?v=645f44b03ee0';
+import { chooseDefenseSide } from './ai.js?v=645f44b03ee0';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=645f44b03ee0';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=645f44b03ee0';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=645f44b03ee0';
+import { mediateEncounter } from './community.js?v=645f44b03ee0';
+import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=645f44b03ee0';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -41,7 +42,7 @@ const ui = createUI({ state, session, settings, actions: {
   continueGame: () => session.hasCampaign && state.status === 'playing' ? ui.resume() : loadGameFromMySQL(),
   clearInput: () => input?.clear(), fullscreen: toggleFullscreen,
   settings: changeSettings, volume: v => audio.setVolume(v), politics: choosePolitics,
-  leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction, inspectNpc, assignRole, autoRole, node:()=>getNearestInteractiveNode(state.benkos.x), worldPrices, orderKit: (unit,piece)=>orderEquipment(unit,piece,state), build: (kind,id)=>requestBuilding(state,kind,id)
+  leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction, inspectNpc, assignRole, autoRole, node:()=>getNearestInteractiveNode(state.benkos.x), worldPrices, orderKit: (unit, piece, rank) => orderEquipment(unit, piece, state, rank), build: (kind,id)=>requestBuilding(state,kind,id)
 }});
 function updateHUD() { ui.update(); }
 
@@ -164,7 +165,7 @@ function upgradeArmyTier(debug = false) {
   state.armyTier++;
   audio.playSfx('roar');
   const name = state.armyTier === 2 ? 'Élite' : 'Real';
-  showBanner(`RANGO ${name.toUpperCase()} DISPONIBLE`, 'Encarga armas y armaduras en la ficha de cada combatiente. Se recogen en el cuartel.');
+  showBanner(`RANGO ${name.toUpperCase()} DISPONIBLE`, 'Pulsa G para ver y encargar las nuevas armas y armaduras de la Casa del Cuartel.');
   updateHUD();
 }
 
@@ -264,6 +265,11 @@ function updateStoryProgress() {
 }
 
 // ==================== 5. DIEGETIC INTERACTIVE NODES ====================
+function buildingInProgress(job, title) {
+  return { id: job.targetId, x: job.x, title, sub: 'La obra avanza mientras juegas.', locked: true,
+    cost: 0, getFilled: () => 0, job };
+}
+
 function getInteractionNodes() {
   const candidates = [];
 
@@ -287,7 +293,9 @@ function getInteractionNodes() {
   }
 
   const nextSkill = state.skills.find((s) => !s.unlocked);
-  if (nextSkill && state.exploration.altarFound) {
+  const altarJob = constructionAt(state, 'node_altar');
+  if (altarJob) candidates.push(buildingInProgress(altarJob, 'Santuario de los Ancestros'));
+  else if (nextSkill && state.exploration.altarFound) {
     candidates.push({
       id: 'node_altar',
       x: ALTAR_X,
@@ -297,14 +305,7 @@ function getInteractionNodes() {
       cost: nextSkill.cost,
       getFilled: () => state.altarSlotsFilled,
       setFilled: (v) => { state.altarSlotsFilled = v; },
-      onComplete: () => {
-        nextSkill.unlocked = true;
-        state.altarTier = nextSkill.level;
-        audio.playSfx('roar');
-        addParticles(ALTAR_X, WATER_LINE_Y - 36, 26, '#fde047', 110);
-        showBanner(`¡PODER DEL JAGUAR DESBLOQUEADO: ${nextSkill.name.toUpperCase()}!`, `Altar de nivel ${state.altarTier}.`);
-        updateHUD();
-      }
+      onComplete: () => queueConstruction(state, 'altar', { id: 'node_altar', x: ALTAR_X }, nextSkill.level, 4)
     });
   }
 
@@ -325,6 +326,8 @@ function getInteractionNodes() {
   });
 
   state.toolRacks.forEach((rk) => {
+    const job = constructionAt(state, rk.id);
+    if (job) { candidates.push(buildingInProgress(job, rk.label)); return; }
     if (rk.stock < rk.maxStock && (state.armyTier >= 2 || !['ESPADACHIN','CABALLERO_ALIADO'].includes(rk.role))) {
       candidates.push({
         id: rk.id,
@@ -335,26 +338,24 @@ function getInteractionNodes() {
         cost: rk.cost,
         getFilled: () => rk.filledSlots,
         setFilled: (v) => { rk.filledSlots = v; },
-        onComplete: () => {
-          rk.stock++;
-          addParticles(rk.x, WATER_LINE_Y - 24, 14, '#fde047', 75);
-          addFloatingText(rk.x, WATER_LINE_Y - 42, `+1 ${rk.label}`, '#4ade80');
-          updateHUD();
-        }
+        onComplete: () => queueConstruction(state, 'rack', rk, null, 3)
       });
     }
   });
 
   state.walls.forEach((w) => {
+    const job = constructionAt(state, w.id);
+    if (job) { candidates.push(buildingInProgress(job, 'Muralla')); return; }
     const isDamaged = w.level > 0 && w.hp < w.maxHp * 0.8;
     if (w.level < 5 || isDamaged) {
+      const repair = w.paymentRepair ?? isDamaged;
       const required = w.level + 1;
-      const unlocked = isDamaged || (required <= state.settlement.level && required <= state.settlement.barracks.level + 1);
-      const locked = unlocked ? '' : `Requiere casa central de nivel ${required} y cuartel de nivel ${required - 1}.`;
-      const cost = w.level === 0 ? 2 : (isDamaged ? 2 : w.level * 2 + 1);
+      const unlocked = repair || required <= state.settlement.level;
+      const locked = unlocked ? '' : `Requiere Casa del Cuartel de nivel ${required}.`;
+      const cost = w.level === 0 ? 2 : (repair ? 2 : w.level * 2 + 1);
       const label = w.level === 0
         ? ' Levantar Empalizada'
-        : (isDamaged ? ' Reparar Empalizada' : ` Mejorar Muralla a Nv.${w.level + 1}`);
+        : (repair ? ' Reparar Empalizada' : ` Mejorar Muralla a Nv.${w.level + 1}`);
       candidates.push({
         id: w.id,
         x: w.x,
@@ -363,24 +364,15 @@ function getInteractionNodes() {
         height: [11, 59, 69, 75, 81, 91][w.level], locked,
         cost,
         getFilled: () => w.filledSlots,
-        setFilled: (v) => { w.filledSlots = v; },
-        onComplete: () => {
-          if (isDamaged) {
-            w.hp = w.maxHp;
-            addFloatingText(w.x, WATER_LINE_Y - 45, '¡Muralla Reparada!', '#4ade80');
-          } else {
-            w.level++;
-            w.maxHp = 150 + w.level * 90;
-            w.hp = w.maxHp;
-            addFloatingText(w.x, WATER_LINE_Y - 45, `¡Empalizada Nv.${w.level}!`, '#fde047');
-          }
-          addParticles(w.x, WATER_LINE_Y - 28, 18, '#f59e0b', 80);
-        }
+        setFilled: (v) => { w.filledSlots = v; if (v) w.paymentRepair = repair; else delete w.paymentRepair; },
+        onComplete: () => queueConstruction(state, 'wall', w, repair ? w.level : required, repair ? 3 : 4 + w.level, repair)
       });
     }
   });
 
   state.farms.forEach((f) => {
+    const job = constructionAt(state, f.id);
+    if (job) { candidates.push(buildingInProgress(job, 'Granja de yuca')); return; }
     if (f.level < 2) {
       const locked = f.level === 1 && state.settlement.level < 2 ? 'Requiere casa central de nivel 2.' : '';
       candidates.push({
@@ -392,11 +384,7 @@ function getInteractionNodes() {
         cost: f.cost,
         getFilled: () => f.filledSlots,
         setFilled: (v) => { f.filledSlots = v; },
-        onComplete: () => {
-          f.level++;
-          addParticles(f.x, WATER_LINE_Y - 15, 16, '#4ade80', 70);
-          addFloatingText(f.x, WATER_LINE_Y - 40, `¡Granja de Yuca Nv.${f.level}!`, '#4ade80');
-        }
+        onComplete: () => queueConstruction(state, 'farm', f, f.level + 1, 4)
       });
     }
   });
@@ -424,24 +412,23 @@ function getInteractionNodes() {
 }
 
 function worldPrices() {
-  const nodes = getInteractionNodes().filter(node => !node.id.startsWith('tree_') || Math.abs(node.x - state.benkos.x) < 50);
+  const nodes = getInteractionNodes().filter(node => node.cost && (!node.id.startsWith('tree_') || Math.abs(node.x - state.benkos.x) < 50));
   const prices = nodes.map(node => ({
     id: node.id, x: node.x, height: node.height, cost: node.cost,
     paid: node.getFilled() || 0, locked: !!node.locked, title: node.title.trim()
   }));
   for (const [kind, id, size, title] of [
-    ['hq', 'hq', 124, 'Casa central'], ['barracks', 'barracks', 96, 'Cuartel'],
+    ['hq', 'hq', 124, 'Casa del Cuartel'],
     ...state.settlement.homes.map(home => ['home', home.id, 80, 'Vivienda'])
   ]) {
     const info = upgradeInfo(state, kind, id);
     if (!info.next) continue;
-    const job = state.settlement.projects.find(project => project.targetId === id);
     const sprite = window.SpriteManager.atlas?.[`building_${kind}_${info.target.level}`];
     const frame = sprite?.anims.idle[0];
     const height = 11 + (frame ? (frame.ay - frame.top) * size / sprite.ref : size * .78);
     prices.push({
       id: kind === 'hq' ? 'node_central_house' : 'works_' + id, x: info.target.x, height, cost: info.coins,
-      paid: job ? info.coins : 0, locked: !job && !!info.reason, title: title + ' · ' + (kind === 'hq' ? 'S' : 'B'), works: kind !== 'hq'
+      paid: info.paid, locked: !!info.reason, title: title + ' · ' + (kind === 'hq' ? 'S' : 'B'), works: kind !== 'hq'
     });
   }
   return prices;
@@ -450,9 +437,10 @@ function worldPrices() {
 function getNearestInteractiveNode(bx) {
   if (Math.abs(bx) < 23) {
     const info = upgradeInfo(state, 'hq', 'hq');
-    return { id: 'node_central_house', x: 0, title: 'Casa central',
-      sub: info.reason || `Mantén S para subir a nivel ${info.next} · ${storyChapter(state) > 1 ? 'E: Consejo · B: Obras' : 'E para ver Obras'}`,
-      locked: !!info.reason, cost: info.coins || 0, getFilled: () => 0,
+    if (info.job) return buildingInProgress(info.job, 'Casa del Cuartel');
+    return { id: 'node_central_house', x: 0, title: 'Casa del Cuartel',
+      sub: info.reason || `Mantén S para aportar reales · G: Armería · ${storyChapter(state) > 1 ? 'E: Consejo' : 'B: Obras'}`,
+      locked: !!info.reason, cost: info.coins || 0, getFilled: () => info.paid || 0,
       purchase: () => requestBuilding(state, 'hq', 'hq') };
   }
   let best = null;
@@ -484,12 +472,6 @@ function refundUnfinishedSlots(activeId) {
   }
   state.toolRacks.forEach((rk) => {
     if (rk.id !== activeId && rk.filledSlots > 0) { refundAmount(rk.filledSlots, rk.x); rk.filledSlots = 0; }
-  });
-  state.walls.forEach((w) => {
-    if (w.id !== activeId && w.filledSlots > 0) { refundAmount(w.filledSlots, w.x); w.filledSlots = 0; }
-  });
-  state.farms.forEach((f) => {
-    if (f.id !== activeId && f.filledSlots > 0) { refundAmount(f.filledSlots, f.x); f.filledSlots = 0; }
   });
   state.trees.forEach((tr) => {
     if (tr.id !== activeId && tr.filledSlots > 0) { refundAmount(tr.filledSlots, tr.x); tr.filledSlots = 0; }
@@ -535,6 +517,7 @@ function handleInteractOrMount() {
     const inBag = Math.min(cache.coins, state.maxCoins - state.coins);
     giveCoinToBenkos(inBag, cache.x);
     for (let i = inBag; i < cache.coins; i++) spawnPhysicalCoin(cache.x + i * 6, WATER_LINE_Y - 8, i * 8 - 8, -62, true);
+    emitEffect(state, 'spark', cache.x, WATER_LINE_Y - 14, 0, .8);
     showBanner(cache.name, `Encontraste ${cache.coins} reales y ${cache.wood || cache.stone} de ${cache.wood ? 'madera' : 'piedra'}.`);
     return;
   }
@@ -562,6 +545,7 @@ function handleInteractOrMount() {
     }
     state.treasuryCoins -= take;
     state.coins += take;
+    emitEffect(state, 'spark', 48, WATER_LINE_Y - 12, 0, .65);
     audio.playSfx('coinPickup');
     addFloatingText(48, WATER_LINE_Y - 42, `+${take} reales  Retiradas del Cofre`, '#fde047');
     updateHUD();
@@ -588,7 +572,8 @@ function resolveBenkosHit(){
         en.bleedTimer = 3.0;
         hitAny = true;
         addFloatingText(en.x, en.y - 38, `-${Math.round(baseDmg)}`, b.comboStep === 3 ? '#fde047' : '#f87171');
-        addParticles(en.x, en.y - 20, 8, '#ef4444', 85);
+        emitEffect(state, 'blood', en.x, en.y - 20, b.attackFacing);
+        emitEffect(state, 'spark', en.x, en.y - 23, b.attackFacing, .45);
       }
     }
   });
@@ -619,14 +604,16 @@ function resolveBenkosHit(){
 
 function damageHacienda(hac, dmg) {
   hac.hp -= dmg;
-  addParticles(hac.x, WATER_LINE_Y - 35, 8, '#f97316', 90);
+  emitEffect(state, 'wood', hac.x, WATER_LINE_Y - 35, state.benkos.attackFacing, .65);
   addFloatingText(hac.x, WATER_LINE_Y - 58, `-${Math.round(dmg)} `, '#fb923c');
   if (hac.hp <= 0) {
     const { first, captives } = conquerHacienda(state, hac);
     onEstateLiberated(state, hac, captives);
     state.screenShake = 12;
     audio.playSfx('roar');
-    addParticles(hac.x, WATER_LINE_Y - 40, 45, '#fde047', 160);
+    emitEffect(state, 'wood', hac.x, WATER_LINE_Y - 41, 0, 2.2);
+    emitEffect(state, 'stone', hac.x, WATER_LINE_Y - 26, 0, 2);
+    emitEffect(state, 'dust', hac.x, WATER_LINE_Y - 15, 0, 2.4);
     for (let i = 0; i < (first ? 12 : 4); i++) {
       spawnPhysicalCoin(hac.x + (Math.random() * 40 - 20), WATER_LINE_Y - 30, (Math.random() - 0.5) * 140, -140 - Math.random() * 50, true, false);
     }
@@ -706,6 +693,7 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
   if (b.dashTimer > 0 || b.invulnTimer > 0) return;
 
   if (b.ceibaTimer > 0) {
+    emitEffect(state, 'spark', b.x, WATER_LINE_Y - 24, knockDir);
     addFloatingText(b.x, WATER_LINE_Y - 38, '¡Piel de Ceiba Rebota Golpe!', '#4ade80');
     return;
   }
@@ -713,6 +701,7 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
   b.invulnTimer=.65;b.hurtTimer=.4;b.attackTimer=0;b.queuedAttack=false;b.comboWindow=0;b.attackCooldown=Math.max(b.attackCooldown,.25);
   b.vx = (knockDir || -b.facing) * 115;
   state.screenShake = 5;
+  emitEffect(state, b.royalArmor ? 'spark' : 'blood', b.x, WATER_LINE_Y - 22, knockDir);
 
   const coinsLost = Math.min(state.coins, Math.max(1, Math.round(rawDmg / 8)));
   if (coinsLost > 0) {
@@ -801,7 +790,7 @@ function newGame() {
       state.armorUnlocked = true;
     }
     if (reviewScene === 'equipment') {
-      state.altarTier = state.armyTier = state.settlement.level = state.settlement.barracks.level = 2;
+      state.altarTier = state.armyTier = state.settlement.level = 2;
       state.skills[1].unlocked = true;
       state.benkos.x = 100;
       state.units = [];
@@ -928,6 +917,7 @@ function debugAction(id) {
 }
 input = bindInput({ keys, isPlaying, openSettlement:()=>ui.openSettlement(), inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
   toggleMap: ui.toggleMap,
+  toggleArmory: ui.toggleArmory,
   toggleArmor, togglePause: ui.togglePause, save: () => saveGameToMySQL(), load: loadGameFromMySQL,
   toggleArmy: ui.toggleArmy, toggleFullscreen, rest:()=>{if(!state.benkos.attackTimer&&!state.benkos.interaction)state.benkos.resting=!state.benkos.resting;},
   torch: () => {

@@ -35,7 +35,7 @@ try {
   s.exploration.altarFound=true;s.exploration.opened=['ceiba_cache'];s.benkos.torchOff=true;
   s.units[1].recoveredCoins=2;
   s.droppedCoins.push({id:77,x:-403,y:268,vx:0,vy:0,life:120,recoverable:true,pickupDelay:0});
-  s.settlement.level=3;s.settlement.barracks.level=2;s.settlement.projects.push({id:'hq_4',kind:'hq',targetId:'hq',targetLevel:4,x:0,duration:23,progress:.42});
+  s.settlement.level=3;s.settlement.deposits.home_inner=2;s.settlement.projects.push({id:'hq_4',kind:'hq',targetId:'hq',targetLevel:4,x:0,duration:8,progress:.42});
   s.campaign.orders.push({id:'warning',type:'HERALDO_ALADO',side:1,eta:25,kind:'boss'});
   s.campaign.letters.push({id:'message',day:1,title:'Un mensajero',text:'La patrulla viene del camino este.',read:false});
   s.story.plan='guides';s.story.treaty='signed';s.story.completed=['hacienda_jegua'];

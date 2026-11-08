@@ -30,6 +30,7 @@ Los valores predeterminados de XAMPP son `127.0.0.1`, usuario `root`, contraseñ
 | C | Armadura, disponible desde el rango Real |
 | R / T | Descansar / antorcha |
 | B | Obras, materiales y vista previa de evoluciones |
+| G | Armería, vista previa y encargos para combatientes |
 | F / clic sobre una persona | Ficha, dones, experiencia y cambio de oficio |
 | Tab / Escape | Ejército / pausa |
 | F5 / F9 | Guardar / cargar |
@@ -53,13 +54,17 @@ Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y bus
 
 La campaña se desarrolla en tres capítulos. En el primero, libera las haciendas próximas. En el segundo, pulsa **E** frente a la casa central para convocar al consejo y organizar expediciones al Paso de Jegua y la Boca de Marea. Puedes llevar hasta tres aliados. Vence a la guarnición, rompe el portón y vuelve a la Matuna con las personas rescatadas. Si las pierdes a todas, puedes volver a intentarlo cuando el puesto se ocupe de nuevo. En el tercer capítulo, el consejo elige a quién proteger y por dónde se librará la última defensa.
 
-El **tótem** exige el nivel correspondiente del **cuartel central** y los reales indicados. El cuartel y las viviendas dependen de la casa central. Las murallas dependen de la casa y del cuartel. El altar se usa para los poderes del jaguar.
+El **tótem** exige el nivel correspondiente de la **Casa del Cuartel** y los reales indicados. Las viviendas y murallas también se habilitan con el nivel de ese edificio. El altar se usa para los poderes del jaguar.
 
 La campaña imagina los destinos, diálogos, combates y decisiones. La Matuna, la resistencia liderada por Benkos Biohó, sus negociaciones con las autoridades coloniales y su ejecución en Cartagena en 1621 forman parte del contexto histórico. [Biografía de Benkos Biohó, Banco de la República](https://enciclopedia.banrepcultural.org/Benkos_Bioh%C3%B3)
 
-## Casa central y rescates · edición 12
+## Casa del Cuartel y armería · edición 13.2
 
-Mantén **S** frente a la casa central o compra su evolución en **B**. Los niveles II a V cuestan 6, 8, 12 y 16 reales de la bolsa. Cada mejora se aplica al pagar. Las obras pagadas de la casa central se terminan al cargar una partida anterior. Las viviendas y el cuartel se encargan desde Obras con los requisitos de sus fichas.
+Mantén **S** frente a la Casa del Cuartel o usa **Aportar 1 real** en **B**. Los niveles II a V cuestan 6, 8, 12 y 16 reales de la bolsa y tardan de 5 a 10 segundos de juego. Las murallas, granjas y viviendas también tienen tiempo de obra. Al cargar una partida anterior se conserva el nivel más alto entre la casa y el cuartel y se reanuda la mejora que siga pendiente.
+
+Pulsa **G** para ver las armas y armaduras desbloqueadas. Elige a un combatiente y el rango de la pieza. El encargo requiere tres segundos de forja y se recoge en la Casa del Cuartel durante el día, cuando el camino sea seguro.
+
+## Rescates · edición 12
 
 Las haciendas empiezan con tres cautivos. Ataca el portón con **Espacio** para liberarlos y protege su camino a la Matuna, donde buscarán oficio. Pasados tres minutos de juego, un nuevo destacamento puede ocupar la hacienda cuando esté fuera de vista. La primera conquista sigue contando para la campaña.
 
@@ -75,7 +80,7 @@ Las texturas de suelo, los fondos y los elementos del sendero se generaron con I
 
 ## Evolución, equipo y vida cotidiana · edición 10
 
-Mantén **S** ante el altar para subirlo de nivel y cambiar su arquitectura. Las viviendas y el cuartel siguen el nivel de la casa, y las murallas y granjas muestran sus requisitos. **B** abre las obras y permite comparar los cinco diseños del altar. Los círculos sobre los puestos o edificios muestran el precio en reales y se esconden durante el combate.
+Mantén **S** ante el altar para subirlo de nivel y cambiar su arquitectura. **B** abre las obras y permite comparar los cinco diseños del altar. Los círculos sobre los puestos o edificios muestran el precio en reales y se esconden durante el combate.
 
 El tótem desbloquea los rangos Élite y Real al alcanzar el nivel necesario del cuartel central. En **F** puedes encargar una pieza para lanceros, arqueros y espadachines. El encargo se paga una sola vez. Su dueño recoge la pieza en el cuartel durante el día, cuando el camino es seguro. El arma y la armadura se compran por separado. El arma mejora el daño y la armadura aumenta la salud máxima. Para Benkos, **C** compra la armadura por ocho reales una vez disponible el rango Real y después permite alternarla.
 
@@ -119,9 +124,9 @@ Tras editar el cliente o regenerar atlas, ejecuta `npm run client:stamp` antes d
 
 ## Evolución del palenque · edición 6
 
-La tecla **B** abre las obras y un catálogo visual de los cinco niveles. La casa central evoluciona de palma a madera, bahareque, piedra con teja y cantería tallada. Cada nivel permite mejorar las tres viviendas y el cuartel hasta ese mismo nivel. Las viviendas añaden un 15% de recuperación adicional por nivel a quienes descansan o se recuperan en el poblado; el cuartel añade un 6% de daño por nivel a las tropas. Casa central y cuartel de nivel IV/V permiten mejorar las murallas a esos niveles; sus materiales y siluetas cambian.
+La tecla **B** abre las obras y un catálogo visual de los cinco niveles. La Casa del Cuartel evoluciona de palma a madera, bahareque, piedra con teja y cantería tallada. Las viviendas añaden un 15 % de recuperación adicional por nivel a quienes descansan o se recuperan en el poblado. Al mejorar las murallas también cambian sus materiales y siluetas.
 
-Las obras de viviendas y cuartel descuentan reales y materiales una sola vez. Un constructor camina al edificio y trabaja mientras sea seguro. Las partidas nuevas empiezan con un constructor. Puedes proponer este oficio desde **F** y equipar el puesto de martillos si hace falta. El avance de las obras se guarda con la partida.
+Los constructores se acercan a las obras y trabajan mientras sea seguro. Puedes proponer este oficio desde **F** y equipar el puesto de martillos si hace falta. Los aportes y el avance de las obras se guardan con la partida.
 
 Los leñadores entregan entre 4 y 6 unidades de madera por árbol, según su fuerza; los mineros entregan 2 de piedra por viaje además de la plata. La carga se lleva físicamente al cofre. Los árboles talados vuelven a crecer tres días después. Para cambiar de oficio, una persona termina primero su entrega.
 

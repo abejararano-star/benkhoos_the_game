@@ -1,9 +1,9 @@
-import { initialCommunity } from './community.js?v=af0647a73f93';
-import { initialStory, majorHaciendas } from './story.js?v=af0647a73f93';
-import { initialEcology } from './ecology.js?v=af0647a73f93';
-import { initialExploration } from './exploration.js?v=af0647a73f93';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=af0647a73f93';
-import { initialSettlement } from './settlement.js?v=af0647a73f93';
+import { initialCommunity } from './community.js?v=645f44b03ee0';
+import { initialStory, majorHaciendas } from './story.js?v=645f44b03ee0';
+import { initialEcology } from './ecology.js?v=645f44b03ee0';
+import { initialExploration } from './exploration.js?v=645f44b03ee0';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=645f44b03ee0';
+import { initialSettlement } from './settlement.js?v=645f44b03ee0';
 export function createInitialState() {
 const state = {
   status: "playing",

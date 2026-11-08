@@ -14,9 +14,9 @@ test('a purchased weapon survives reload and only changes when its owner reaches
   const state = createInitialState();
   const unit = person(8, 'ESPADACHIN', 100);
   state.units = [unit];
-  assert.match(armyRequirement(state), /cuartel central/);
+  assert.match(armyRequirement(state), /Casa del Cuartel/);
   assert.equal(orderEquipment(unit, 'weapon', state).success, false);
-  state.settlement.barracks.level = 2;
+  state.settlement.level = 2;
   assert.equal(armyRequirement(state), '');
   state.armyTier = 2;
   const originalHealth = unit.maxHp;
@@ -26,6 +26,8 @@ test('a purchased weapon survives reload and only changes when its owner reaches
   assert.equal(orderEquipment(unit, 'armor', state).success, false);
   const loaded = restoreSave(makeSave(state, 100), createInitialState()).state;
   const soldier = loaded.units[0];
+  assert.equal(soldier.kitOrder.remaining, 3);
+  soldier.kitOrder.remaining = 0;
   loaded.enemies = [{ hp: 40, x: 180 }];
   assert.equal(collectEquipment(soldier, loaded, 1 / 60, personMaxHp), false);
   loaded.enemies = [];
@@ -34,6 +36,7 @@ test('a purchased weapon survives reload and only changes when its owner reaches
   assert.equal(soldier.maxHp, originalHealth);
   assert.equal(loaded.coins, 12);
   assert.ok(orderEquipment(soldier, 'armor', loaded).success);
+  soldier.kitOrder.remaining = 0;
   collectEquipment(soldier, loaded, 1 / 60, personMaxHp);
   assert.deepEqual(soldier.equipment, { weapon: 2, armor: 2 });
   assert.ok(soldier.maxHp > originalHealth);

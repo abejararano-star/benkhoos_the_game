@@ -1,12 +1,12 @@
-import { restoreCommunity } from './community.js?v=af0647a73f93';
-import { ensureEcology, seedEcology } from './ecology.js?v=af0647a73f93';
-import { seedFrontier } from './exploration.js?v=af0647a73f93';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=af0647a73f93';
-import { ensurePerson } from './people.js?v=af0647a73f93';
-import { ensureSettlement } from './settlement.js?v=af0647a73f93';
-import { ensureCampaign } from './campaign.js?v=af0647a73f93';
-import { restoreHaciendas } from './haciendas.js?v=af0647a73f93';
-import { restoreStory } from './story.js?v=af0647a73f93';
+import { restoreCommunity } from './community.js?v=645f44b03ee0';
+import { ensureEcology, seedEcology } from './ecology.js?v=645f44b03ee0';
+import { seedFrontier } from './exploration.js?v=645f44b03ee0';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=645f44b03ee0';
+import { ensurePerson } from './people.js?v=645f44b03ee0';
+import { ensureSettlement } from './settlement.js?v=645f44b03ee0';
+import { ensureCampaign } from './campaign.js?v=645f44b03ee0';
+import { restoreHaciendas } from './haciendas.js?v=645f44b03ee0';
+import { restoreStory } from './story.js?v=645f44b03ee0';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -116,7 +116,8 @@ export function restoreSave(save, defaults) {
     if (unit.recoveredCoins !== undefined) unit.recoveredCoins = Math.floor(number(unit.recoveredCoins, 0, 0, 4));
     const order = unit.kitOrder;
     if (order && (!unit.equipment || !['weapon', 'armor'].includes(order.piece) || ![2, 3].includes(order.rank) ||
-      order.rank !== unit.equipment[order.piece] + 1 || order.cost !== (order.piece === 'weapon' ? 2 : 3) + order.rank)) unit.kitOrder = null;
+      order.rank <= unit.equipment[order.piece] || order.cost !== (order.piece === 'weapon' ? 2 : 3) + order.rank)) unit.kitOrder = null;
+    if (unit.kitOrder?.remaining !== undefined) unit.kitOrder.remaining = number(unit.kitOrder.remaining, 0, 0, 3);
     const grief = unit.grief;
     if (grief && (typeof grief.name !== 'string' || !Number.isFinite(grief.remaining) || !Number.isFinite(grief.duration) ||
       grief.remaining <= 0 || grief.remaining > grief.duration)) unit.grief = null;

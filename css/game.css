@@ -910,6 +910,17 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 .reduce-motion .map-active-route{animation:none}
 @media(max-width:640px){.territory-detail{align-items:flex-start;flex-direction:column}.map-marker.lower{white-space:normal;width:68px;padding:4px}.map-marker.upper{padding:4px}}
 @media(prefers-reduced-motion:reduce){.map-active-route{animation:none}}
+.armory-dialog{width:min(690px,94vw);max-height:90vh;overflow:auto}
+.armory-dialog .dialog-content{width:100%;max-width:none;padding:clamp(14px,4vw,32px)}
+.armory-selects{display:flex;flex-wrap:wrap;gap:12px 22px;margin:14px 0;color:#d9c598}
+.armory-selects select{display:block;max-width:100%;margin-top:6px}
+.armory-showcase{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.armory-showcase section{display:flex;flex-direction:column;align-items:flex-start;padding:12px;border:1px solid #977a4e70;background:#192923}
+.armory-showcase canvas{width:100%;height:145px;object-fit:contain;image-rendering:pixelated;background:radial-gradient(ellipse at 50% 70%,#53604b,#172a23 75%);border-bottom:1px solid #9c83595e}
+.armory-showcase h3{margin:12px 0 3px;color:#f0d8a5;font:600 21px Georgia,serif}
+.armory-showcase p{margin:5px 0 12px;color:#c7d0b5;font-size:11px;flex:1}
+#armoryFeedback{color:#e7cc8d;min-height:2.8em;margin:14px 0 0;font-size:12px}
+@media(max-width:520px){.armory-showcase{gap:8px}.armory-showcase section{padding:8px}.armory-showcase canvas{height:115px}}
 @media(prefers-reduced-motion:no-preference){body:not(.reduce-motion) .story-scene[open] .story-dialogue{animation:story-reveal .35s ease-out}@keyframes story-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}}
 @media(max-height:650px) { .campaign-notice { bottom:142px; font-size:9px; padding:6px 12px; } .person-profile { grid-template-columns:90px 1fr; } .person-profile canvas { width:90px; height:112px; } }
 

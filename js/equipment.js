@@ -1,3 +1,5 @@
+import { HQ_X } from './settlement.js?v=645f44b03ee0';
+
 export const INFANTRY = ['GUERRERO', 'ARQUERO', 'ESPADACHIN'];
 export const RANK_NAMES = ['Básico', 'Élite', 'Real'];
 export const ROYAL_ARMOR_COST = 8;
@@ -17,18 +19,19 @@ export function ensureEquipment(unit) {
 export function armyRequirement(state) {
   const next = state.armyTier + 1;
   if (next > 3) return 'Rango máximo alcanzado.';
-  if (state.settlement.barracks.level < next) return `Requiere cuartel central de nivel ${next}. Amplíalo en Obras (B).`;
+  if (state.settlement.level < next) return `Requiere Casa del Cuartel de nivel ${next}.`;
   return '';
 }
 
-export function equipmentOffer(unit, piece, state) {
-  if (!INFANTRY.includes(unit.role) || !['weapon', 'armor'].includes(piece)) return null;
+export function equipmentOffer(unit, piece, state, requestedRank) {
+  if (!INFANTRY.includes(unit?.role) || !['weapon', 'armor'].includes(piece)) return null;
   ensureEquipment(unit);
-  const rank = unit.equipment[piece] + 1;
+  const rank = requestedRank ?? unit.equipment[piece] + 1;
   const cost = (piece === 'weapon' ? 2 : 3) + rank;
   const item = piece === 'armor' ? 'Armadura' : { GUERRERO: 'Lanza', ARQUERO: 'Arco', ESPADACHIN: 'Espada' }[unit.role];
   let reason = '';
-  if (rank > 3) reason = 'Equipo de rango máximo.';
+  if (!Number.isInteger(rank) || rank > 3) reason = 'Equipo de rango máximo.';
+  else if (rank <= unit.equipment[piece]) reason = 'Ya tiene equipo de este rango o superior.';
   else if (unit.kitOrder) reason = 'Tiene un encargo por recoger.';
   else if (unit.requestedRole) reason = 'Está preparando un cambio de oficio.';
   else if (state.armyTier < rank) reason = `Requiere rango ${RANK_NAMES[rank - 1]}.`;
@@ -36,22 +39,22 @@ export function equipmentOffer(unit, piece, state) {
   return { piece, rank, cost, item, reason };
 }
 
-export function orderEquipment(unit, piece, state) {
-  const offer = equipmentOffer(unit, piece, state);
+export function orderEquipment(unit, piece, state, rank) {
+  const offer = equipmentOffer(unit, piece, state, rank);
   if (!offer || offer.reason) return { success: false, message: offer?.reason || 'Este oficio tiene su propio equipo.' };
   state.coins -= offer.cost;
-  unit.kitOrder = { piece, rank: offer.rank, cost: offer.cost, item: offer.item };
-  return { success: true, message: `${unit.name} recogerá el equipo en el cuartel cuando sea seguro.` };
+  unit.kitOrder = { piece, rank: offer.rank, cost: offer.cost, item: offer.item, remaining: 3 };
+  return { success: true, message: `${unit.name} recogerá la pieza en la Casa del Cuartel tras 3 s de forja, cuando el camino sea seguro.` };
 }
 
 export function collectEquipment(unit, state, dt, maxHealth) {
   const order = unit.kitOrder;
-  const x = state.settlement.barracks.x;
-  if (!order || state.phase !== 'DAY_EXPLORE' || state.enemies.some(enemy => enemy.hp > 0 &&
+  const x = HQ_X;
+  if (!order || order.remaining > 0 || state.phase !== 'DAY_EXPLORE' || state.enemies.some(enemy => enemy.hp > 0 &&
     (Math.abs(enemy.x - unit.x) < 335 || Math.abs(enemy.x - x) < 335))) return false;
   const distance = x - unit.x;
   unit.activity = 'EQUIP';
-  unit.mood = 'Recogiendo equipo en el cuartel';
+  unit.mood = 'Recogiendo equipo en la Casa del Cuartel';
   if (Math.abs(distance) > 12) {
     unit.facing = Math.sign(distance);
     unit.vx = unit.facing * 64;
