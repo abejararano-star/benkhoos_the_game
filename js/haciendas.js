@@ -1,5 +1,5 @@
-import { BALANCE } from './config.js?v=8d54c297ea97';
-import { estateById } from './story.js?v=8d54c297ea97';
+import { BALANCE } from './config.js?v=af0647a73f93';
+import { estateById } from './story.js?v=af0647a73f93';
 
 const PRISONERS = [-23, 0, 23];
 const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];

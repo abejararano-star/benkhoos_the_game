@@ -877,6 +877,39 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 #storyProgress{margin-right:auto;color:#d0b37e;font:12px monospace}
 .minimap .estate{width:7px;height:7px;border-radius:2px}
 .minimap .expedition-target{outline:1px solid #fff2bc;outline-offset:2px}
+.map-shortcut{display:block;margin-top:10px;padding:5px 7px;font-size:10px;color:#eddaac;background:#162922;border-color:#b7985966;text-align:left}
+.map-shortcut kbd{margin-left:4px}
+.territory-dialog{width:min(960px,94vw);max-height:92vh;padding:0;overflow:auto;border:1px solid #91784f;background:#111f1b;color:#efe6ce}
+.territory-content{padding:clamp(16px,3vw,32px)}
+.territory-content .panel-heading h2{font:600 clamp(24px,4vw,38px) Georgia,serif}
+.territory-chart{--stem:clamp(37px,5.7vh,54px);position:relative;height:clamp(245px,38vh,360px);margin-top:18px;border:1px solid #a387576e;background:radial-gradient(ellipse at 46% 50%,#344138,#1b2a26 74%);overflow:hidden}
+.territory-art,.map-markers{position:absolute;inset:0;width:100%;height:100%}
+.terrain-contours{stroke:#8aa278;stroke-opacity:.32;stroke-width:1.2}
+.map-streams{stroke:#86bcb6;stroke-opacity:.38;stroke-width:2}
+.map-road{stroke:#cab07e;stroke-opacity:.76;stroke-width:2;stroke-dasharray:5 6}
+.map-active-route{stroke:#f1c476;stroke-width:2;stroke-dasharray:8 7;animation:map-flow 1.2s linear infinite}
+@keyframes map-flow{to{stroke-dashoffset:-15}}
+.map-cardinal{position:absolute;top:12px;color:#b7c4aa;font-size:10px;letter-spacing:.19em}
+.map-cardinal.west{left:14px}.map-cardinal.east{right:14px}
+.map-marker{--marker-color:#d4ad76;position:absolute;transform:translateX(-50%);z-index:1;min-height:0;padding:6px 8px;color:#eadbc0;background:#142722;border-color:#836e50;font-size:clamp(9px,1.3vw,12px);white-space:nowrap}
+.map-marker.upper{bottom:65%}.map-marker.lower{top:65%}
+.map-marker::before,.map-marker::after{content:"";position:absolute;left:50%;pointer-events:none;background:var(--marker-color)}
+.map-marker::before{width:1px;height:var(--stem);opacity:.62}.map-marker::after{width:8px;height:8px;transform:translate(-50%,-50%) rotate(45deg);border:1px solid #172824}
+.map-marker.upper::before{top:100%}.map-marker.upper::after{top:calc(100% + var(--stem))}
+.map-marker.lower::before{bottom:100%}.map-marker.lower::after{top:calc(-1 * var(--stem))}
+.map-marker.palenque,.map-marker.secured{--marker-color:#9fc89d}
+.map-marker.sanctuary{--marker-color:#e9c480}
+.map-marker[aria-pressed=true],.map-marker.map-destination{border-color:#edc77e}
+.map-marker[aria-pressed=true]{background:#3b3828;z-index:2}
+.map-player-pin{position:absolute;top:50%;width:11px;height:11px;border:2px solid #213232;background:#a6e2d1;box-shadow:0 0 0 1px #a6e2d1;transform:translate(-50%,-50%) rotate(45deg);z-index:3;pointer-events:none}
+.territory-legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 0;color:#c7c9ac;font-size:10px}
+.territory-legend span::before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;background:#d4ad76}
+.territory-legend .legend-here::before{background:#a6e2d1}.territory-legend .legend-secured::before{background:#9fc89d}.territory-legend .legend-route::before{height:2px;width:12px;background:#f1c476;vertical-align:middle}
+.territory-detail{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #91784f64;padding-top:14px;min-height:95px}
+.territory-detail h3{font:600 22px Georgia,serif;margin:4px 0}.territory-detail p{color:#c9d2bd;font-size:12px;margin:0;max-width:58ch}.territory-detail button{flex:none}
+.reduce-motion .map-active-route{animation:none}
+@media(max-width:640px){.territory-detail{align-items:flex-start;flex-direction:column}.map-marker.lower{white-space:normal;width:68px;padding:4px}.map-marker.upper{padding:4px}}
+@media(prefers-reduced-motion:reduce){.map-active-route{animation:none}}
 @media(prefers-reduced-motion:no-preference){body:not(.reduce-motion) .story-scene[open] .story-dialogue{animation:story-reveal .35s ease-out}@keyframes story-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}}
 @media(max-height:650px) { .campaign-notice { bottom:142px; font-size:9px; padding:6px 12px; } .person-profile { grid-template-columns:90px 1fr; } .person-profile canvas { width:90px; height:112px; } }
 

@@ -1,4 +1,4 @@
-export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleArmor, togglePause, save, load, toggleArmy, toggleFullscreen, rest, torch, inspectNpc, openSettlement }) {
+export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleArmor, togglePause, save, load, toggleArmy, toggleFullscreen, rest, torch, inspectNpc, openSettlement, toggleMap }) {
   const clear = () => { for (const key of Object.keys(keys)) delete keys[key]; };
   const down = e => {
     const globalKeys = ['F5', 'F9', 'F11', 'Escape'];
@@ -8,6 +8,7 @@ export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleA
     if (e.code === 'F5') { save(); return; }
     if (e.code === 'F9') { load(); return; }
     if (e.code === 'F11') { toggleFullscreen(); return; }
+    if (e.code === 'KeyM' && !/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName) && toggleMap?.(isPlaying())) { e.preventDefault(); return; }
     if (!isPlaying()) return;
     if (/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName)) return;
     if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.code)) e.preventDefault();

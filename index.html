@@ -7,12 +7,12 @@
 <meta name="description" content="Construye, libera y defiende el Palenque de la Matuna. Estrategia y acción para PC.">
 <title>Benkhoos · El Palenque de la Matuna</title>
 <link rel="icon" href="assets/ui/emblem.svg">
-<link rel="stylesheet" href="css/game.css?v=8d54c297ea97">
-<script src="js/db.js?v=8d54c297ea97" defer>
+<link rel="stylesheet" href="css/game.css?v=af0647a73f93">
+<script src="js/db.js?v=af0647a73f93" defer>
 </script>
-<script src="js/sprite_manager.js?v=8d54c297ea97" defer>
+<script src="js/sprite_manager.js?v=af0647a73f93" defer>
 </script>
-<script type="module" src="js/game.js?v=8d54c297ea97">
+<script type="module" src="js/game.js?v=af0647a73f93">
 </script>
 </head>
 <body>
@@ -104,6 +104,7 @@
 </i>
 </div>
 <span id="hudArmyTierBadge" class="rank">Rango I · Cimarrón</span>
+<button id="btnWorldMap" class="map-shortcut" aria-haspopup="dialog"><span id="mapShortcutText">Mapa</span> <kbd>M</kbd></button>
 </aside>
 <aside id="armyPanel" class="drawer hidden" aria-label="Estado del ejército">
 <div class="panel-heading">
@@ -268,6 +269,7 @@
 <button id="btnSettlementPause">Construir y evolucionar <kbd>B</kbd></button>
 <button id="btnPeoplePause">Mi gente · dones y oficios</button>
 <button id="btnOpenCampaign">Cartas y caminos de campaña</button>
+<button id="btnMapPause">Mapa del territorio <kbd>M</kbd></button>
 <button id="btnGuidePause">Guía y controles</button>
 <button id="btnOpenLeaderboard">Crónica de campañas</button>
 <button id="btnFullscreen">Pantalla completa <kbd>F11</kbd>
@@ -417,6 +419,30 @@
 
 <dialog id="peopleDialog" aria-labelledby="personName"><div class="dialog-content people-content"><div class="panel-heading"><div><span class="eyebrow">CADA VIDA TIENE SU HISTORIA</span><h2 id="personName">Gente de la Matuna</h2></div><button id="btnClosePeople" aria-label="Cerrar ficha">×</button></div><label class="person-picker" for="personSelect">Conocer a <select id="personSelect"></select></label><div class="person-profile"><canvas id="personPortrait" width="128" height="160" aria-label="Retrato de la persona"></canvas><div><h3 id="personRole"></h3><p id="personTemperament"></p><span class="eyebrow">DON NATURAL</span><strong id="personGift"></strong><p id="personPreference"></p></div></div><fieldset id="personEquipment"><legend>Equipo del cuartel</legend><p id="personKitStatus"></p><div class="profession-actions"><button id="btnOrderWeapon">Encargar arma</button><button id="btnOrderArmor">Encargar armadura</button></div><p id="personKitFeedback" role="status"></p></fieldset><div id="personAttributes" class="person-attributes"></div><p id="personExperience" class="muted"></p><p id="personCondition" class="muted"></p><p id="personRelations" class="person-relations"></p><p id="personTraits" class="muted"></p><p id="personGrief" class="person-relations"></p><fieldset><legend>Un nuevo camino</legend><label for="personNewRole">Oficio que aprenderá <select id="personNewRole"></select></label><div class="profession-actions"><button id="btnAssignProfession" class="primary">Proponer este oficio</button><button id="btnPersonAuto">Respetar su preferencia</button></div><p id="personFeedback" role="status"></p></fieldset><p class="muted">Cambiar de oficio necesita herramientas del puesto. La persona caminará hasta allí; si hay peligro, buscará refugio antes de entrenar. El don mejora su eficacia y la experiencia se conserva por oficio.</p></div></dialog>
 <dialog id="campaignDialog" aria-labelledby="campaignTitle"><div class="dialog-content wide"><div class="panel-heading"><div><span class="eyebrow">LOS CAMINOS HABLAN</span><h2 id="campaignTitle">Cartas de Cartagena</h2></div><button id="btnCloseCampaign" aria-label="Cerrar cartas">×</button></div><p class="muted">Los emisarios llegan por los caminos con estandarte blanco. No son combatientes. Habla con ellos con E; las cartas no leídas quedan aquí.</p><div id="campaignLetters"></div><button id="btnLetterTreaty" class="hidden">Responder a la propuesta de tregua</button></div></dialog>
+
+<dialog id="mapDialog" class="territory-dialog" aria-labelledby="mapTitle">
+  <div class="territory-content">
+    <div class="panel-heading"><div><span class="eyebrow">CUADERNO DE LOS VIGÍAS</span><h2 id="mapTitle">Caminos de la Matuna</h2></div><button id="btnCloseMap" autofocus>Volver <kbd>M</kbd></button></div>
+    <div class="territory-chart">
+      <svg class="territory-art" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+        <defs><pattern id="territoryGrid" width="25" height="25" patternUnits="userSpaceOnUse"><path d="M25 0H0V25" fill="none" stroke="#c6af72" stroke-opacity=".12"/></pattern></defs>
+        <rect width="1000" height="300" fill="url(#territoryGrid)"/>
+        <g class="terrain-contours" fill="none">
+          <path d="M0 109Q100 62 187 101T354 91T541 75T707 108T880 64T1000 74M0 87Q95 37 189 77T360 64T548 51T705 84T881 37T1000 50M0 66Q106 14 201 52T358 41T552 25T711 63T889 14T1000 30"/>
+          <path d="M0 233Q95 210 171 242T352 230T532 239T713 218T888 235T1000 221M0 257Q98 234 183 265T350 253T532 261T707 242T890 258T1000 245"/>
+        </g>
+        <g class="map-streams" fill="none"><path d="M145 0Q187 65 157 117T186 213T174 300M395 0Q368 67 406 114T395 216T422 300M608 0Q639 52 598 110T618 227T590 300M832 0Q789 58 829 128T805 223T831 300"/></g>
+        <path class="map-road" d="M70 150Q150 166 219 150T359 151T500 150T641 150T781 151T930 150" fill="none"/>
+        <line id="mapActiveRoute" class="map-active-route" x1="500" y1="150" x2="500" y2="150"/>
+      </svg>
+      <span class="map-cardinal west">OESTE</span><span class="map-cardinal east">ESTE</span>
+      <div id="mapMarkers" class="map-markers" aria-label="Lugares del territorio"></div>
+      <span id="mapPlayerPin" class="map-player-pin" title="Posición de Benkos" aria-hidden="true"></span>
+    </div>
+    <div class="territory-legend"><span class="legend-here">Benkos</span><span class="legend-estate">Hacienda</span><span class="legend-secured">Liberada</span><span class="legend-route">Ruta señalada</span></div>
+    <section class="territory-detail" aria-live="polite"><div><span id="mapSelectedDistance" class="eyebrow"></span><h3 id="mapSelectedName"></h3><p id="mapSelectedDetail"></p></div><button id="btnMapWaypoint" class="primary">Marcar ruta</button></section>
+  </div>
+</dialog>
 
 <dialog id="storyDialog" class="story-scene" aria-labelledby="storyTitle">
   <div class="story-scene-content">

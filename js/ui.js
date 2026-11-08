@@ -1,14 +1,15 @@
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=8d54c297ea97';
-import { describeTraits } from './daily-life.js?v=8d54c297ea97';
-import { armyRequirement, equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=8d54c297ea97';
-import { canMediate, relationshipsFor } from './community.js?v=8d54c297ea97';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=8d54c297ea97';
-import { ecologyHint } from './ecology.js?v=8d54c297ea97';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=8d54c297ea97';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=8d54c297ea97';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=8d54c297ea97';
-import { arrivalHint } from './campaign.js?v=8d54c297ea97';
-import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=8d54c297ea97';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=af0647a73f93';
+import { describeTraits } from './daily-life.js?v=af0647a73f93';
+import { armyRequirement, equipmentOffer, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=af0647a73f93';
+import { canMediate, relationshipsFor } from './community.js?v=af0647a73f93';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=af0647a73f93';
+import { ecologyHint } from './ecology.js?v=af0647a73f93';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=af0647a73f93';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=af0647a73f93';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=af0647a73f93';
+import { arrivalHint } from './campaign.js?v=af0647a73f93';
+import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=af0647a73f93';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=af0647a73f93';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -18,6 +19,8 @@ export function createUI({ state, session, settings, actions }) {
   const bagDots=[];for(let i=0;i<state.maxCoins;i++){const dot=document.createElement('i');$('hudBagSlots').append(dot);bagDots.push(dot);}
   let bannerTimer, returnDialog = 'pauseDialog';
   let cinematic, storyPage = 0;
+  let chartSites = [], selectedSite, mapFromPause = false;
+  const chartMarkers = new Map();
   const dialogs = [...document.querySelectorAll('dialog')];
   function closeAll() {
     dialogs.forEach(d => { if (d.open) d.close(); });
@@ -36,12 +39,62 @@ export function createUI({ state, session, settings, actions }) {
   function menu() { session.mode = 'menu'; document.body.dataset.mode = 'menu'; open('menuDialog'); }
   function togglePause() {
     if ($('storyDialog').open) { closeStory(); return; }
+    if ($('mapDialog').open) { closeMap(); return; }
     if (session.mode === 'menu' && $('menuDialog').open) return;
     if (session.mode === 'victory' || session.mode === 'defeat') return;
     if ($('modalGuide').open || $('modalLeaderboard').open || $('debugDialog').open || $('peopleDialog').open || $('campaignDialog').open || $('settlementDialog').open) { open(returnDialog); return; }
     if ($('modalPolitics').open) return;
     if ($('pauseDialog').open) resume();
     else { session.mode = 'paused'; open('pauseDialog'); }
+  }
+
+  function trackedSite(sites) {
+    return sites.find(site => site.id === state.exploration.waypoint) ?? missionDestination(state, sites);
+  }
+  function renderMapSelection() {
+    const playerX = mapX(state.benkos.x);
+    const route = trackedSite(chartSites);
+    $('mapPlayerPin').style.left = `${playerX}%`;
+    $('mapActiveRoute').setAttribute('x1', String(playerX * 10));
+    $('mapActiveRoute').setAttribute('x2', String(mapX((route ?? selectedSite).x) * 10));
+    for (const [id, button] of chartMarkers) {
+      button.setAttribute('aria-pressed', String(id === selectedSite.id));
+      button.classList.toggle('map-destination', id === route?.id);
+    }
+    text('mapSelectedDistance', mapDistance(state.benkos.x, selectedSite.x));
+    text('mapSelectedName', selectedSite.name);
+    text('mapSelectedDetail', selectedSite.detail);
+    text('btnMapWaypoint', state.exploration.waypoint === selectedSite.id ? 'Quitar marca' : 'Marcar ruta');
+  }
+  function openMap() {
+    mapFromPause = $('pauseDialog').open;
+    chartSites = mapLocations(state);
+    selectedSite = trackedSite(chartSites) ?? chartSites.find(site => site.id === 'matuna');
+    const markers = $('mapMarkers');
+    markers.replaceChildren();
+    chartMarkers.clear();
+    for (const site of chartSites) {
+      const button = document.createElement('button');
+      button.className = `map-marker ${site.row} ${site.kind}`;
+      button.style.left = `${mapX(site.x)}%`;
+      button.textContent = site.label;
+      button.setAttribute('aria-label', site.name);
+      button.addEventListener('click', () => { selectedSite = site; renderMapSelection(); });
+      markers.append(button);
+      chartMarkers.set(site.id, button);
+    }
+    renderMapSelection();
+    open('mapDialog');
+  }
+  function closeMap() {
+    if (mapFromPause) open('pauseDialog'); else resume();
+    update();
+  }
+  function toggleMap(playing) {
+    if ($('mapDialog').open) closeMap();
+    else if (playing || $('pauseDialog').open) openMap();
+    else return false;
+    return true;
   }
 
   function openStory(scene) {
@@ -96,6 +149,9 @@ export function createUI({ state, session, settings, actions }) {
   }
   function update() {
     if (session.mode === 'playing') prices = actions.worldPrices?.() ?? [];
+    const route = (state.exploration.waypoint || state.story.expedition) ? trackedSite(mapLocations(state)) : null;
+    const direction = route ? mapDistance(state.benkos.x, route.x) : '';
+    text('mapShortcutText', route ? `${route.label} · ${direction}` : 'Mapa');
     const node=actions.node?.();$('nodeHint').classList.toggle('hidden',!node||Math.abs(state.benkos.vx)>25||state.benkos.attackTimer>0||state.enemies.some(e=>e.hp>0&&Math.abs(e.x-state.benkos.x)<150));
     if(node){
       text('nodeHintTitle', node.title.trim());
@@ -212,6 +268,12 @@ export function createUI({ state, session, settings, actions }) {
   const on = (id, fn) => $(id).addEventListener('click', fn);
   on('btnStoryNext', () => { if (++storyPage < cinematic.lines.length) renderStory(); else closeStory(); });
   on('btnStorySkip', closeStory);
+  on('btnWorldMap', openMap); on('btnMapPause', openMap); on('btnCloseMap', closeMap);
+  on('btnMapWaypoint', () => {
+    state.exploration.waypoint = state.exploration.waypoint === selectedSite.id ? '' : selectedSite.id;
+    renderMapSelection();
+    update();
+  });
   // Escape is managed centrally; let form controls keep normal focus navigation.
   for (const d of dialogs) d.addEventListener('cancel', e => { e.preventDefault(); togglePause(); });
   on('btnNewGame', actions.newGame); on('btnContinue', actions.continueGame);
@@ -434,7 +496,7 @@ export function createUI({ state, session, settings, actions }) {
   }
   on('btnAssignProfession',()=>{const res=actions.assignRole(selectedPersonId,$('personNewRole').value);renderPerson();text('personFeedback',res.message);});
   on('btnPersonAuto',()=>{actions.autoRole(selectedPersonId);renderPerson();text('personFeedback','Elegirá su oficio preferido cuando haya herramientas y el camino sea seguro.');});
-  return { update, banner, open, openStory, closeAll, resume, menu, result, togglePause, applySettings, openPeople, openSettlement, renderWorldOverlay,
+  return { update, banner, open, openStory, closeAll, resume, menu, result, togglePause, toggleMap, applySettings, openPeople, openSettlement, renderWorldOverlay,
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),
     connection: connected => { text('dbStatusLabel', connected ? 'Guardado en servidor' : 'Guardado local'); $('dbDot').classList.toggle('connected', connected); },

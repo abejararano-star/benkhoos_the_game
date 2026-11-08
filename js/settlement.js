@@ -1,4 +1,4 @@
-import { proficiency } from './people.js?v=8d54c297ea97';
+import { proficiency } from './people.js?v=af0647a73f93';
 export const MATERIALS=['Palma y bejuco','Madera de ceiba','Bahareque y cal','Piedra y teja','Cantería tallada'];
 export const HQ_NAMES=['Refugio de la Matuna','Casa del consejo','Casa de bahareque','Cabildo de piedra','Gran Palenque'];
 export const ALTAR_HEIGHT = [0, 53, 57, 65, 73, 83];

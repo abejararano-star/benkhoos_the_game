@@ -1,25 +1,25 @@
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=8d54c297ea97';
-import { GROUND_COIN_LIFE } from './coins.js?v=8d54c297ea97';
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=8d54c297ea97';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=8d54c297ea97';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=8d54c297ea97';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=8d54c297ea97';
-import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=8d54c297ea97';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=8d54c297ea97';
-import { AfroColombianAudioEngine } from './audio.js?v=8d54c297ea97';
-import { createInitialState } from './world-state.js?v=8d54c297ea97';
-import { makeSave, restoreSave } from './save-system.js?v=8d54c297ea97';
-import { createRenderer } from './renderer.js?v=8d54c297ea97';
-import { createSimulation } from './simulation.js?v=8d54c297ea97';
-import { FixedStepper } from './clock.js?v=8d54c297ea97';
-import { bindInput } from './input.js?v=8d54c297ea97';
-import { createUI } from './ui.js?v=8d54c297ea97';
-import { chooseDefenseSide } from './ai.js?v=8d54c297ea97';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=8d54c297ea97';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=8d54c297ea97';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=8d54c297ea97';
-import { mediateEncounter } from './community.js?v=8d54c297ea97';
-import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=8d54c297ea97';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=af0647a73f93';
+import { GROUND_COIN_LIFE } from './coins.js?v=af0647a73f93';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=af0647a73f93';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=af0647a73f93';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=af0647a73f93';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=af0647a73f93';
+import { requestBuilding, upgradeInfo, ALTAR_HEIGHT } from './settlement.js?v=af0647a73f93';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=af0647a73f93';
+import { AfroColombianAudioEngine } from './audio.js?v=af0647a73f93';
+import { createInitialState } from './world-state.js?v=af0647a73f93';
+import { makeSave, restoreSave } from './save-system.js?v=af0647a73f93';
+import { createRenderer } from './renderer.js?v=af0647a73f93';
+import { createSimulation } from './simulation.js?v=af0647a73f93';
+import { FixedStepper } from './clock.js?v=af0647a73f93';
+import { bindInput } from './input.js?v=af0647a73f93';
+import { createUI } from './ui.js?v=af0647a73f93';
+import { chooseDefenseSide } from './ai.js?v=af0647a73f93';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=af0647a73f93';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=af0647a73f93';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=af0647a73f93';
+import { mediateEncounter } from './community.js?v=af0647a73f93';
+import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=af0647a73f93';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -927,6 +927,7 @@ function debugAction(id) {
   if (id === 'btnSpawnGovernor') spawnEnemy('GOBERNADOR_GIRON', 1, state.benkos.x + 220);
 }
 input = bindInput({ keys, isPlaying, openSettlement:()=>ui.openSettlement(), inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
+  toggleMap: ui.toggleMap,
   toggleArmor, togglePause: ui.togglePause, save: () => saveGameToMySQL(), load: loadGameFromMySQL,
   toggleArmy: ui.toggleArmy, toggleFullscreen, rest:()=>{if(!state.benkos.attackTimer&&!state.benkos.interaction)state.benkos.resting=!state.benkos.resting;},
   torch: () => {

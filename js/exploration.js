@@ -1,4 +1,4 @@
-import { createAnimal } from './ecology.js?v=8d54c297ea97';
+import { createAnimal } from './ecology.js?v=af0647a73f93';
 
 export const ALTAR_X = -1880;
 export const TRAIL_SIGNS = [-610, -1040, -1555];
@@ -13,7 +13,7 @@ export const TRAIL_CACHES = [
 ];
 
 export function initialExploration() {
-  return { altarFound: false, frontierSeeded: false, trailSnakesSeeded: false, estateWildlifeSeeded: false, opened: [], revealed: [] };
+  return { altarFound: false, frontierSeeded: false, trailSnakesSeeded: false, estateWildlifeSeeded: false, waypoint: '', opened: [], revealed: [] };
 }
 
 export function ensureExploration(state) {
@@ -23,6 +23,7 @@ export function ensureExploration(state) {
     frontierSeeded: old?.frontierSeeded === true,
     trailSnakesSeeded: old?.trailSnakesSeeded === true,
     estateWildlifeSeeded: old?.estateWildlifeSeeded === true,
+    waypoint: typeof old?.waypoint === 'string' && /^[a-z_]{1,30}$/.test(old.waypoint) ? old.waypoint : '',
     opened: TRAIL_CACHES.filter(cache => Array.isArray(old?.opened) && old.opened.includes(cache.id)).map(cache => cache.id),
     revealed: TRAIL_CACHES.filter(cache => Array.isArray(old?.revealed) && old.revealed.includes(cache.id)).map(cache => cache.id)
   };

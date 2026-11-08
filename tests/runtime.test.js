@@ -54,6 +54,16 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(elements.get('storyDialog').open,true);
   elements.get('btnStoryNext').click();assert.equal(elements.get('storySpeaker').textContent,'Benkos');
   elements.get('btnStorySkip').click();
+  key('KeyM');assert.equal(elements.get('mapDialog').open,true);
+  const markers=elements.get('mapMarkers').children;
+  assert.equal(markers.some(button=>button.getAttribute('aria-label')===ESTATES[0].name),false);
+  markers.find(button=>button.getAttribute('aria-label')==='Hacienda este').click();
+  assert.equal(elements.get('mapSelectedName').textContent,'Hacienda este');
+  elements.get('btnMapWaypoint').click();
+  key('KeyM');assert.equal(elements.get('mapDialog').open,false);
+  assert.match(elements.get('mapShortcutText').textContent,/Hacienda este.*pasos al este/);
+  await loadState(()=>{});assert.equal(inspect().state.exploration.waypoint,'hac_east');
+  key('KeyM');elements.get('btnMapWaypoint').click();key('KeyM');
   assert.equal(inspect().state.units.length,14); assert.equal(inspect().state.benkos.royalArmor,false);
   assert.equal(inspect().state.units.filter(u=>u.role==='FUGITIVO'&&Math.abs(u.x)>1400).length,6);
   await loadState(s=>{s.benkos.x=510;s.benkos.vx=0;});
@@ -138,6 +148,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   elements.get('storyChoices').children[0].click();
   advance(.04);
   assert.equal(inspect().state.story.expedition.site,ESTATES[0].id);
+  assert.match(elements.get('mapShortcutText').textContent,/Jegua.*pasos al oeste/);
   assert.equal(inspect().state.enemies.filter(e=>e.guardSite===ESTATES[0].id).length,3);
   const siteX=ESTATES[0].x;
   await loadState(s=>{s.benkos.x=siteX+42;s.benkos.facing=-1;s.benkos.attackTimer=0;s.benkos.attackCooldown=0;s.enemies.forEach(e=>e.attackCooldown=90);s.haciendas[2].hp=5;});

@@ -1,17 +1,17 @@
-import { recoverCoins } from './coins.js?v=8d54c297ea97';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=8d54c297ea97';
-import { collectEquipment } from './equipment.js?v=8d54c297ea97';
-import { advanceCrops, tendCrop } from './crops.js?v=8d54c297ea97';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=8d54c297ea97';
-import { updateCommunity, joinEncounter } from './community.js?v=8d54c297ea97';
-import { updateEcology, isHuntable } from './ecology.js?v=8d54c297ea97';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=8d54c297ea97';
-import { workConstruction, homeRecovery } from './settlement.js?v=8d54c297ea97';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=8d54c297ea97';
-import { ensureCampaign, finaleWon } from './campaign.js?v=8d54c297ea97';
-import { expeditionPost } from './story.js?v=8d54c297ea97';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=8d54c297ea97';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=8d54c297ea97';
+import { recoverCoins } from './coins.js?v=af0647a73f93';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=af0647a73f93';
+import { collectEquipment } from './equipment.js?v=af0647a73f93';
+import { advanceCrops, tendCrop } from './crops.js?v=af0647a73f93';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=af0647a73f93';
+import { updateCommunity, joinEncounter } from './community.js?v=af0647a73f93';
+import { updateEcology, isHuntable } from './ecology.js?v=af0647a73f93';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=af0647a73f93';
+import { workConstruction, homeRecovery } from './settlement.js?v=af0647a73f93';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=af0647a73f93';
+import { ensureCampaign, finaleWon } from './campaign.js?v=af0647a73f93';
+import { expeditionFormation } from './story.js?v=af0647a73f93';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=af0647a73f93';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=af0647a73f93';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -241,6 +241,8 @@ return function updateSimulation(dt) {
   });
   // Allied work and defense
   const moraleMult = state.morale / 100;
+  const formation = expeditionFormation(state);
+  const coveringRescue = state.story.expedition?.stage === 'return';
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
     ensurePerson(u);
@@ -280,7 +282,7 @@ return function updateSimulation(dt) {
       updateHUD();
     })) continue;
     if (collectEquipment(u, state, dt, personMaxHp)) continue;
-    const expeditionX = expeditionPost(u, state);
+    const expeditionX = formation?.get(u.id) ?? null;
     if (expeditionX === null && (joinEncounter(u, state, dt) || takeLeisure(u, state, dt))) continue;
     if (expeditionX !== null && Math.abs(expeditionX - u.x) > 140 && !state.enemies.some(e => e.hp > 0 && Math.abs(e.x - u.x) < 175)) {
       u.facing = Math.sign(expeditionX - u.x);
@@ -488,7 +490,8 @@ return function updateSimulation(dt) {
       }
     } else if (u.role === 'GUERRERO' || u.role === 'ESPADACHIN' || u.role === 'CABALLERO_ALIADO' || u.role === 'CAMPEON_REAL') {
       const moveSpd = ALLY_COMBAT[u.role].speed;
-      const nearEnemy = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 310);
+      const nearEnemy = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 310 &&
+        (!coveringRescue || expeditionX === null || Math.abs(en.x - expeditionX) < 130));
       const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
       const frontX=activeWall?activeWall.x-u.assignedSide*10:u.assignedSide*285;
       const guardX = expeditionX ?? defensePostX(u, state.units, activeWall) + patrolOffset(u, state);

@@ -1,4 +1,4 @@
-import { INFANTRY } from './equipment.js?v=8d54c297ea97';
+import { INFANTRY } from './equipment.js?v=af0647a73f93';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,
@@ -56,14 +56,27 @@ export function beginExpedition(state, id) {
   return true;
 }
 
-export function expeditionPost(unit, state) {
+export function expeditionFormation(state) {
   const mission = state.story.expedition;
-  const slot = mission?.party.indexOf(unit.id) ?? -1;
-  if (slot < 0) return null;
-  const side = estateById(mission.site).side * (mission.stage === 'return' ? -1 : 1);
-  const protectedPerson = mission.stage === 'return' && state.units.find(u => u.hp > 0 && u.escortHome &&
-    mission.rescued.includes(u.id) && Math.abs(u.x) > Math.abs(state.benkos.x) + 90);
-  return (protectedPerson?.x ?? state.benkos.x) - side * (38 + slot * 26);
+  if (!mission?.party.length) return null;
+  const ranged = unit => unit.role === 'ARQUERO' || unit.role === 'CAZADOR';
+  const party = mission.party.map(id => state.units.find(unit => unit.id === id)).filter(unit => unit?.hp > 0);
+  party.sort((a, b) => Number(ranged(a)) - Number(ranged(b)));
+  const side = estateById(mission.site).side;
+  const civilians = mission.stage === 'return' ? state.units.filter(unit => unit.hp > 0 && unit.escortHome && mission.rescued.includes(unit.id)) : [];
+  if (!civilians.length) {
+    const direction = mission.stage === 'return' ? -side : side;
+    return new Map(party.map((unit, slot) => [unit.id, state.benkos.x - direction * (38 + slot * 26)]));
+  }
+
+  const positions = civilians.map(unit => unit.x * side);
+  const rear = Math.max(...positions), front = Math.min(...positions);
+  let meleeSlot = 0, rangedSlot = 0;
+  return new Map(party.map(unit => {
+    if (ranged(unit)) return [unit.id, side * (rear + 16 + rangedSlot++ * 21)];
+    const offset = meleeSlot++;
+    return [unit.id, side * (offset % 2 ? rear + 68 : front - 33 - offset * 13)];
+  }));
 }
 
 export function onEstateLiberated(state, site, captives) {

@@ -2,12 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../js/world-state.js';
 import { createCampaign, dispatchRaid, announceBoss, raidSize, raidRoster, dispatchReinforcement, ROAD_GATES, startFinale, finaleWon } from '../js/campaign.js';
-import { ESTATES } from '../js/story.js';
+import { ESTATES, expeditionFormation } from '../js/story.js';
 function harness(){const s=createInitialState(),arrivals=[],banners=[];let id=1,treaties=0;
   const campaign=createCampaign({state:s,nextId:()=>id++,spawnEnemy:(type,side,x)=>{const enemy={type,side,x};arrivals.push(enemy);return enemy;},showBanner:(...v)=>banners.push(v),onTreaty:()=>treaties++});
   return {s,campaign,arrivals,banners,treaties:()=>treaties};}
 test('early waves start small and do not include cavalry or muskets',()=>{
   assert.equal(raidSize(1),2);assert.ok(raidSize(6)>raidSize(1));assert.ok(!raidRoster(1).includes('CABALLERO'));assert.ok(!raidRoster(1).includes('ARCABUCERO'));
+});
+test('returning guards cover both ends of the convoy even when Benkos is already home', () => {
+  for (const site of ESTATES) {
+    const {s}=harness();
+    const side=site.side;
+    s.story.expedition={site:site.id,stage:'return',party:[1,2,3],rescued:[4,5]};
+    s.benkos.x=0;
+    s.units=[{id:1,role:'ARQUERO',hp:60},{id:2,role:'GUERRERO',hp:60},{id:3,role:'ESPADACHIN',hp:60},
+      {id:4,escortHome:true,hp:30,x:side*2000},{id:5,escortHome:true,hp:40,x:side*2050}];
+    const formation=expeditionFormation(s);
+    assert.ok(formation.get(2)*side<2000);
+    assert.ok(formation.get(1)*side>2050);
+    assert.ok(formation.get(3)*side>formation.get(1)*side);
+  }
 });
 test('patrols arrive gradually through real road gates, never at the player',()=>{
   const {s,campaign,arrivals}=harness();s.benkos.x=1580;assert.equal(dispatchRaid(s),2);assert.equal(arrivals.length,0);
