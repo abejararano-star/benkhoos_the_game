@@ -19,6 +19,19 @@ test('rescuing a turtle grants its reward only once',()=>{
   const s=world('TURTLE');s.wildlife[0].trapped=true;interactEcology(s);assert.equal(s.score,25);assert.equal(s.wildlife[0].trapped,false);
   interactEcology(s);assert.equal(s.score,25);
 });
+test('a turtle stays dry on the village bridge and enters water in an open creek', () => {
+  const state = world('TURTLE');
+  const turtle = state.wildlife[0];
+  const bridge = state.ecology.streams.find(stream => stream.bridge);
+  Object.assign(turtle, { x: bridge.x, y: 271, inWater: true, trapped: true });
+  updateEcology(state, .1);
+  assert.equal(turtle.inWater, false);
+  assert.equal(turtle.y, state.benkos.y);
+  turtle.x = state.ecology.streams.find(stream => !stream.bridge).x;
+  updateEcology(state, .1);
+  assert.equal(turtle.inWater, true);
+  assert.equal(turtle.y, state.benkos.y + 3);
+});
 test('monkey gifts are limited to once a day and macaws report the incoming route',()=>{
   const s=world('MONKEY');interactEcology(s);assert.equal(s.coins,17);updateEcology(s,16);interactEcology(s);assert.equal(s.coins,17);
   const bird=world('MACAW');interactEcology(bird);bird.campaign.orders=[{side:1}];const food=bird.resources.food;

@@ -1,10 +1,10 @@
-import { ensureCrossings } from './crossings.js?v=0e479f5c479a';
-import { initialCommunity } from './community.js?v=0e479f5c479a';
-import { initialStory, majorHaciendas } from './story.js?v=0e479f5c479a';
-import { initialEcology } from './ecology.js?v=0e479f5c479a';
-import { initialExploration } from './exploration.js?v=0e479f5c479a';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=0e479f5c479a';
-import { initialSettlement } from './settlement.js?v=0e479f5c479a';
+import { ensureCrossings } from './crossings.js?v=89d5690bb102';
+import { initialCommunity } from './community.js?v=89d5690bb102';
+import { initialStory, majorHaciendas } from './story.js?v=89d5690bb102';
+import { initialEcology } from './ecology.js?v=89d5690bb102';
+import { initialExploration } from './exploration.js?v=89d5690bb102';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=89d5690bb102';
+import { initialSettlement } from './settlement.js?v=89d5690bb102';
 export function createInitialState() {
 const state = {
   status: "playing",

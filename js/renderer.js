@@ -1,18 +1,19 @@
-import { crossingFeet } from './crossings.js?v=0e479f5c479a';
-import { torchIsLit } from './exploration.js?v=0e479f5c479a';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=0e479f5c479a';
-import { blend, color, daylightAt } from './daylight.js?v=0e479f5c479a';
-import { drawSky } from './sky.js?v=0e479f5c479a';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=0e479f5c479a';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=0e479f5c479a';
-import { createLighting } from './lighting.js?v=0e479f5c479a';
-import { RenderInterpolation } from './visual-motion.js?v=0e479f5c479a';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=0e479f5c479a';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=0e479f5c479a';
-import { drawParticle } from './effects.js?v=0e479f5c479a';
-import { haciendaActive } from './haciendas.js?v=0e479f5c479a';
-import { ROAD_GATES } from './campaign.js?v=0e479f5c479a';
-import { WATER_LINE_Y } from './config.js?v=0e479f5c479a';
+import { crossingFeet } from './crossings.js?v=89d5690bb102';
+import { animalInStream } from './ecology.js?v=89d5690bb102';
+import { torchIsLit } from './exploration.js?v=89d5690bb102';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=89d5690bb102';
+import { blend, color, daylightAt } from './daylight.js?v=89d5690bb102';
+import { drawSky } from './sky.js?v=89d5690bb102';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=89d5690bb102';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=89d5690bb102';
+import { createLighting } from './lighting.js?v=89d5690bb102';
+import { RenderInterpolation } from './visual-motion.js?v=89d5690bb102';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=89d5690bb102';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=89d5690bb102';
+import { drawParticle } from './effects.js?v=89d5690bb102';
+import { haciendaActive } from './haciendas.js?v=89d5690bb102';
+import { ROAD_GATES } from './campaign.js?v=89d5690bb102';
+import { WATER_LINE_Y } from './config.js?v=89d5690bb102';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -90,7 +91,7 @@ function renderWorldAboveWater(g, time, air) {
   const wind = settings.reduce_motion ? 0 : time;
   drawSky(g, w, h, GROUND_SURFACE_Y, camX, wind, air);
   drawLandscape(g, w, GROUND_SURFACE_Y, camX, air, time);
-  drawTerrainFeatures(g, toScreenX, w, GROUND_SURFACE_Y, camX, state, wind);
+  drawTerrainFeatures(g, toScreenX, w, GROUND_SURFACE_Y, state);
   drawMist(g, w, GROUND_SURFACE_Y, camX, air, wind);
 
   drawCampEnclosure(g, w, GROUND_SURFACE_Y, camX, state.walls);
@@ -188,14 +189,21 @@ function renderWorldAboveWater(g, time, air) {
   });
 
   state.wildlife.forEach(an=>{
-    const sx=toScreenX(position(an));if(sx < -65 || sx>w+65)return;
-    const ay=GROUND_SURFACE_Y+(position(an,'y')-WATER_LINE_Y)+crossingFeet(state, an, position(an));
+    const x = position(an);
+    const sx=toScreenX(x);if(sx < -65 || sx>w+65)return;
+    const swimming = animalInStream(an, state.ecology.streams, x);
+    const waterOffset = an.species === 'MACAW' ? position(an, 'y') - WATER_LINE_Y : swimming ? 3 : 0;
+    const ay = GROUND_SURFACE_Y + waterOffset + crossingFeet(state, an, x);
     if (an.waterFall) {
       drawBody(an, sx, ay, y => window.SpriteManager?.drawAnimal?.(g, sx, y, an, time));
       return;
     }
+    if (swimming) {
+      g.fillStyle = '#9dbdb583';
+      g.fillRect(sx - 9, ay - 1, 6, 1);
+      g.fillRect(sx + 5, ay + 1, 6, 1);
+    }
     if(window.SpriteManager?.drawAnimal?.(g,sx,ay,an,time)){
-      if(an.inWater){g.fillStyle='#528d8888';g.fillRect(sx-10,GROUND_SURFACE_Y,20,4);}
       if(an.trapped||an.nettedTimer>0){g.strokeStyle='#c2ac70';g.lineWidth=1;g.strokeRect(sx-9,ay-9,18,9);for(let i=-6;i<9;i+=4){g.beginPath();g.moveTo(sx+i,ay-9);g.lineTo(sx+i+6,ay);g.stroke();}}
       if(an.trust>=2){g.fillStyle='#a8c984';g.fillRect(sx-1,ay+2,3,2);}
     }

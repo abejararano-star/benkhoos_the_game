@@ -1,15 +1,3 @@
-const TORCH_GRIPS = {
-  idle: [[-6, -17], [-6, -17], [-7, -17]],
-  walk: [[-9, -16], [-2, -18], [5, -20], [-1, -17]],
-  run: [[-12, -25], [4, -24], [-13, -26], [4, -24]],
-  sword: [[10, -18], [10, -20], [12, -20], [-12, -24], [-12, -24], [9, -18]],
-  hurt: [[11, -26], [-6, -17]],
-  rest: [[8, -12]], pay: [[-6, -17]], fish: [[-7, -17]],
-  mounted: [[3, -37], [3, -37], [4, -37]],
-  mountedRun: [[4, -38], [2, -39], [-2, -38], [-3, -38], [2, -38], [3, -37], [2, -38], [4, -39]],
-  mountedSword: [[7, -37], [5, -37], [8, -36]]
-};
-
 class BenkosSpriteManager {
   constructor() {
     this.atlas = null;
@@ -71,7 +59,7 @@ class BenkosSpriteManager {
       ? Math.min(frames.length - 1, Math.max(0, Math.floor(progress * frames.length)))
       : Math.floor(t * fps) % frames.length;
     const f = frames[idx];
-    const s = targetH / (sp.ref || 175);
+    const s = targetH / (f.ref || sp.ref || 175);
     const dw = f.w * s;
     const dh = f.h * s;
 
@@ -83,7 +71,7 @@ class BenkosSpriteManager {
       ctx.rotate(pose.tilt);
       ctx.scale(1, pose.stretch);
     }
-    if (pose?.torch) this.drawHeldTorch(ctx, x, y, facing, names[0], idx, pose);
+    if (pose?.torch) this.drawHeldTorch(ctx, x, y, facing, pose);
     const dx = Math.round(-f.ax * s);
     const dy = Math.round(-f.ay * s);
     if (pose?.bend) {
@@ -99,6 +87,24 @@ class BenkosSpriteManager {
       }
     } else {
       ctx.drawImage(this.sheets[sp.sheet], f.x, f.y, f.w, f.h, dx, dy, Math.round(dw), Math.round(dh));
+    }
+    if (f.flame) {
+      if (pose?.royal) {
+        const tx = Math.round((f.torso[0] - f.ax) * s);
+        const ty = Math.round((f.torso[1] - f.ay) * s);
+        ctx.fillStyle = '#514031'; ctx.fillRect(tx - 3, ty - 3, 7, 12);
+        ctx.fillStyle = '#8b7352'; ctx.fillRect(tx - 2, ty - 2, 5, 8);
+        ctx.fillStyle = '#c9a463'; ctx.fillRect(tx - 3, ty - 4, 5, 2);
+        ctx.fillRect(tx + 3, ty + 1, 1, 7);
+        ctx.fillStyle = '#b68d57'; ctx.fillRect(tx - 2, ty + 2, 4, 1);
+      }
+      const fx = (f.flame[0] - f.ax) * s;
+      const fy = (f.flame[1] - f.ay) * s * (pose?.stretch ?? 1);
+      const tilt = pose?.tilt ?? 0;
+      this.heroTorch = {
+        x: Math.round(x) + (fx * Math.cos(tilt) - fy * Math.sin(tilt)) * (facing < 0 ? -1 : 1),
+        y: Math.round(y) + fx * Math.sin(tilt) + fy * Math.cos(tilt)
+      };
     }
     if (f.rod) {
       const tipX = Math.round((f.rod[0] - f.ax) * s);
@@ -256,33 +262,26 @@ class BenkosSpriteManager {
     return drawn;
   }
 
-  drawHeldTorch(ctx, x, y, facing, animation, index, pose) {
-    const grip = pose.mounted
-      ? { sword: 'mountedSword', run: 'mountedRun' }[animation] ?? 'mounted'
-      : animation;
-    const grips = TORCH_GRIPS[grip] ?? TORCH_GRIPS.idle;
-    const [gx, gy] = grips[index % grips.length];
-    const speed = Math.min(1, Math.abs(pose.speed) / 160);
-    const sway = this.reduceMotion ? 0 : Math.sin(pose.clock * 9) * .08;
-    const angle = -.39 - speed * .19 + sway;
+  drawHeldTorch(ctx, x, y, facing, pose) {
+    const gx = pose.mounted ? 21 : 15;
+    const gy = pose.mounted ? -47 : -33;
     const flameHeight = this.reduceMotion ? 8 : 8 + Math.round(Math.sin(pose.clock * 14));
-    ctx.save();
-    ctx.translate(gx, gy);
-    ctx.rotate(angle);
-    if (!this.draw(ctx, 'hand_torch_shaft', ['idle'], 0, 4, 1, 19, 0)) {
+    ctx.fillStyle = '#70482d';
+    ctx.fillRect(0, gy + 3, gx - 1, 3);
+    ctx.fillRect(gx - 4, gy + 1, 5, 3);
+    ctx.fillStyle = '#ad7b50';
+    ctx.fillRect(gx - 4, gy, 3, 2);
+    if (!this.draw(ctx, 'hand_torch_shaft', ['idle'], gx, gy + 4, 1, 16, 0)) {
       ctx.fillStyle = '#704321';
-      ctx.fillRect(-1, -15, 3, 19);
+      ctx.fillRect(gx - 1, gy - 12, 3, 16);
     }
-    if (!this.draw(ctx, 'hand_torch_flame', ['idle'], 0, -14, 1, flameHeight, 0)) {
+    if (!this.draw(ctx, 'hand_torch_flame', ['idle'], gx, gy - 11, 1, flameHeight, 0)) {
       ctx.fillStyle = '#f2aa51';
-      ctx.fillRect(-2, -19, 4, 5);
+      ctx.fillRect(gx - 2, gy - 17, 4, 5);
     }
-    ctx.restore();
-    const flameX = gx + Math.sin(angle) * 17;
-    const flameY = gy - Math.cos(angle) * 17;
     this.heroTorch = {
-      x: Math.round(x) + flameX * (facing < 0 ? -1 : 1),
-      y: Math.round(y) + flameY * pose.stretch
+      x: Math.round(x) + gx * (facing < 0 ? -1 : 1),
+      y: Math.round(y) + (gy - 14) * pose.stretch
     };
   }
 
@@ -292,10 +291,22 @@ class BenkosSpriteManager {
     const cls = 'actor_hero' + (mounted ? '_mounted' : '') + (player.royalArmor ? '_royal' : '');
     const height = mounted ? 60 : 48;
     const animationTime = player.animTime ?? time;
-    const torchPose = torch ? { torch, mounted, clock: animationTime, speed: player.vx, tilt: 0, stretch: 1 } : null;
+    const torchPose = torch ? { torch, mounted, clock: animationTime, tilt: 0, stretch: 1 } : null;
     if (player.waterFall) return this.drawDrowning(ctx, cls, x, y, facing, height, player.waterFall.time);
     const running = Math.abs(player.vx) > (mounted ? 150 : 120) || player.dashTimer > 0;
     const gait = this.motion?.sample(player, animationTime, mounted ? (running ? 112 : 76) : undefined);
+    const torchClass = mounted ? 'actor_hero_mounted_torch' : 'actor_hero_torch';
+    if (torch && this.has(torchClass)) {
+      const moving = gait?.moving ?? Math.abs(player.vx) > 8;
+      const attack = player.attackTimer > 0;
+      const animation = attack ? 'sword' : moving ? 'walk' : 'idle';
+      const phase = attack ? this.attackProgress(player, 3, 1, .15) : moving ? gait?.phase : 0;
+      const winded = !mounted && (player.hurtKneelTimer > 0 || player.resting);
+      const lean = this.reduceMotion ? 0 : player.hurtTimer > 0 ? -.13 : running ? .045 : 0;
+      const stretch = winded ? .87 : !this.reduceMotion && !moving && !attack ? 1 + Math.sin(animationTime * 3) * .009 : 1;
+      return this.draw(ctx, torchClass, [animation], x, y, attack ? player.attackFacing || facing : facing,
+        height, animationTime, running ? 11 : 8, phase, { tilt: lean, stretch, royal: player.royalArmor });
+    }
     if (player.hurtKneelTimer > 0 || player.resting) {
       return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player, mounted ? 'idle' : 'rest', torchPose);
     }

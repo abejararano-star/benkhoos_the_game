@@ -1,29 +1,29 @@
-import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=0e479f5c479a';
-import { ensureCrop, needsCropCare } from './crops.js?v=0e479f5c479a';
-import { NIGHT_START } from './daylight.js?v=0e479f5c479a';
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=0e479f5c479a';
-import { GROUND_COIN_LIFE } from './coins.js?v=0e479f5c479a';
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=0e479f5c479a';
-import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=0e479f5c479a';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=0e479f5c479a';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=0e479f5c479a';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, constructionStatus } from './settlement.js?v=0e479f5c479a';
-import { emitEffect } from './effects.js?v=0e479f5c479a';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=0e479f5c479a';
-import { AfroColombianAudioEngine } from './audio.js?v=0e479f5c479a';
-import { createInitialState } from './world-state.js?v=0e479f5c479a';
-import { makeSave, restoreSave } from './save-system.js?v=0e479f5c479a';
-import { createRenderer } from './renderer.js?v=0e479f5c479a';
-import { createSimulation } from './simulation.js?v=0e479f5c479a';
-import { FixedStepper } from './clock.js?v=0e479f5c479a';
-import { bindInput } from './input.js?v=0e479f5c479a';
-import { createUI } from './ui.js?v=0e479f5c479a';
-import { chooseDefenseSide } from './ai.js?v=0e479f5c479a';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=0e479f5c479a';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=0e479f5c479a';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=0e479f5c479a';
-import { mediateEncounter } from './community.js?v=0e479f5c479a';
-import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=0e479f5c479a';
+import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=89d5690bb102';
+import { ensureCrop, needsCropCare } from './crops.js?v=89d5690bb102';
+import { NIGHT_START } from './daylight.js?v=89d5690bb102';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=89d5690bb102';
+import { GROUND_COIN_LIFE } from './coins.js?v=89d5690bb102';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=89d5690bb102';
+import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=89d5690bb102';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=89d5690bb102';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=89d5690bb102';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, constructionStatus } from './settlement.js?v=89d5690bb102';
+import { emitEffect } from './effects.js?v=89d5690bb102';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=89d5690bb102';
+import { AfroColombianAudioEngine } from './audio.js?v=89d5690bb102';
+import { createInitialState } from './world-state.js?v=89d5690bb102';
+import { makeSave, restoreSave } from './save-system.js?v=89d5690bb102';
+import { createRenderer } from './renderer.js?v=89d5690bb102';
+import { createSimulation } from './simulation.js?v=89d5690bb102';
+import { FixedStepper } from './clock.js?v=89d5690bb102';
+import { bindInput } from './input.js?v=89d5690bb102';
+import { createUI } from './ui.js?v=89d5690bb102';
+import { chooseDefenseSide } from './ai.js?v=89d5690bb102';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=89d5690bb102';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=89d5690bb102';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=89d5690bb102';
+import { mediateEncounter } from './community.js?v=89d5690bb102';
+import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=89d5690bb102';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -595,7 +595,9 @@ function handleInteractOrMount() {
 
 function triggerBenkosAttack(){
   if(!isPlaying())return;
-  if(startPlayerAttack(state.benkos, torchIsLit(state)))audio.playSfx('slash');
+  const player = state.benkos;
+  if (player.interaction?.kind === 'fish') player.interaction = null;
+  if(startPlayerAttack(player, torchIsLit(state)))audio.playSfx('slash');
 }
 function resolveBenkosHit(){
   const b=state.benkos,spec=playerAttackSpec(b);
@@ -961,7 +963,7 @@ input = bindInput({ keys, isPlaying, openSettlement:()=>ui.openSettlement(), ins
   toggleArmor, togglePause: ui.togglePause, save: () => saveGameToMySQL(), load: loadGameFromMySQL,
   toggleArmy: ui.toggleArmy, toggleFullscreen, rest:()=>{if(!state.benkos.attackTimer&&!state.benkos.interaction)state.benkos.resting=!state.benkos.resting;},
   torch: () => {
-    if (state.benkos.waterFall) return;
+    if (state.benkos.waterFall || state.benkos.interaction?.kind === 'fish') return;
     if (state.phase === 'DAY_EXPLORE') state.benkos.torchManual = !state.benkos.torchManual;
     else {
       state.benkos.torchOff = torchIsLit(state);

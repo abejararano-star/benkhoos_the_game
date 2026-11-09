@@ -1,20 +1,20 @@
-import { stepCrossings } from './crossings.js?v=0e479f5c479a';
-import { NIGHT_START } from './daylight.js?v=0e479f5c479a';
-import { recoverCoins } from './coins.js?v=0e479f5c479a';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=0e479f5c479a';
-import { collectEquipment } from './equipment.js?v=0e479f5c479a';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=0e479f5c479a';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=0e479f5c479a';
-import { updateCommunity, joinEncounter } from './community.js?v=0e479f5c479a';
-import { updateEcology, isHuntable } from './ecology.js?v=0e479f5c479a';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=0e479f5c479a';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=0e479f5c479a';
-import { advanceParticle, emitEffect } from './effects.js?v=0e479f5c479a';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=0e479f5c479a';
-import { ensureCampaign, finaleWon } from './campaign.js?v=0e479f5c479a';
-import { expeditionFormation } from './story.js?v=0e479f5c479a';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=0e479f5c479a';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=0e479f5c479a';
+import { stepCrossings } from './crossings.js?v=89d5690bb102';
+import { NIGHT_START } from './daylight.js?v=89d5690bb102';
+import { recoverCoins } from './coins.js?v=89d5690bb102';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=89d5690bb102';
+import { collectEquipment } from './equipment.js?v=89d5690bb102';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=89d5690bb102';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=89d5690bb102';
+import { updateCommunity, joinEncounter } from './community.js?v=89d5690bb102';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=89d5690bb102';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=89d5690bb102';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=89d5690bb102';
+import { advanceParticle, emitEffect } from './effects.js?v=89d5690bb102';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=89d5690bb102';
+import { ensureCampaign, finaleWon } from './campaign.js?v=89d5690bb102';
+import { expeditionFormation } from './story.js?v=89d5690bb102';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=89d5690bb102';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=89d5690bb102';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -106,7 +106,7 @@ return function updateSimulation(dt) {
 
   const isRunning = b.sprintHoldTime > 0.35 || keys['ShiftLeft'] || keys['ShiftRight'] || b.jaguarTimer > 0;
   const baseSpeed = b.mounted ? (isRunning ? 212 : 117) : (isRunning ? 155 : 95);
-  b.inStream=state.ecology.streams.some(c=>!c.bridge&&Math.abs(c.x-b.x)<23);
+  b.inStream = shallowWaterAt(state.ecology.streams, b.x);
   const moveSpeed=(b.jaguarTimer>0?205:baseSpeed)*(b.dashTimer>0?2.2:1)*(b.inStream&&!b.mounted?.72:1);
 
   if(b.hurtTimer>.24&&b.dashTimer<=0){b.vx*=Math.pow(.85,dt*60);}

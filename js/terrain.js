@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=0e479f5c479a';
-import { landscapeSeed } from './sky.js?v=0e479f5c479a';
-import { CAMP_EDGE } from './config.js?v=0e479f5c479a';
-import { TOWER_HEIGHT } from './settlement.js?v=0e479f5c479a';
-import { CROSSINGS, deckOffset } from './crossings.js?v=0e479f5c479a';
+import { blend, color, mix, smooth } from './daylight.js?v=89d5690bb102';
+import { landscapeSeed } from './sky.js?v=89d5690bb102';
+import { CAMP_EDGE } from './config.js?v=89d5690bb102';
+import { TOWER_HEIGHT } from './settlement.js?v=89d5690bb102';
+import { CROSSINGS, deckOffset } from './crossings.js?v=89d5690bb102';
 
 let regionCanvas;
 
@@ -213,7 +213,7 @@ export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, time
     [-1245, 'trail_reeds', 12], [1770, 'trail_fern', 12], [2058, 'trail_reeds', 16], [2385, 'trail_fern', 16]
   ] : [
     ...signs.map(x => [x, 'trail_sign', 33, -1]),
-    [altarX + 112, 'trail_arch', 102], [altarX - 97, 'trail_terrace', 47], [altarX + 78, 'trail_stones', 33],
+    [altarX + 112, 'trail_arch', 102], [altarX - 97, 'trail_terrace', 47],
     [-5590, 'trail_terrace', 53], [-5395, 'forest_hardwood', 120], [5400, 'forest_mangrove', 125], [5600, 'trail_reeds', 50],
     [-4810, 'trail_terrace', 49], [-4680, 'trail_stones', 49], [4650, 'forest_mangrove', 105], [4820, 'trail_reeds', 58],
     [-2360, 'trail_stones', 42], [-2200, 'trail_fern', 50], [1705, 'trail_fern', 57],
@@ -622,6 +622,14 @@ export function drawPersonStory(g,x,ground,unit,showSpeech=false){
 }
 
 function drawCampBridge(g, x, ground, time) {
+  if (window.SpriteManager?.draw?.(g, 'camp_creek_grounded', ['idle'], x, ground, 1, 53, 0)) {
+    for (let i = 0; i < 6; i++) {
+      const dx = Math.round((time * 7 + i * 17) % 15) - 7;
+      g.fillStyle = i % 2 ? '#b2ccaf70' : '#7eaea37a';
+      g.fillRect(x + dx, ground + 6 + i * 2, 2 + i % 3, 1);
+    }
+    return;
+  }
   // A small stone sluice lets the stream pass under the enclosure.
   g.fillStyle = '#26312a';
   g.fillRect(x - 13, ground - 23, 26, 14);
@@ -661,39 +669,26 @@ function drawCampBridge(g, x, ground, time) {
   g.fillStyle = '#70a9a0'; g.fillRect(x - 36, ground - 9, 5, 1);
 }
 
-export function drawTerrainFeatures(g, project, width, ground, camera, state, time) {
+export function drawTerrainFeatures(g, project, width, ground, state) {
   const sm = window.SpriteManager;
   for (const creek of state.ecology.streams) {
     const x = project(creek.x);
     if (creek.bridge || x < -125 || x > width + 125) continue;
-    const drift = Math.round((camera - creek.x) * .14);
+    const cascades = creek.x < 0;
     g.save();
-    g.globalAlpha = .89;
-    sm?.draw?.(g, 'habitat_cascade', ['idle'], x + drift, ground - 21, 1, 72, 0);
-    g.restore();
-    for (let row = 0; row < 24; row++) {
-      const stretch = 1 - row / 24;
-      const middle = x + Math.round(drift * stretch + Math.sin(row * .22) * 4);
-      const half = 8 + Math.round(row * .24);
-      const y = ground - 24 + row;
-      g.fillStyle = '#41664ecb';
-      g.fillRect(middle - half - 4, y, half * 2 + 8, 1);
-      g.fillStyle = '#4b8d81d9';
-      g.fillRect(middle - half, y, half * 2, 1);
-      if ((row + Math.floor(time * 10)) % 5 === 0) {
-        g.fillStyle = '#a2d3be';
-        g.fillRect(middle - half + 3, y, half, 1);
+    g.globalAlpha = cascades ? .89 : .62;
+    if (cascades) {
+      if (!sm?.draw?.(g, 'ravine_pool_grounded', ['idle'], x, ground + 3, 1, 79, 0)) {
+        sm?.draw?.(g, 'habitat_cascade', ['idle'], x, ground + 3, 1, 66, 0);
       }
+    } else {
+      sm?.draw?.(g, 'habitat_water', ['idle'], x, ground + 2, 1, 31, 0);
     }
+    g.restore();
   }
   for (const mine of state.mines) {
     const x = project(mine.x);
     if (x < -155 || x > width + 155) continue;
-    const drift = Math.round((camera - mine.x) * .11);
-    g.save();
-    g.globalAlpha = .78;
-    sm?.draw?.(g, 'trail_stones', ['idle'], x + drift - 32, ground - 14, -1, 57, 0);
-    g.restore();
     if (!sm?.draw?.(g, 'mine_cliff', ['idle'], x, ground, 1, 70, 0)) {
       sm?.draw?.(g, 'landmark_mine', ['idle'], x, ground, 1, 50, 0);
     }
@@ -724,16 +719,11 @@ export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,wi
       drawCampBridge(g, x, ground, reduceMotion ? 0 : time);
       continue;
     }
-    sm?.draw?.(g,'habitat_fishing',['idle'],x+28,ground+4,1,24,0);
     sm?.draw?.(g,'habitat_fruit',['idle'],x+110,ground,1,31,0);
     for (let i = 0; i < 10; i++) {
       const drift = reduceMotion ? i * 2 : (time * 13 + i * 7) % 22;
       g.fillStyle = i % 2 ? '#9acdc0b8' : '#70b9ac94';
       g.fillRect(Math.round(x - 12 + drift), ground - 1 + i % 4, 2 + i % 3, 1);
-    }
-    for(let i=0;i<creek.fishStock;i++){
-      const fx=x-13+Math.sin(time*.9+i*2)*10,fy=ground-4+i*3;
-      g.fillStyle='#184f57';g.fillRect(Math.round(fx),Math.round(fy),4,1);g.fillRect(Math.round(fx-1),Math.round(fy-1),1,3);
     }
   }
 }

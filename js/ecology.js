@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=0e479f5c479a';
-import { strikeEnemy } from './combat.js?v=0e479f5c479a';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=89d5690bb102';
+import { strikeEnemy } from './combat.js?v=89d5690bb102';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -12,6 +12,9 @@ export const SPECIES=Object.freeze({
   SNAKE:{name:'Culebra',hp:12,speed:38,food:0}
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+export const shallowWaterAt = (streams, x) => streams.some(creek => !creek.bridge && Math.abs(creek.x - x) < 23);
+export const animalInStream = (animal, streams, x = animal.x) =>
+  (animal.species === 'TURTLE' || animal.species === 'CAPYBARA') && shallowWaterAt(streams, x);
 export function initialEcology() {
   return { version: 1, seeded: false, time: 0, streams: [
     { id: 'creek_west', x: -1605, fishStock: 3, regrow: 0 },
@@ -38,7 +41,14 @@ export function ensureEcology(state){
     creek.x = site.x;
     if (site.bridge) creek.bridge = true;
   }
-  state.resources.food??=5;state.wildlife.forEach(ensureAnimal);return e;
+  state.resources.food??=5;
+  state.wildlife.forEach(ensureAnimal);
+  return e;
+}
+
+function updateAnimalWater(animal, streams) {
+  animal.inWater = animalInStream(animal, streams);
+  if (!SPECIES[animal.species].flying) animal.y = WATER_LINE_Y + (animal.inWater ? 3 : 0);
 }
 export function createAnimal(id,species,x,extra={}){return ensureAnimal({id,species,x,y:WATER_LINE_Y,...extra});}
 export function seedEcology(state,nextId){
@@ -110,6 +120,7 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
     if(a.waterFall && a.hp > 0) continue;
     if(a.hp<=0){if(!a.waterFall && spec.huntable&&!collectHunt(a,spec.food)){state.resources.food+=spec.food;dropCoin(a.x);notice(a.x,`+${spec.food} alimento · caza`);}state.wildlife.splice(i,1);continue;}
     if(a.hp<(a.lastHp??a.hp)){a.aggression=spec.predator?8:0;a.fear=90;a.hurtTimer=.3;}a.lastHp=a.hp;a.hurtTimer=Math.max(0,(a.hurtTimer??0)-dt);
+    updateAnimalWater(a, e.streams);
     if(a.trapped||a.nettedTimer>0){a.nettedTimer=Math.max(0,a.nettedTimer-dt);a.vx=0;a.state='TRAPPED';continue;}
     if(a.eatTimer>0){a.eatTimer-=dt;a.vx=0;a.state='EAT';continue;}
     const dx=b.x-a.x,dist=Math.abs(dx);
@@ -156,6 +167,8 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
       a.state=a.vx?'WALK':'IDLE';if(a.vx)a.facing=Math.sign(a.vx);
     }
     a.pounceTimer = Math.max(0, (a.pounceTimer ?? 0) - dt);
-    a.x=clamp(a.x+a.vx*dt,WORLD_MIN_X+50,WORLD_MAX_X-50);a.inWater=['CAPYBARA','TURTLE'].includes(a.species)&&e.streams.some(c=>Math.abs(c.x-a.x)<30);a.y=WATER_LINE_Y+(a.inWater?3:0)-(spec.flying?25+Math.sin(e.time*2+(Number(a.id)||1))*7:0);
+    a.x = clamp(a.x + a.vx * dt, WORLD_MIN_X + 50, WORLD_MAX_X - 50);
+    updateAnimalWater(a, e.streams);
+    if (spec.flying) a.y = WATER_LINE_Y - 25 - Math.sin(e.time * 2 + (Number(a.id) || 1)) * 7;
   }
 }

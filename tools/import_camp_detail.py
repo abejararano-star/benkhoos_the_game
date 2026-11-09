@@ -32,6 +32,10 @@ def import_camp_detail(output):
             'hand_torch_flame': (320, 545, 97, 125, 125),
             'mine_cliff': (792, 529, 735, 446, 446),
         },
+        'grounded_creeks_v15': {
+            'camp_creek_grounded': (0, 96, 990, 616, 610),
+            'ravine_pool_grounded': (1060, 0, 1112, 724, 724),
+        },
     }
     sprites = {}
     for sheet, items in entries.items():
@@ -40,5 +44,37 @@ def import_camp_detail(output):
             copyfile(source / filename, output / filename)
         for name, (x, y, width, height, scale) in items.items():
             frame = dict(i=0, x=x, y=y, w=width, h=height, ax=width / 2, ay=height - 3)
+            if name == 'camp_creek_grounded':
+                frame.update(ax=572, ay=376)
             sprites[name] = dict(sheet=sheet, ref=scale, anims={'idle': [frame]})
+    for name, sheet, anchors in [
+        ('actor_hero_torch', 'hero_torch_v15', [
+            (245, 461, 83, 373, 74, 239, 213),
+            (751, 461, 91, 875, 74, 746, 216),
+            (1235, 458, 82, 1390, 74, 1231, 209),
+            (239, 974, 612, 383, 594, 249, 740),
+            (723, 970, 600, 871, 592, 732, 735),
+            (1215, 971, 608, 1398, 592, 1224, 741),
+        ]),
+        ('actor_hero_mounted_torch', 'mounted_torch_v15', [
+            (245, 437, 94, 351, 84, 234, 181),
+            (753, 437, 94, 864, 84, 747, 183),
+            (1265, 438, 94, 1377, 84, 1263, 181),
+            (246, 949, 606, 351, 597, 235, 693),
+            (758, 949, 606, 864, 598, 750, 693),
+            (1261, 949, 606, 1378, 598, 1262, 690),
+        ]),
+    ]:
+        filename = sheet + '.png'
+        if output.resolve() != source:
+            copyfile(source / filename, output / filename)
+        frames = []
+        for index, (ax, ay, head, fx, fy, tx, ty) in enumerate(anchors):
+            x, y = index % 3 * 512, index // 3 * 512
+            frames.append(dict(i=index, x=x, y=y, w=512, h=512, ax=ax-x, ay=ay-y,
+                               ref=ay-head, flame=[fx-x, fy-y], torso=[tx-x, ty-y]))
+        sprites[name] = dict(sheet=sheet, ref=frames[0]['ref'], anims={
+            'idle': [frames[0]], 'walk': frames[1:5],
+            'sword': [frames[0], frames[5], frames[0]],
+        })
     return sprites

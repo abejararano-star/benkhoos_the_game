@@ -61,6 +61,19 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
 
   const gradient={addColorStop(){}};
   const ctx=new Proxy({drawImage:(...args)=>logs.push(args),createRadialGradient:()=>gradient},{get:(o,k)=>o[k]??(()=>{})});
+  for (const mounted of [false, true]) {
+    const name = mounted ? 'actor_hero_mounted_torch' : 'actor_hero_torch';
+    const poses = atlas.sprites[name].anims;
+    assert.equal(poses.walk.length, 4);
+    for (const frame of [...poses.idle, ...poses.walk, ...poses.sword]) {
+      assert.ok(frame.flame[0] > frame.ax);
+      assert.ok(frame.flame[1] <= frame.ay - frame.ref);
+    }
+    for (const facing of [-1, 1]) {
+      assert.equal(manager.drawBenkos(ctx, 100, 246, facing, { mounted, vx: 0 }, 0, true), true);
+      assert.ok((manager.heroTorch.x - 100) * facing > 0);
+    }
+  }
   for(const tier of [1,2,3])for(const role of ROLES){
     const unit={role,tier,vx:0,animSeed:0,facing:1};
     assert.equal(manager.drawAlly(ctx,0,246,1,unit,0),true,`${role} tier ${tier}`);
