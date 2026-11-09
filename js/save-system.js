@@ -1,13 +1,14 @@
-import { NIGHT_START } from './daylight.js?v=290996c6041f';
-import { restoreCommunity } from './community.js?v=290996c6041f';
-import { ensureEcology, seedEcology } from './ecology.js?v=290996c6041f';
-import { seedFrontier } from './exploration.js?v=290996c6041f';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=290996c6041f';
-import { ensurePerson } from './people.js?v=290996c6041f';
-import { ensureSettlement } from './settlement.js?v=290996c6041f';
-import { ensureCampaign } from './campaign.js?v=290996c6041f';
-import { restoreHaciendas } from './haciendas.js?v=290996c6041f';
-import { restoreStory } from './story.js?v=290996c6041f';
+import { ensureCrossings } from './crossings.js?v=78e42e07133a';
+import { NIGHT_START } from './daylight.js?v=78e42e07133a';
+import { restoreCommunity } from './community.js?v=78e42e07133a';
+import { ensureEcology, seedEcology } from './ecology.js?v=78e42e07133a';
+import { seedFrontier } from './exploration.js?v=78e42e07133a';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=78e42e07133a';
+import { ensurePerson } from './people.js?v=78e42e07133a';
+import { ensureSettlement } from './settlement.js?v=78e42e07133a';
+import { ensureCampaign } from './campaign.js?v=78e42e07133a';
+import { restoreHaciendas } from './haciendas.js?v=78e42e07133a';
+import { restoreStory } from './story.js?v=78e42e07133a';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -169,6 +170,7 @@ export function restoreSave(save, defaults) {
   };
   checkNumbers(next);
   if(save.snapshot?.state?.benkos?.attackDuration===undefined){next.benkos.attackTimer=0;next.benkos.attackCooldown=0;next.benkos.attackHit=true;next.benkos.queuedAttack=false;}
+  ensureCrossings(next);
   next.benkos.vx = 0; next.benkos.sprintHoldTime = 0;
   next.touchHoldPay = false;
   next.cameraX = next.benkos.x;

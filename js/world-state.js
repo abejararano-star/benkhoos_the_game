@@ -1,9 +1,10 @@
-import { initialCommunity } from './community.js?v=290996c6041f';
-import { initialStory, majorHaciendas } from './story.js?v=290996c6041f';
-import { initialEcology } from './ecology.js?v=290996c6041f';
-import { initialExploration } from './exploration.js?v=290996c6041f';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=290996c6041f';
-import { initialSettlement } from './settlement.js?v=290996c6041f';
+import { ensureCrossings } from './crossings.js?v=78e42e07133a';
+import { initialCommunity } from './community.js?v=78e42e07133a';
+import { initialStory, majorHaciendas } from './story.js?v=78e42e07133a';
+import { initialEcology } from './ecology.js?v=78e42e07133a';
+import { initialExploration } from './exploration.js?v=78e42e07133a';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=78e42e07133a';
+import { initialSettlement } from './settlement.js?v=78e42e07133a';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -64,6 +65,7 @@ const state = {
     hurtTimer:0,
     payTimer:0,
     interaction:null,
+    waterFall:null,
     resting: false,
     torchManual: false,
     torchOff: false,
@@ -143,5 +145,6 @@ treePositions.forEach((tx, idx) => {
 
 
 state.toolRacks.forEach(rack => { rack.cost = TOOL_COSTS[rack.role]; rack.x=STATION_X[rack.role]??rack.x; });
+ensureCrossings(state);
 return state;
 }

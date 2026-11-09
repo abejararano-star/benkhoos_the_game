@@ -1,3 +1,15 @@
+const TORCH_GRIPS = {
+  idle: [[-6, -17], [-6, -17], [-7, -17]],
+  walk: [[-9, -16], [-2, -18], [5, -20], [-1, -17]],
+  run: [[-12, -25], [4, -24], [-13, -26], [4, -24]],
+  sword: [[10, -18], [10, -20], [12, -20], [-12, -24], [-12, -24], [9, -18]],
+  hurt: [[11, -26], [-6, -17]],
+  rest: [[8, -12]], pay: [[-6, -17]], fish: [[-7, -17]],
+  mounted: [[3, -37], [3, -37], [4, -37]],
+  mountedRun: [[4, -38], [2, -39], [-2, -38], [-3, -38], [2, -38], [3, -37], [2, -38], [4, -39]],
+  mountedSword: [[7, -37], [5, -37], [8, -36]]
+};
+
 class BenkosSpriteManager {
   constructor() {
     this.atlas = null;
@@ -85,6 +97,22 @@ class BenkosSpriteManager {
       ctx.fillStyle = '#d29c70';
       ctx.fillRect(tipX + 2, bob, 3, 2);
     }
+    if (pose?.torch) {
+      const name = names[0];
+      const grips = TORCH_GRIPS[pose.mounted ? name === 'sword' ? 'mountedSword' :
+        name === 'run' ? 'mountedRun' : 'mounted' : name] ?? TORCH_GRIPS.idle;
+      const [gx, gy] = grips[idx % grips.length];
+      const flicker = this.reduceMotion ? 0 : Math.round(Math.sin(pose.clock * 11));
+      const flameY = gy - 14;
+      ctx.fillStyle = '#362315'; ctx.fillRect(gx - 1, flameY, 3, 20);
+      ctx.fillStyle = '#b9854b'; ctx.fillRect(gx, flameY + 4, 1, 15);
+      ctx.fillStyle = '#a97448'; ctx.fillRect(gx - 2, gy - 2, 5, 4);
+      ctx.fillStyle = '#c39360'; ctx.fillRect(gx - 1, gy - 2, 3, 1);
+      ctx.fillStyle = '#e16d32'; ctx.fillRect(gx - 2, flameY - 3, 5, 6);
+      ctx.fillStyle = '#ffc56a'; ctx.fillRect(gx - 1, flameY - 5 - flicker, 3, 7);
+      ctx.fillStyle = '#ffe9a6'; ctx.fillRect(gx, flameY - 2, 2, 3);
+      this.heroTorch = { x: Math.round(x) + gx * (facing < 0 ? -1 : 1), y: Math.round(y) + Math.round(flameY * pose.stretch) };
+    }
     ctx.restore();
     return true;
   }
@@ -149,6 +177,7 @@ class BenkosSpriteManager {
   drawAnimal(ctx,x,y,a,time){
     if (a.species === 'SNAKE') return this.drawSnake(ctx, x, y, a);
     const cls='animal_'+(a.species||'CAPYBARA'),height={CAPYBARA:19,DEER:31,BOAR:23,MONKEY:23,MACAW:23,TURTLE:12,JAGUAR:28}[a.species]||19;
+    if (a.waterFall) return this.drawDrowning(ctx, cls, x, y, a.facing, height, a.waterFall.time);
     const t=a.animTime??time,gait=this.motion?.sample(a,t);
     const anim=a.hurtTimer>0||a.state==='CHARGE'?'hurt':a.state==='EAT'?'eat':gait?.moving||Math.abs(a.vx)>2?'walk':'idle';
     const pounce = a.pounceTimer > 0 ? Math.sin(a.pounceTimer / .32 * Math.PI) : 0;
@@ -190,7 +219,7 @@ class BenkosSpriteManager {
       (frameCount - contactFrame)) / frameCount;
   }
 
-  drawIdle(ctx, cls, x, y, facing, height, time, actor, animation = 'idle') {
+  drawIdle(ctx, cls, x, y, facing, height, time, actor, animation = 'idle', options = null) {
     // The alternate armed poses shift the hands and weapons by whole pixels.
     // Keep the planted silhouette until a walk, attack or social action starts.
     if (animation === 'idle' && ['ARQUERO', 'GUERRERO', 'ESPADACHIN', 'CAMPEON_REAL'].includes(actor.role)) {
@@ -201,7 +230,8 @@ class BenkosSpriteManager {
     const offset = (Number(actor.id) || 0) * .71;
     const phase = ((time + offset) % period) / period;
     const frame = this.reduceMotion ? 0 : phase < .36 ? 0 : phase < .68 || phase > .86 ? .4 : .8;
-    const breath = this.reduceMotion ? null : { tilt: 0, stretch: 1 + Math.sin(phase * Math.PI * 4) * .012 };
+    const breath = options || !this.reduceMotion ? { ...options, tilt: 0,
+      stretch: this.reduceMotion ? 1 : 1 + Math.sin(phase * Math.PI * 4) * .012 } : null;
     return this.draw(ctx, cls, [animation], x, y, facing, height, 0, 0, frame, breath);
   }
 
@@ -226,38 +256,50 @@ class BenkosSpriteManager {
     return drawn;
   }
 
-  drawBenkos(ctx, x, y, facing, player, time) {
+  drawBenkos(ctx, x, y, facing, player, time, torch = false) {
+    this.heroTorch = null;
     const mounted = player.mounted;
     const cls = 'actor_hero' + (mounted ? '_mounted' : '') + (player.royalArmor ? '_royal' : '');
     const height = mounted ? 60 : 48;
     const animationTime = player.animTime ?? time;
+    const torchPose = torch ? { torch, mounted, clock: animationTime, tilt: 0, stretch: 1 } : null;
+    if (player.waterFall) return this.drawDrowning(ctx, cls, x, y, facing, height, player.waterFall.time);
     const running = Math.abs(player.vx) > (mounted ? 150 : 120) || player.dashTimer > 0;
     const gait = this.motion?.sample(player, animationTime, mounted ? (running ? 112 : 76) : undefined);
     if (player.hurtKneelTimer > 0 || player.resting) {
-      return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player, mounted ? 'idle' : 'rest');
+      return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player, mounted ? 'idle' : 'rest', torchPose);
     }
     if (player.hurtTimer > 0) {
-      return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0, 0, 1 - player.hurtTimer / .4);
+      return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0, 0, 1 - player.hurtTimer / .4, torchPose);
     }
     if (player.attackTimer > 0) {
       const animation = player.weaponMode === 'SPEAR' ? 'spear' : 'sword';
       const progress = this.attackProgress(player, mounted ? 3 : 6, mounted ? 1 : 3, .15);
-      return this.draw(ctx, cls, [animation], x, y, player.attackFacing || facing, height, 0, 0, progress);
+      return this.draw(ctx, cls, [animation], x, y, player.attackFacing || facing, height, 0, 0, progress, torchPose);
     }
     if (!mounted && player.payTimer > 0) {
-      return this.draw(ctx, cls, ['pay'], x, y, facing, height, 0, 0, 1 - player.payTimer / .35);
+      return this.draw(ctx, cls, ['pay'], x, y, facing, height, 0, 0, 1 - player.payTimer / .35, torchPose);
     }
     if (!mounted && player.interaction?.kind === 'fish') {
-      return this.draw(ctx, cls, ['fish'], x, y, facing, height, animationTime, 2.5, this.reduceMotion ? 0 : null);
+      return this.draw(ctx, cls, ['fish'], x, y, facing, height, animationTime, 2.5, this.reduceMotion ? 0 : null, torchPose);
     }
     if (gait?.moving ?? Math.abs(player.vx) > 8) {
       const lift = mounted && running && !this.reduceMotion ? [2, 2, 1, 0, 0, 0, 1, 2][Math.floor((gait?.phase ?? 0) * 8)] : 0;
-      return this.draw(ctx, cls, [running ? 'run' : 'walk'], x, y - lift, facing, height, animationTime, 9, gait?.phase);
+      return this.draw(ctx, cls, [running ? 'run' : 'walk'], x, y - lift, facing, height, animationTime, 9, gait?.phase, torchPose);
     }
-    return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player);
+    return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player, 'idle', torchPose);
+  }
+
+  drawDrowning(ctx, cls, x, y, facing, height, time) {
+    const struggling = time < 1.17;
+    const pose = { tilt: this.reduceMotion ? 0 : Math.sin(time * 24) * (struggling ? .19 : .08),
+      stretch: struggling ? 1 : .84 };
+    return this.draw(ctx, cls, struggling ? ['hurt', 'walk', 'idle'] : ['rest', 'hurt', 'idle'],
+      x, y, facing, height, this.reduceMotion ? 0 : time, 7, null, pose);
   }
 
   drawHorse(ctx, x, y, horse, time) {
+    if (horse.waterFall) return this.drawDrowning(ctx, 'actor_horse', x, y, horse.facing, 48, horse.waterFall.time);
     return this.drawIdle(ctx, 'actor_horse', x, y, horse.facing, 48, time, horse);
   }
 
@@ -274,6 +316,7 @@ class BenkosSpriteManager {
   drawAllyPose(ctx, x, y, facing, unit, time) {
     const cls = this.personClass(unit.role, unit.equipment?.armor ?? unit.tier, unit.equipment?.weapon);
     const height = unit.role === 'CABALLERO_ALIADO' ? 58 : unit.role === 'CAMPEON_REAL' ? 51 : 45;
+    if (unit.waterFall) return this.drawDrowning(ctx, cls, x, y, facing, height, unit.waterFall.time);
     const t = unit.animSeed ?? time;
     const gait = this.motion?.sample(unit, t, unit.role === 'CABALLERO_ALIADO' ? 88 : undefined);
     if (unit.hurtTimer > 0) {
@@ -307,6 +350,7 @@ class BenkosSpriteManager {
   }
 
   drawMessenger(ctx, x, y, messenger, time) {
+    if (messenger.waterFall) return this.drawDrowning(ctx, 'actor_messenger', x, y, messenger.facing, 45, messenger.waterFall.time);
     const t = messenger.animTime ?? time;
     const gait = this.motion?.sample(messenger, t);
     if (messenger.state !== 'WAIT') return this.draw(ctx, 'actor_messenger', ['walk'], x, y, messenger.facing, 45, t, 8, gait?.phase);
@@ -316,6 +360,7 @@ class BenkosSpriteManager {
   drawEnemy(ctx, x, y, facing, enemy, time) {
     const cls = this.enemyClass(enemy);
     const height = this.enemyHeight(enemy);
+    if (enemy.waterFall) return this.drawDrowning(ctx, cls, x, y, facing, height, enemy.waterFall.time);
     const t = enemy.animTime ?? time;
     const gait = this.motion?.sample(enemy, t, enemy.type === 'CABALLERO' ? 88 : undefined);
     if (enemy.hurtTimer > 0) {

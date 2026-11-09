@@ -1,4 +1,4 @@
-import { storyChapter } from './story.js?v=290996c6041f';
+import { storyChapter } from './story.js?v=78e42e07133a';
 export const ROAD_GATES = Object.freeze([{side:-1,x:-2485,label:'Camino de Cartagena'},{side:1,x:2485,label:'Camino de la hacienda oriental'}]);
 export function ensureCampaign(state){
   state.messengers??=[];
@@ -114,7 +114,8 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
       }
     }
     for(let i=state.messengers.length-1;i>=0;i--){
-      const m=state.messengers[i];m.animTime+=dt;
+      const m=state.messengers[i];if (m.waterFall) continue;
+      m.animTime+=dt;
       if(m.state==='TRAVEL'){
         const target=m.side*90,dx=target-m.x;m.vx=Math.sign(dx)*105;m.facing=Math.sign(dx)||1;m.x+=m.vx*dt;
         if(Math.abs(dx)<8){m.state='WAIT';m.vx=0;m.waitTimer=0;showBanner('UN MENSAJERO ESPERA EN EL PALENQUE','Acércate al estandarte blanco y pulsa E para escuchar su mensaje.');}

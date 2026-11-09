@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=290996c6041f';
-import { strikeEnemy } from './combat.js?v=290996c6041f';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=78e42e07133a';
+import { strikeEnemy } from './combat.js?v=78e42e07133a';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -107,7 +107,8 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
   for(let i=state.wildlife.length-1;i>=0;i--){
     const a=ensureAnimal(state.wildlife[i]),spec=SPECIES[a.species];a.animTime+=dt;
     a.feedCooldown=Math.max(0,a.feedCooldown-dt);a.attackCooldown=Math.max(0,a.attackCooldown-dt);a.aggression=Math.max(0,a.aggression-dt);
-    if(a.hp<=0){if(spec.huntable&&!collectHunt(a,spec.food)){state.resources.food+=spec.food;dropCoin(a.x);notice(a.x,`+${spec.food} alimento · caza`);}state.wildlife.splice(i,1);continue;}
+    if(a.waterFall && a.hp > 0) continue;
+    if(a.hp<=0){if(!a.waterFall && spec.huntable&&!collectHunt(a,spec.food)){state.resources.food+=spec.food;dropCoin(a.x);notice(a.x,`+${spec.food} alimento · caza`);}state.wildlife.splice(i,1);continue;}
     if(a.hp<(a.lastHp??a.hp)){a.aggression=spec.predator?8:0;a.fear=90;a.hurtTimer=.3;}a.lastHp=a.hp;a.hurtTimer=Math.max(0,(a.hurtTimer??0)-dt);
     if(a.trapped||a.nettedTimer>0){a.nettedTimer=Math.max(0,a.nettedTimer-dt);a.vx=0;a.state='TRAPPED';continue;}
     if(a.eatTimer>0){a.eatTimer-=dt;a.vx=0;a.state='EAT';continue;}

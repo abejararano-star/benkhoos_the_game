@@ -195,3 +195,10 @@ Los catálogos SQL se conservan por compatibilidad como metadatos descriptivos; 
 Para regenerar atlas instala las dependencias opcionales con `python -m pip install -r requirements.txt` y ejecuta `npm run atlas:build`. Las versiones fijadas se probaron con Python 3.14. `generate_atlas.ps1` llama al mismo proceso. `python tools/check_atlas.py --preview` genera hojas de comprobación. La validación normal usa solo la biblioteca estándar de Python.
 
 `npm run test:xampp` usa un perfil temporal separado, comprueba guardado y carga reales, y retira únicamente sus propios datos al terminar. No sustituye partidas existentes. Por defecto usa PHP de `C:\xampp\php\php.exe`; se puede ajustar con `BENKHOOS_PHP`.
+
+
+### Puentes y riberas
+
+En el mapa (**M**) aparecen el puente fijo al oeste y el colgante al este. El colgante cede más con una montura que al cruzar a pie. En cualquiera de sus postes, **Mayús + E** corta las cuerdas y **E** repara el paso por 3 de madera. La corriente es mortal para quienes caen. El puente del palenque sigue sirviendo para sacar agua y pescar.
+
+**T** alterna la antorcha. Mientras la lleva encendida, Benkos combate con el machete. **E** junto a un cultivo permite sembrar cuando esté vacío o recoger la yuca madura.

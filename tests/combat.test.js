@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {startPlayerAttack,advancePlayerAttack,inStrikeRange,strikeEnemy,advanceAllyAction} from '../js/combat.js';
+import {startPlayerAttack,advancePlayerAttack,inStrikeRange,strikeEnemy,advanceAllyAction,playerAttackSpec} from '../js/combat.js';
 import {createInitialState} from '../js/world-state.js';
 
 test('a player blow deals its single impact after anticipation, with a complete recovery',()=>{
@@ -19,6 +19,15 @@ test('attacks respect facing, reach and enemies that are still arriving',()=>{
   const b={x:0,facing:1};assert.equal(inStrikeRange(b,{x:35},40),true);assert.equal(inStrikeRange(b,{x:-25},40),false);assert.equal(inStrikeRange(b,{x:55},40),false);
   const e={hp:75,appearTimer:1};assert.equal(strikeEnemy(e,22,1),false);assert.equal(e.hp,75);
   e.appearTimer=0;assert.equal(strikeEnemy(e,22,1),true);assert.equal(e.hp,53);assert.ok(e.hurtTimer>0&&e.stunTimer>0);
+});
+test('a lit torch replaces the spear step with a shorter machete strike', () => {
+  const b = createInitialState().benkos;
+  startPlayerAttack(b, true);
+  advancePlayerAttack(b, .49);
+  assert.equal(startPlayerAttack(b, true), true);
+  assert.equal(b.comboStep, 2);
+  assert.equal(b.weaponMode, 'SWORD');
+  assert.equal(playerAttackSpec(b).reach, 40);
 });
 test('allied melee waits for contact, can miss a retreating target, and is interrupted by injury',()=>{
   const state={enemies:[{id:1,x:25,hp:100,appearTimer:0}],projectiles:[]};

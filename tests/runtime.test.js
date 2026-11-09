@@ -6,6 +6,7 @@ import { ENEMY_CATALOG } from '../js/config.js';
 import { createAnimal } from '../js/ecology.js';
 import { ALTAR_X } from '../js/exploration.js';
 import { ESTATES } from '../js/story.js';
+import { CROSSINGS } from '../js/crossings.js';
 
 // Run the real game modules against a small browser shell. No logic is copied.
 class Element {
@@ -214,4 +215,31 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   // A completed campaign can award victory only once.
   await loadState(s=>{s.status='playing';s.benkos.invulnTimer=0;s.coins=16;s.haciendas.forEach(h=>h.destroyed=true);s.story.completed=ESTATES.map(site=>site.id);s.story.finale='witnesses';s.bossesDefeated=1;s.enemies=[{...enemy(),type:'GOBERNADOR_GIRON',isBoss:true,phase:2,hp:0}];});
   advance(.02);assert.equal(inspect().mode,'victory');assert.equal(elements.get('storyTitle').textContent,'Quienes dieron testimonio');const count=records.length;advance(1);assert.equal(records.length,count);
+});
+
+test('the hanging bridge can be cut and repaired at a post and the river ends the run', async () => {
+  const site = CROSSINGS[1];
+  await loadState(s => {
+    s.status = 'playing';
+    s.story.finale = '';
+    s.units = [];
+    s.enemies = [];
+    s.resources.wood = 8;
+    s.benkos.x = site.x - site.half - 5;
+    s.benkos.hurtTimer = 0;
+    s.benkos.hurtKneelTimer = 0;
+    s.benkos.dashTimer = 0;
+    s.benkos.mounted = false;
+  });
+  key('ShiftLeft'); key('KeyE'); key('KeyE', true); key('ShiftLeft', true);
+  assert.equal(inspect().state.crossings[site.id].cut, true);
+  key('KeyE'); key('KeyE', true);
+  assert.equal(inspect().state.crossings[site.id].cut, false);
+  assert.equal(inspect().state.resources.wood, 5);
+  key('ShiftLeft'); key('KeyE'); key('KeyE', true); key('ShiftLeft', true);
+  key('KeyD'); advance(.75); key('KeyD', true);
+  assert.equal(inspect().state.benkos.waterFall.site, site.id);
+  advance(2);
+  assert.equal(inspect().mode, 'defeat');
+  assert.match(elements.get('resultDescription').textContent, /cayó al río/);
 });

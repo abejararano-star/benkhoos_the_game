@@ -1,19 +1,20 @@
-import { NIGHT_START } from './daylight.js?v=290996c6041f';
-import { recoverCoins } from './coins.js?v=290996c6041f';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=290996c6041f';
-import { collectEquipment } from './equipment.js?v=290996c6041f';
-import { advanceCrops, tendCrop } from './crops.js?v=290996c6041f';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=290996c6041f';
-import { updateCommunity, joinEncounter } from './community.js?v=290996c6041f';
-import { updateEcology, isHuntable } from './ecology.js?v=290996c6041f';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=290996c6041f';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=290996c6041f';
-import { advanceParticle, emitEffect } from './effects.js?v=290996c6041f';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=290996c6041f';
-import { ensureCampaign, finaleWon } from './campaign.js?v=290996c6041f';
-import { expeditionFormation } from './story.js?v=290996c6041f';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=290996c6041f';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=290996c6041f';
+import { stepCrossings } from './crossings.js?v=78e42e07133a';
+import { NIGHT_START } from './daylight.js?v=78e42e07133a';
+import { recoverCoins } from './coins.js?v=78e42e07133a';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=78e42e07133a';
+import { collectEquipment } from './equipment.js?v=78e42e07133a';
+import { advanceCrops, tendCrop } from './crops.js?v=78e42e07133a';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=78e42e07133a';
+import { updateCommunity, joinEncounter } from './community.js?v=78e42e07133a';
+import { updateEcology, isHuntable } from './ecology.js?v=78e42e07133a';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=78e42e07133a';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=78e42e07133a';
+import { advanceParticle, emitEffect } from './effects.js?v=78e42e07133a';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=78e42e07133a';
+import { ensureCampaign, finaleWon } from './campaign.js?v=78e42e07133a';
+import { expeditionFormation } from './story.js?v=78e42e07133a';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=78e42e07133a';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=78e42e07133a';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -80,6 +81,10 @@ return function updateSimulation(dt) {
       emitEffect(state, b.inStream ? 'water' : 'dust', b.x, WATER_LINE_Y - 3, -b.facing, b.inStream ? .5 : .2);
     }
   }
+  if (b.attackTimer > 0 && b.weaponMode === 'SPEAR' && torchIsLit(state)) {
+    b.attackTimer = 0;
+    b.queuedAttack = false;
+  }
   if(advancePlayerAttack(b,dt))resolveBenkosHit?.();
   if(!b.attackTimer&&b.queuedAttack){b.queuedAttack=false;triggerBenkosAttack?.();}
   if (b.dashTimer > 0) b.dashTimer -= dt;
@@ -91,7 +96,7 @@ return function updateSimulation(dt) {
   if (b.roarWave > 0) b.roarWave = Math.max(0, b.roarWave - dt * 2.2);
   b.spirit = Math.min(b.maxSpirit, b.spirit + dt * (b.resting ? 8.0 : 2.5));
 
-  const moveInput = (keys['KeyA'] || keys['ArrowLeft']) ? -1 : ((keys['KeyD'] || keys['ArrowRight']) ? 1 : 0);
+  const moveInput = b.waterFall ? 0 : (keys['KeyA'] || keys['ArrowLeft']) ? -1 : ((keys['KeyD'] || keys['ArrowRight']) ? 1 : 0);
   if (moveInput !== 0) {
     b.resting = false;
     b.sprintHoldTime += dt;
@@ -136,7 +141,7 @@ return function updateSimulation(dt) {
     state.holdPayTimer = 0;
   }
 
-  const isHoldingPay = keys['KeyS'] || keys['ArrowDown'] || keys['KeyK'] || state.touchHoldPay;
+  const isHoldingPay = !b.waterFall && (keys['KeyS'] || keys['ArrowDown'] || keys['KeyK'] || state.touchHoldPay);
   if (isHoldingPay && !activeNode?.locked) {
     state.holdPayTimer += dt;
     if (activeNode) {
@@ -238,7 +243,7 @@ return function updateSimulation(dt) {
     const unit = state.units[i];
     if (unit.hp > 0) continue;
     for (let coin = 0; coin < (unit.recoveredCoins ?? 0); coin++) {
-      spawnPhysicalCoin(unit.x, WATER_LINE_Y - 20, coin * 13 - 20, -80, true, false, true);
+      spawnPhysicalCoin(unit.x, WATER_LINE_Y - 20, coin * 13 - 20, -80, true, !!unit.waterFall, true);
     }
     recordLoss(unit, state);
     state.units.splice(i, 1);
@@ -262,6 +267,7 @@ return function updateSimulation(dt) {
   const coveringRescue = state.story.expedition?.stage === 'return';
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
+    if (u.waterFall) continue;
     u.towerHeight = 0;
     delete u.constructionJob;
     ensurePerson(u);
@@ -566,6 +572,7 @@ return function updateSimulation(dt) {
   // ==================== COLONIAL ENEMIES & BOSS AI ====================
   for (let i = state.enemies.length - 1; i >= 0 && state.status === 'playing'; i--) {
     const en = state.enemies[i];
+    if (en.waterFall && en.hp > 0) continue;
     en.isMoving = Math.abs(en.x - (en.previousX ?? en.x)) > .05;
     en.previousX = en.x;
     en.animTime += dt;en.hurtTimer=Math.max(0,(en.hurtTimer??0)-dt);
@@ -586,7 +593,7 @@ return function updateSimulation(dt) {
     }
 
     if (en.hp <= 0) {
-      if (en.type === 'GOBERNADOR_GIRON' && en.phase === 1) {
+      if (en.type === 'GOBERNADOR_GIRON' && en.phase === 1 && !en.waterFall) {
         en.phase = 2;
         en.maxHp = 280;
         en.hp = 280;
@@ -602,7 +609,7 @@ return function updateSimulation(dt) {
         continue;
       }
 
-      if (en.type === 'GOBERNADOR_GIRON' && en.phase === 2) {
+      if (en.type === 'GOBERNADOR_GIRON' && (en.phase === 2 || en.waterFall)) {
       state.bossesDefeated++;
       const progress = ensureCampaign(state); progress.governorDefeated = true; progress.defeatedBosses.push('GOBERNADOR_GIRON');
       state.score += 5000;
@@ -616,7 +623,7 @@ return function updateSimulation(dt) {
         state.score = (state.score || 0) + 2500;
       }
 
-      state.corpses.push({
+      if (!en.waterFall) state.corpses.push({
         type: en.type,
         phase: en.phase,
         x: en.x,
@@ -626,7 +633,7 @@ return function updateSimulation(dt) {
 
       const totalDrop = en.reward + en.stolenCoins;
       for (let c = 0; c < totalDrop; c++) {
-        spawnPhysicalCoin(en.x + (c * 5 - 6), WATER_LINE_Y - 18, (Math.random() - 0.5) * 85, -120 - Math.random() * 30, true, false);
+        spawnPhysicalCoin(en.x + (c * 5 - 6), WATER_LINE_Y - 18, (Math.random() - 0.5) * 85, -120 - Math.random() * 30, true, !!en.waterFall);
       }
       addParticles(en.x, WATER_LINE_Y - 18, 16, '#f59e0b', 90);
       state.enemies.splice(i, 1);
@@ -801,6 +808,18 @@ return function updateSimulation(dt) {
     }
     if (en.isBoss) updateHUD();
   }
+
+  stepCrossings(state, dt, {
+    splash: (x, velocity) => {
+      emitEffect(state, 'water', x, WATER_LINE_Y + 3, Math.sign(velocity), 2.3);
+      audio.playSfx('splash');
+    },
+    onPlayerDrowned: () => {
+      state.status = 'defeat';
+      finishCampaign('defeat');
+    }
+  });
+  if (state.status !== 'playing') return;
 
   for (let i = state.corpses.length - 1; i >= 0; i--) {
     state.corpses[i].timer -= dt;

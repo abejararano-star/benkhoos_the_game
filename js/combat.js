@@ -4,11 +4,17 @@ export const PLAYER_COMBOS=Object.freeze([
   {weapon:'SWORD',duration:.60,impact:.25,reach:48,damage:34}
 ]);
 
-export function startPlayerAttack(b){
-  if(b.hurtKneelTimer>0||b.hurtTimer>0||b.dashTimer>0)return false;
+export function playerAttackSpec(b, torch = false) {
+  const index = (b.comboStep || 1) - 1;
+  return index === 1 && (torch || b.weaponMode === 'SWORD') ? PLAYER_COMBOS[0] : PLAYER_COMBOS[index];
+}
+
+export function startPlayerAttack(b, torch = false){
+  if(b.waterFall||b.hurtKneelTimer>0||b.hurtTimer>0||b.dashTimer>0)return false;
   if(b.attackTimer>0||b.attackCooldown>0){if(b.attackTimer>0&&b.attackTimer<.14)b.queuedAttack=true;return false;}
   b.comboStep=b.comboWindow>0?(b.comboStep%3)+1:1;
-  const spec=PLAYER_COMBOS[b.comboStep-1],speed=b.jaguarTimer>0?.8:1;
+  const spec=PLAYER_COMBOS[b.comboStep-1].weapon === 'SPEAR' && torch ? PLAYER_COMBOS[0] : PLAYER_COMBOS[b.comboStep-1];
+  const speed=b.jaguarTimer>0?.8:1;
   b.weaponMode=spec.weapon;b.attackDuration=spec.duration*speed;b.attackImpact=spec.impact*speed;
   b.attackTimer=b.attackDuration;b.attackElapsed=0;b.attackHit=false;b.attackFacing=b.facing;
   b.queuedAttack=false;

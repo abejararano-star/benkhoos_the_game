@@ -1,8 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=290996c6041f';
-import { landscapeSeed } from './sky.js?v=290996c6041f';
-import { CAMP_EDGE } from './config.js?v=290996c6041f';
-import { TOWER_HEIGHT } from './settlement.js?v=290996c6041f';
+import { blend, color, mix, smooth } from './daylight.js?v=78e42e07133a';
+import { landscapeSeed } from './sky.js?v=78e42e07133a';
+import { CAMP_EDGE } from './config.js?v=78e42e07133a';
+import { TOWER_HEIGHT } from './settlement.js?v=78e42e07133a';
+import { CROSSINGS, deckOffset } from './crossings.js?v=78e42e07133a';
 
 let regionCanvas;
 
@@ -204,6 +205,7 @@ export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, fore
   ] : [
     ...signs.map(x => [x, 'trail_sign', 33, -1]),
     [altarX + 162, 'trail_arch', 102], [altarX - 97, 'trail_terrace', 47], [altarX + 78, 'trail_stones', 33],
+    [-5590, 'trail_terrace', 53], [-5395, 'forest_hardwood', 120], [5400, 'forest_mangrove', 125], [5600, 'trail_reeds', 50],
     [-4810, 'trail_terrace', 49], [-4680, 'trail_stones', 49], [4650, 'forest_mangrove', 105], [4820, 'trail_reeds', 58],
     [-2360, 'trail_stones', 42], [-2200, 'trail_fern', 50], [1705, 'trail_fern', 57],
     [2130, 'trail_reeds', 42], [2300, 'trail_fern', 55], [2450, 'trail_stones', 41]
@@ -355,6 +357,22 @@ export function drawCampEnclosure(g, width, ground, camera, walls) {
     const height = [0, 27, 35, 43, 51, 60][level];
     const y = ground - height;
     const masonry = level >= 3;
+    const sprite = level <= 2 ? 'enclosure_wood' : level === 3 ? 'enclosure_stone' : 'enclosure_battlements';
+    const sm = window.SpriteManager;
+    if (sm?.has(sprite)) {
+      const definition = sm.atlas[sprite];
+      const tile = Math.round(definition.anims.idle[0].w / definition.ref * height) - 2;
+      g.save();
+      g.beginPath();
+      g.rect(start - left, y - 5, end - start, height + 6);
+      g.clip();
+      g.filter = level === 5 ? 'brightness(.86) saturate(.81)' : 'brightness(.78) saturate(.83)';
+      for (let index = Math.floor(start / tile); index * tile < end; index++) {
+        sm.draw(g, sprite, ['idle'], index * tile - left + tile / 2, ground, index % 2 ? -1 : 1, height, 0);
+      }
+      g.restore();
+      continue;
+    }
     const span = masonry ? 16 : 8;
     g.save();
     g.beginPath();
@@ -395,6 +413,22 @@ export function drawCampEnclosure(g, width, ground, camera, walls) {
   }
 }
 
+export function drawCropPlot(g, x, ground, farm, time) {
+  const state = farm.stage;
+  const sm = window.SpriteManager;
+  const sprite = state === 'RIPE' || farm.cropProgress >= .73 ? 'crop_ripe' :
+    state === 'PLANT' || state === 'FALLOW' ? 'crop_bed' : 'crop_young';
+  const sizes = { crop_bed: 8, crop_young: 22, crop_ripe: 39 };
+  const height = sizes[sprite] + (farm.level > 1 ? 3 : 0);
+  if (!sm?.draw?.(g, sprite, ['idle'], x, ground, 1, height, 0)) {
+    sm?.draw?.(g, 'landmark_farm', ['idle'], x, ground, 1, 30, 0);
+  }
+  if (state === 'RIPE') {
+    g.fillStyle = '#edce814f';
+    g.fillRect(x + 25, ground - 10 - Math.round(Math.sin(time * 3)), 2, 1);
+  }
+}
+
 export function drawWatchtower(g, x, ground, tower) {
   if (!tower.level) {
     g.fillStyle = '#8f7753';
@@ -405,6 +439,14 @@ export function drawWatchtower(g, x, ground, tower) {
     return;
   }
   const deck = ground - TOWER_HEIGHT[tower.level];
+  if (window.SpriteManager?.draw?.(g, 'watchtower_detail', ['idle'], x, ground, 1, TOWER_HEIGHT[tower.level], 0)) {
+    if (tower.level >= 2) {
+      g.fillStyle = '#7c5a37'; g.fillRect(x + 20, deck - 29, 2, 22);
+      g.fillStyle = '#294d42'; g.fillRect(x + 22, deck - 29, 12, 9);
+      g.fillStyle = '#c6a670'; g.fillRect(x + 24, deck - 27, 4, 4);
+    }
+    return;
+  }
   g.strokeStyle = '#4d3326';
   g.lineWidth = 5;
   g.beginPath();
@@ -610,14 +652,14 @@ function drawCampBridge(g, x, ground, time) {
 
 export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,width=Infinity){
   const sm=window.SpriteManager;
-  for(const [index,creek]of streams.entries()){
+  for(const creek of streams){
     const x=toScreen(creek.x);
     if (x < -125 || x > width + 125) continue;
     if (creek.bridge) {
       drawCampBridge(g, x, ground, reduceMotion ? 0 : time);
       continue;
     }
-    sm?.draw?.(g,index?'habitat_bridge':'habitat_cascade',['idle'],x,ground+5,1,84,0);
+    sm?.draw?.(g,'habitat_cascade',['idle'],x,ground+5,1,84,0);
     sm?.draw?.(g,'habitat_fishing',['idle'],x+37,ground+9,1,35,0);
     sm?.draw?.(g,'habitat_log',['idle'],x-75,ground,1,31,0);
     sm?.draw?.(g,'habitat_fruit',['idle'],x+110,ground,1,39,0);
@@ -629,6 +671,54 @@ export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,wi
     for(let i=0;i<creek.fishStock;i++){
       const fx=x-13+Math.sin(time*.9+i*2)*10,fy=ground-4+i*3;
       g.fillStyle='#184f57';g.fillRect(Math.round(fx),Math.round(fy),4,1);g.fillRect(Math.round(fx-1),Math.round(fy-1),1,3);
+    }
+  }
+}
+
+export function drawCrossings(g, toScreen, width, ground, state, time) {
+  for (const site of CROSSINGS) {
+    const x = toScreen(site.x);
+    const left = x - site.half;
+    const right = x + site.half;
+    if (right < -40 || left > width + 40) continue;
+    const cut = state.crossings[site.id].cut;
+    const fixed = site.kind === 'fixed';
+    g.fillStyle = '#235153';
+    g.fillRect(left, ground - 1, right - left, 23);
+    g.fillStyle = '#397b77';
+    g.fillRect(left + 4, ground + 12, right - left - 8, 10);
+    for (let i = 0; i < 28; i++) {
+      const drift = (time * (12 + i % 4) + i * 41) % (right - left - 14);
+      g.fillStyle = i % 3 ? '#87b7a670' : '#b7d4b7a6';
+      g.fillRect(left + 3 + Math.floor(drift), ground + 13 + i % 9, 3 + i % 7, 1);
+    }
+    if (fixed) {
+      for (let dx = -site.half + 24; dx < site.half; dx += 42) {
+        woodFace(g, x + dx, ground - 5, 7, 27, '#745434', dx);
+      }
+    }
+    for (const side of [-1, 1]) {
+      const post = x + side * site.half;
+      woodFace(g, post - 4, ground - 26, 9, 32, '#927047', post);
+      stoneFace(g, post - 10, ground - 2, 18, 10, '#797664', .77);
+      g.fillStyle = '#d4ae76';
+      g.fillRect(post - 5, ground - 19, 11, 2);
+      g.fillRect(post - 5, ground - 15, 11, 2);
+    }
+    for (let dx = -site.half + 3; dx < site.half - 2; dx += 7) {
+      if (cut && Math.abs(dx) <= site.half * .72) continue;
+      const deck = ground + deckOffset(state, site, site.x + dx);
+      const sx = x + dx;
+      const tile = window.SpriteManager?.draw?.(g, 'crossing_boards', ['idle'], sx + 3, deck + 5, 1, 5, 0);
+      if (!tile) {
+        g.fillStyle = '#473221'; g.fillRect(sx, deck - 1, 7, 6);
+        g.fillStyle = '#a87d4d'; g.fillRect(sx, deck - 1, 6, 2);
+      }
+      if (!fixed) {
+        g.fillStyle = '#bb965e';
+        g.fillRect(sx, deck - 14, 8, 2);
+        if (Math.abs(dx % 3) === 0) g.fillRect(sx, deck - 13, 1, 13);
+      }
     }
   }
 }

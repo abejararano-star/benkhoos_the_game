@@ -1,6 +1,6 @@
 // Canonical gameplay balance. SQL catalogs are descriptive legacy metadata.
-export const WORLD_MIN_X = -5050;
-export const WORLD_MAX_X = 5050;
+export const WORLD_MIN_X = -5800;
+export const WORLD_MAX_X = 5800;
 export const CAMP_EDGE = 1060;
 export const WATER_LINE_Y = 268;
 export const BALANCE = Object.freeze({

@@ -1,8 +1,8 @@
-import { createAnimal } from './ecology.js?v=290996c6041f';
+import { createAnimal } from './ecology.js?v=78e42e07133a';
 
 export const ALTAR_X = -1880;
 export const TRAIL_SIGNS = [-1565, -1815, -4360];
-export const TRAIL_TORCHES = [-4620, -3985, -3280, -2815, -1720, -2048, 1685, 2135, 2840, 3455, 4040, 4590];
+export const TRAIL_TORCHES = [-5510, -5100, -4620, -3985, -3280, -2815, -1720, -2048, 1685, 2135, 2840, 3455, 4040, 4590, 5100, 5510];
 export const TRAIL_CACHES = [
   { id: 'ceiba_cache', x: -2350, name: 'Mirador de la Ceiba', wood: 4, stone: 0, coins: 3 },
   { id: 'mangrove_cache', x: 2290, name: 'Manglar de la Marea', wood: 0, stone: 4, coins: 3 },
@@ -11,7 +11,9 @@ export const TRAIL_CACHES = [
   { id: 'jegua_cache', x: -2920, name: 'Alijo de los guías de Jegua', wood: 3, stone: 0, coins: 5, hidden: true },
   { id: 'coast_cache', x: 3130, name: 'Depósito junto a la marea', wood: 0, stone: 3, coins: 5, hidden: true },
   { id: 'ridge_cache', x: -4740, name: 'Alijo de la Loma del Vigía', wood: 2, stone: 4, coins: 5 },
-  { id: 'marsh_cache', x: 4740, name: 'Provisiones del Estero', wood: 4, stone: 2, coins: 5 }
+  { id: 'marsh_cache', x: 4740, name: 'Provisiones del Estero', wood: 4, stone: 2, coins: 5 },
+  { id: 'ridge_lookout', x: -5630, name: 'Vigía del barranco', wood: 2, stone: 6, coins: 4 },
+  { id: 'estuary_shore', x: 5630, name: 'Orilla del estero', wood: 6, stone: 1, coins: 5 }
 ];
 
 export function initialExploration() {
@@ -72,7 +74,7 @@ export function revealTrailCache(state) {
 }
 
 export function torchIsLit(state) {
-  return state.benkos.torchManual || (state.phase !== 'DAY_EXPLORE' && !state.benkos.torchOff);
+  return !state.benkos.waterFall && (state.benkos.torchManual || (state.phase !== 'DAY_EXPLORE' && !state.benkos.torchOff));
 }
 
 export function explorationHint(state) {

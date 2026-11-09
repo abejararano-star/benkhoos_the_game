@@ -1,5 +1,5 @@
-import { blend, color, NIGHT_START, smooth } from './daylight.js?v=290996c6041f';
-import { ALTAR_X, TRAIL_TORCHES, torchIsLit } from './exploration.js?v=290996c6041f';
+import { blend, color, NIGHT_START, smooth } from './daylight.js?v=78e42e07133a';
+import { ALTAR_X, TRAIL_TORCHES } from './exploration.js?v=78e42e07133a';
 
 function drawFlame(g, x, y, flicker, length) {
   g.fillStyle = '#583824'; g.fillRect(x - 1, y + 2, 3, length);
@@ -13,17 +13,14 @@ export function createLighting() {
   const mask = document.createElement('canvas');
   const shade = mask.getContext('2d');
 
-  return function lightScene(g, state, toScreen, playerX, ground, width, time, reduceMotion, air) {
+  return function lightScene(g, state, toScreen, handFlame, ground, width, time, reduceMotion, air) {
     const glowAmount = smooth(.08, .57, air.shadow);
-    const lit = torchIsLit(state);
     const flicker = reduceMotion ? 0 : Math.sin(time * 6) * 2 + Math.sin(time * 11) * .9;
-    const torchX = playerX + state.benkos.facing * (state.benkos.mounted ? -11 : -9);
-    const torchY = ground - (state.benkos.mounted ? 46 : 32);
     const lights = [];
     const posts = TRAIL_TORCHES.map(toScreen).filter(x => x > -60 && x < width + 60);
     for (const x of posts) lights.push({ x, y: ground - 32, radius: 62 + flicker, warmth: .06 + glowAmount * .19 });
     const torchGlow = state.benkos.torchManual ? 1 : smooth(NIGHT_START, .72, air.t) * (1 - smooth(.96, 1, air.t));
-    if (lit) lights.push({ x: torchX, y: torchY, radius: 107 + flicker, warmth: .20 * torchGlow, strength: torchGlow });
+    if (handFlame) lights.push({ ...handFlame, radius: 107 + flicker, warmth: .20 * torchGlow, strength: torchGlow });
     if (glowAmount > 0) {
       lights.push({ x: toScreen(70), y: ground - 9, radius: 72, warmth: glowAmount * .25, strength: glowAmount });
       if (state.exploration.altarFound) lights.push({ x: toScreen(ALTAR_X), y: ground - 18, radius: 58, warmth: glowAmount * .12, strength: glowAmount });
@@ -71,6 +68,5 @@ export function createLighting() {
       g.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     }
     for (const x of posts) drawFlame(g, x, ground - 32, flicker, 30);
-    if (lit) drawFlame(g, Math.round(torchX), Math.round(torchY), flicker, 13);
   };
 }

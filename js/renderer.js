@@ -1,15 +1,18 @@
-import { blend, color, daylightAt } from './daylight.js?v=290996c6041f';
-import { drawSky } from './sky.js?v=290996c6041f';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=290996c6041f';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=290996c6041f';
-import { createLighting } from './lighting.js?v=290996c6041f';
-import { RenderInterpolation } from './visual-motion.js?v=290996c6041f';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=290996c6041f';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=290996c6041f';
-import { drawParticle } from './effects.js?v=290996c6041f';
-import { haciendaActive } from './haciendas.js?v=290996c6041f';
-import { ROAD_GATES } from './campaign.js?v=290996c6041f';
-import { WATER_LINE_Y } from './config.js?v=290996c6041f';
+import { crossingFeet } from './crossings.js?v=78e42e07133a';
+import { torchIsLit } from './exploration.js?v=78e42e07133a';
+import { drawCrossings, drawCropPlot } from './terrain.js?v=78e42e07133a';
+import { blend, color, daylightAt } from './daylight.js?v=78e42e07133a';
+import { drawSky } from './sky.js?v=78e42e07133a';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=78e42e07133a';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=78e42e07133a';
+import { createLighting } from './lighting.js?v=78e42e07133a';
+import { RenderInterpolation } from './visual-motion.js?v=78e42e07133a';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=78e42e07133a';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=78e42e07133a';
+import { drawParticle } from './effects.js?v=78e42e07133a';
+import { haciendaActive } from './haciendas.js?v=78e42e07133a';
+import { ROAD_GATES } from './campaign.js?v=78e42e07133a';
+import { WATER_LINE_Y } from './config.js?v=78e42e07133a';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -93,6 +96,7 @@ function renderWorldAboveWater(g, time, air) {
   drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X);
   drawEstateScenery(g, toScreenX, GROUND_SURFACE_Y, w);
   drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion,w);
+  drawCrossings(g, toScreenX, w, GROUND_SURFACE_Y, state, wind);
   drawVines(g, toScreenX, GROUND_SURFACE_Y, w, settings.reduce_motion ? 0 : time);
   drawVillage(g, toScreenX, GROUND_SURFACE_Y, air.shadow, time, state.settlement, state.armyTier, settings.reduce_motion);
 
@@ -118,28 +122,10 @@ function renderWorldAboveWater(g, time, air) {
     } else drawHacienda(g, sx, GROUND_SURFACE_Y, !haciendaActive(hac));
   });
 
-  state.farms.forEach((f) => {
-    const sx = toScreenX(f.x);
-    if (sx < -60 || sx > w + 60) return;
-    if(f.level>0&&f.cropProgress>.37&&window.SpriteManager?.has('landmark_farm')){
-      window.SpriteManager.draw(g,'landmark_farm',['idle'],sx,GROUND_SURFACE_Y,1,31+f.cropProgress*10,0);return;
-    }
-    if (f.level > 0) {
-      g.fillStyle = '#3f2e18';
-      g.fillRect(sx - 28, GROUND_SURFACE_Y - 6, 56, 6);
-      const cropH = Math.round(6 + f.cropProgress * 16);
-      for (let cx = -22; cx <= 22; cx += 11) {
-        g.fillStyle = '#15803d';
-        const sway=settings.reduce_motion?0:Math.round(Math.sin(time*2+f.x+cx)*1.5);
-        g.fillRect(sx+cx-1,GROUND_SURFACE_Y-6-cropH,2,cropH);
-        g.fillStyle=f.cropProgress>.7?'#d0b75a':'#79a353';g.fillRect(sx+cx+sway-4,GROUND_SURFACE_Y-7-cropH,5,3);g.fillRect(sx+cx+sway,GROUND_SURFACE_Y-3-cropH,5,2);
-      }
-      g.fillStyle = '#a16207';
-      g.fillRect(sx + 24, GROUND_SURFACE_Y - 11, 10, 11);
-      g.fillStyle = '#eab308';
-      g.fillRect(sx + 25, GROUND_SURFACE_Y - 14, 8, 4);
-    }
-  });
+  for (const farm of state.farms) {
+    const x = toScreenX(farm.x);
+    if (farm.level && x > -75 && x < w + 75) drawCropPlot(g, x, GROUND_SURFACE_Y, farm, wind);
+  }
 
   state.toolRacks.forEach((rk) => {
     const sx = toScreenX(rk.x);
@@ -163,10 +149,31 @@ function renderWorldAboveWater(g, time, air) {
   const chestProgress=Math.abs(state.benkos.x-48)<35?.9:0;
   window.SpriteManager?.draw?.(g,'currency_chest',['open'],toScreenX(48),GROUND_SURFACE_Y,1,26,0,0,chestProgress);
 
+  const drawBody = (actor, x, base, draw) => {
+    const fall = actor.waterFall;
+    if (fall?.time >= .33) {
+      g.save();
+      g.beginPath();
+      g.rect(x - 76, 0, 152, GROUND_SURFACE_Y + 12);
+      g.clip();
+      draw(base);
+      g.restore();
+      const splash = Math.max(0, 1 - (fall.time - .33) / 1.25);
+      g.save();
+      g.globalAlpha = splash;
+      if (!window.SpriteManager?.draw?.(g, 'crossing_splash', ['idle'], x, GROUND_SURFACE_Y + 14,
+        actor.facing || 1, Math.max(4, 23 * splash), 0)) {
+        g.fillStyle = '#a2cec3'; g.fillRect(x - 8, GROUND_SURFACE_Y + 12, 16, 1);
+      }
+      g.restore();
+    } else draw(base);
+  };
+
   state.horses.forEach((hr) => {
     const hsx = toScreenX(position(hr));
     if (hsx < -50 || hsx > w + 50) return;
-    window.SpriteManager?.drawHorse?.(g, hsx, GROUND_SURFACE_Y, hr, time);
+    const feet = GROUND_SURFACE_Y + crossingFeet(state, hr, position(hr));
+    drawBody(hr, hsx, feet, y => window.SpriteManager?.drawHorse?.(g, hsx, y, hr, time));
   });
 
   state.walls.forEach((wall) => {
@@ -190,7 +197,11 @@ function renderWorldAboveWater(g, time, air) {
 
   state.wildlife.forEach(an=>{
     const sx=toScreenX(position(an));if(sx < -65 || sx>w+65)return;
-    const ay=GROUND_SURFACE_Y+(position(an,'y')-WATER_LINE_Y);
+    const ay=GROUND_SURFACE_Y+(position(an,'y')-WATER_LINE_Y)+crossingFeet(state, an, position(an));
+    if (an.waterFall) {
+      drawBody(an, sx, ay, y => window.SpriteManager?.drawAnimal?.(g, sx, y, an, time));
+      return;
+    }
     if(window.SpriteManager?.drawAnimal?.(g,sx,ay,an,time)){
       if(an.inWater){g.fillStyle='#528d8888';g.fillRect(sx-10,GROUND_SURFACE_Y,20,4);}
       if(an.trapped||an.nettedTimer>0){g.strokeStyle='#c2ac70';g.lineWidth=1;g.strokeRect(sx-9,ay-9,18,9);for(let i=-6;i<9;i+=4){g.beginPath();g.moveTo(sx+i,ay-9);g.lineTo(sx+i+6,ay);g.stroke();}}
@@ -203,9 +214,10 @@ function renderWorldAboveWater(g, time, air) {
   state.units.forEach((u) => {
     const sx = toScreenX(position(u));
     if (sx < -50 || sx > w + 50) return;
-    const feet = GROUND_SURFACE_Y - (u.towerHeight || 0);
+    const feet = GROUND_SURFACE_Y - (u.towerHeight || 0) + crossingFeet(state, u, position(u));
+    drawBody(u, sx, feet, y => window.SpriteManager?.drawAlly?.(g, sx, y, u.facing, u, time));
+    if (u.waterFall) return;
     drawMarker(g, sx, feet, u);
-    window.SpriteManager?.drawAlly?.(g, sx, feet, u.facing, u, time);
     if (u.activity === 'BATHE') {
       g.fillStyle = '#558f8d98';
       g.fillRect(sx - 10, GROUND_SURFACE_Y - 1, 20, 5);
@@ -225,8 +237,10 @@ function renderWorldAboveWater(g, time, air) {
 
   state.messengers.forEach(m=>{
     const sx=toScreenX(position(m));if(sx < -50 || sx > w+50)return;
-    window.SpriteManager?.drawMessenger?.(g,sx,GROUND_SURFACE_Y,m,time);
-    g.fillStyle='#e2dfc7';g.fillRect(sx+m.facing*12,GROUND_SURFACE_Y-49,2,23);g.fillRect(sx+m.facing*12,GROUND_SURFACE_Y-49,12,7);
+    const feet = GROUND_SURFACE_Y + crossingFeet(state, m, position(m));
+    drawBody(m, sx, feet, y => window.SpriteManager?.drawMessenger?.(g,sx,y,m,time));
+    if (m.waterFall) return;
+    g.fillStyle='#e2dfc7';g.fillRect(sx+m.facing*12,feet-49,2,23);g.fillRect(sx+m.facing*12,feet-49,12,7);
 
   });
 
@@ -235,14 +249,15 @@ function renderWorldAboveWater(g, time, air) {
     if (sx < -70 || sx > w + 70) return;
     g.save();
     if(en.appearTimer>0)g.globalAlpha=Math.max(0,Math.min(1,1-en.appearTimer/1.2));
-    window.SpriteManager?.drawEnemy?.(g, sx, GROUND_SURFACE_Y, en.facing, en, time);
+    const feet = GROUND_SURFACE_Y + crossingFeet(state, en, position(en));
+    drawBody(en, sx, feet, y => window.SpriteManager?.drawEnemy?.(g, sx, y, en.facing, en, time));
     g.restore();
-    drawMarker(g, sx, GROUND_SURFACE_Y, en, true);
+    if (!en.waterFall) drawMarker(g, sx, feet, en, true);
   });
 
   const b = state.benkos;
   const bsx = toScreenX(position(b));
-  const by = GROUND_SURFACE_Y;
+  const by = GROUND_SURFACE_Y + crossingFeet(state, b, position(b));
 
   if (b.jaguarTimer > 0) {
     g.fillStyle = 'rgba(253, 224, 71, 0.28)';
@@ -258,11 +273,13 @@ function renderWorldAboveWater(g, time, air) {
     g.stroke();
   }
 
-  window.SpriteManager?.drawBenkos?.(g, bsx, by, b.facing, b, time);
+  drawBody(b, bsx, by, y => window.SpriteManager?.drawBenkos?.(g, bsx, y, b.facing, b, time, torchIsLit(state)));
   if(b.inStream){g.strokeStyle='#84b9ae';g.lineWidth=1;g.beginPath();g.ellipse(bsx,by+2,12,2,0,0,Math.PI*2);g.stroke();}
-  g.fillStyle = '#e6c486';
-  g.fillRect(bsx - 3, by + 2, 6, 2);
-  g.fillRect(bsx - 1, by + 4, 2, 2);
+  if (!b.waterFall) {
+    g.fillStyle = '#e6c486';
+    g.fillRect(bsx - 3, by + 2, 6, 2);
+    g.fillRect(bsx - 1, by + 4, 2, 2);
+  }
 
   state.projectiles.forEach(p=>{
     const x=toScreenX(position(p)),y=Math.round(position(p,'y')-22+view.waterLine-WATER_LINE_Y),side=Math.sign(p.vx)||1;
@@ -282,7 +299,7 @@ function renderWorldAboveWater(g, time, air) {
   }
 
   drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X, true);
-  lightScene(g, state, toScreenX, bsx, GROUND_SURFACE_Y, w, time, settings.reduce_motion, air);
+  lightScene(g, state, toScreenX, window.SpriteManager?.heroTorch, GROUND_SURFACE_Y, w, time, settings.reduce_motion, air);
   drawAmbientMotes(g, w, GROUND_SURFACE_Y, camX, air, wind);
 }
 

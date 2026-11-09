@@ -1,7 +1,8 @@
-import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=290996c6041f';
-import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=290996c6041f';
-import { haciendaActive } from './haciendas.js?v=290996c6041f';
-import { ESTATES, storyChapter } from './story.js?v=290996c6041f';
+import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=78e42e07133a';
+import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=78e42e07133a';
+import { haciendaActive } from './haciendas.js?v=78e42e07133a';
+import { ESTATES, storyChapter } from './story.js?v=78e42e07133a';
+import { CROSSINGS } from './crossings.js?v=78e42e07133a';
 
 export const mapX = x => 7 + 86 * Math.max(0, Math.min(1, (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X)));
 
@@ -16,6 +17,14 @@ export function mapLocations(state) {
   ]) {
     const cache = TRAIL_CACHES.find(entry => entry.id === id);
     sites.push({ id, x: cache.x, label, name: label, row: 'upper', kind: 'sanctuary', detail });
+  }
+  for (const bridge of CROSSINGS) {
+    const cut = state.crossings[bridge.id].cut;
+    sites.push({ id: bridge.id, x: bridge.x, row: 'lower', kind: 'sanctuary',
+      label: bridge.kind === 'rope' ? 'Puente colgante' : 'Puente fijo', name: bridge.name,
+      detail: cut ? 'El paso está cortado. Repara desde un poste con E y 3 de madera.' :
+        bridge.kind === 'rope' ? 'La madera cede con el peso. Desde un poste puedes cortar las cuerdas con Mayús + E.' :
+          'Los pilotes sostienen un paso seguro a pie o a caballo.' });
   }
   const chapter = storyChapter(state);
   for (const h of state.haciendas) {
