@@ -1,13 +1,13 @@
-import { NIGHT_START } from './daylight.js?v=c08e58e7c55c';
-import { restoreCommunity } from './community.js?v=c08e58e7c55c';
-import { ensureEcology, seedEcology } from './ecology.js?v=c08e58e7c55c';
-import { seedFrontier } from './exploration.js?v=c08e58e7c55c';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=c08e58e7c55c';
-import { ensurePerson } from './people.js?v=c08e58e7c55c';
-import { ensureSettlement } from './settlement.js?v=c08e58e7c55c';
-import { ensureCampaign } from './campaign.js?v=c08e58e7c55c';
-import { restoreHaciendas } from './haciendas.js?v=c08e58e7c55c';
-import { restoreStory } from './story.js?v=c08e58e7c55c';
+import { NIGHT_START } from './daylight.js?v=d9994b11855a';
+import { restoreCommunity } from './community.js?v=d9994b11855a';
+import { ensureEcology, seedEcology } from './ecology.js?v=d9994b11855a';
+import { seedFrontier } from './exploration.js?v=d9994b11855a';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=d9994b11855a';
+import { ensurePerson } from './people.js?v=d9994b11855a';
+import { ensureSettlement } from './settlement.js?v=d9994b11855a';
+import { ensureCampaign } from './campaign.js?v=d9994b11855a';
+import { restoreHaciendas } from './haciendas.js?v=d9994b11855a';
+import { restoreStory } from './story.js?v=d9994b11855a';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -27,6 +27,31 @@ export function makeSave(state, nextEntityId) {
     tropas: state.units.map(u => ({ tipo_unidad: u.role, tier: u.tier, salud_actual: Math.round(u.hp), posicion_x: u.x, estado_fsm: 'ACTIVE' })),
     construcciones: state.walls.map(w => ({ tipo_nodo: 'MURALLA', nivel: w.level, posicion_x: w.x, salud_actual: Math.round(w.hp) }))
   };
+}
+
+const LEGACY_WALL_X = { wall_inner_L: -355, wall_inner_R: 355, wall_outer_L: -690, wall_outer_R: 690 };
+
+function restoreLayout(state, defaults) {
+  // Jobs follow their building ID so an existing payment survives a move.
+  const jobs = state.settlement?.projects;
+  const move = (target, site, kind) => {
+    const previousX = target.x;
+    target.x = site.x;
+    if (!Array.isArray(jobs)) return;
+    const job = jobs.find(entry => entry?.kind === kind && entry.targetId === target.id);
+    if (job && job.x === previousX) job.x = site.x;
+  };
+  for (const [collection, kind] of [['walls', 'wall'], ['farms', 'farm'], ['mines', 'mine'], ['toolRacks', 'rack'], ['trees', 'tree']]) {
+    for (const site of defaults[collection]) {
+      const target = state[collection].find(entry => entry.id === site.id);
+      if (target) move(target, site, kind);
+      else if (collection === 'toolRacks') state.toolRacks.push(clone(site));
+    }
+  }
+  for (const home of Array.isArray(state.settlement?.homes) ? state.settlement.homes : []) {
+    const site = defaults.settlement.homes.find(entry => entry.id === home?.id);
+    if (site && Number.isFinite(home.x)) move(home, site, 'home');
+  }
 }
 
 export function restoreSave(save, defaults) {
@@ -64,7 +89,7 @@ export function restoreSave(save, defaults) {
       attackCooldown: 0, attackAnimTimer: 0, liberateAnimTimer: 0, carryingSack: false
     }));
     for (const wall of next.walls) {
-      const saved = save.construcciones?.find(w => w.tipo_nodo === 'MURALLA' && Math.abs(w.posicion_x - wall.x) < 1);
+      const saved = save.construcciones?.find(w => w.tipo_nodo === 'MURALLA' && (Math.abs(w.posicion_x - wall.x) < 1 || Math.abs(w.posicion_x - LEGACY_WALL_X[wall.id]) < 1));
       if (saved) { wall.level = Number(saved.nivel); wall.hp = Number(saved.salud_actual); wall.maxHp = Math.max(wall.hp, 150 + wall.level * 90); }
     }
     next.phase = next.timeOfDay >= NIGHT_START ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
@@ -127,11 +152,10 @@ export function restoreSave(save, defaults) {
   }
   restoreCommunity(next);
   next.enemies.forEach(e=>{if(e.type==='BANDOLERO')e.range=ENEMY_CATALOG.BANDOLERO.range;});
+  next.settlement = clone(next.settlement);
+  restoreLayout(next, defaults);
   ensureSettlement(next);
   ensureEcology(next);
-  // Add new tool stations to old worlds without replacing their existing stocks.
-  for (const rack of defaults.toolRacks) if (!next.toolRacks.some(r=>r.id===rack.id)) next.toolRacks.push(clone(rack));
-  next.toolRacks.forEach(r=>{r.x=STATION_X[r.role]??r.x;});
   const campaign = ensureCampaign(next);
   restoreStory(next, !save.snapshot?.state?.story);
   restoreHaciendas(next);

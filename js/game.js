@@ -1,27 +1,27 @@
-import { NIGHT_START } from './daylight.js?v=c08e58e7c55c';
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=c08e58e7c55c';
-import { GROUND_COIN_LIFE } from './coins.js?v=c08e58e7c55c';
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=c08e58e7c55c';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=c08e58e7c55c';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=c08e58e7c55c';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=c08e58e7c55c';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT } from './settlement.js?v=c08e58e7c55c';
-import { emitEffect } from './effects.js?v=c08e58e7c55c';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=c08e58e7c55c';
-import { AfroColombianAudioEngine } from './audio.js?v=c08e58e7c55c';
-import { createInitialState } from './world-state.js?v=c08e58e7c55c';
-import { makeSave, restoreSave } from './save-system.js?v=c08e58e7c55c';
-import { createRenderer } from './renderer.js?v=c08e58e7c55c';
-import { createSimulation } from './simulation.js?v=c08e58e7c55c';
-import { FixedStepper } from './clock.js?v=c08e58e7c55c';
-import { bindInput } from './input.js?v=c08e58e7c55c';
-import { createUI } from './ui.js?v=c08e58e7c55c';
-import { chooseDefenseSide } from './ai.js?v=c08e58e7c55c';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=c08e58e7c55c';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=c08e58e7c55c';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=c08e58e7c55c';
-import { mediateEncounter } from './community.js?v=c08e58e7c55c';
-import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=c08e58e7c55c';
+import { NIGHT_START } from './daylight.js?v=d9994b11855a';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=d9994b11855a';
+import { GROUND_COIN_LIFE } from './coins.js?v=d9994b11855a';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=d9994b11855a';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=d9994b11855a';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=d9994b11855a';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=d9994b11855a';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT } from './settlement.js?v=d9994b11855a';
+import { emitEffect } from './effects.js?v=d9994b11855a';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=d9994b11855a';
+import { AfroColombianAudioEngine } from './audio.js?v=d9994b11855a';
+import { createInitialState } from './world-state.js?v=d9994b11855a';
+import { makeSave, restoreSave } from './save-system.js?v=d9994b11855a';
+import { createRenderer } from './renderer.js?v=d9994b11855a';
+import { createSimulation } from './simulation.js?v=d9994b11855a';
+import { FixedStepper } from './clock.js?v=d9994b11855a';
+import { bindInput } from './input.js?v=d9994b11855a';
+import { createUI } from './ui.js?v=d9994b11855a';
+import { chooseDefenseSide } from './ai.js?v=d9994b11855a';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=d9994b11855a';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=d9994b11855a';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=d9994b11855a';
+import { mediateEncounter } from './community.js?v=d9994b11855a';
+import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=d9994b11855a';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -370,6 +370,18 @@ function getInteractionNodes() {
       });
     }
   });
+
+  for (const tower of state.settlement.towers) {
+    const info = upgradeInfo(state, 'tower', tower.id);
+    if (info.job) candidates.push(buildingInProgress(info.job, 'Torre de vigilancia'));
+    else if (info.next) candidates.push({
+      id: tower.id, x: tower.x, height: TOWER_HEIGHT[tower.level] + 15,
+      title: tower.level ? `Mejorar torre a Nv.${info.next}` : 'Levantar torre de vigilancia',
+      sub: info.reason || `Mantén S · ${info.wood} madera · ${info.stone} piedra`,
+      locked: !!info.reason, cost: info.coins, getFilled: () => info.paid,
+      purchase: () => requestBuilding(state, 'tower', tower.id)
+    });
+  }
 
   state.farms.forEach((f) => {
     const job = constructionAt(state, f.id);
@@ -763,7 +775,7 @@ function newGame() {
   session.hasCampaign = true;
   state.sandbox=reviewMode;
   window.BenkosDB.currentSaveId = null;
-  for (const [role, x] of [['ALDEANO',-35],['CONSTRUCTOR',65],['LENADOR',-405],['AGRICULTOR',-245],['MINERO',-290],['CAZADOR',-320],['ARQUERO',315],['GUERRERO',340]]) spawnCimarron(role, x, 1);
+  for (const [role, x] of [['ALDEANO',-35],['CONSTRUCTOR',150],['LENADOR',-760],['AGRICULTOR',-610],['MINERO',-455],['CAZADOR',-300],['ARQUERO',880],['GUERRERO',930]]) spawnCimarron(role, x, 1);
   updateHaciendas(state, x => spawnCimarron('FUGITIVO', x), 440, spawnEnemy);
   seedEcology(state,()=>nextEntityId++);
   seedFrontier(state, () => nextEntityId++);
@@ -952,8 +964,11 @@ canvas.addEventListener('click', event => {
   const rect = canvas.getBoundingClientRect();
   const x = (event.clientX - rect.left) * view.width / rect.width + state.cameraX - view.width / 2;
   const y = (event.clientY - rect.top) * view.height / rect.height;
-  const unit = state.units.filter(u => Math.abs(u.x-x)<18).sort((a,b) => Math.abs(a.x-x)-Math.abs(b.x-x))[0];
-  if (unit && y>view.waterLine-95&&y<view.waterLine+4) inspectNpc(unit.id);
+  const unit = state.units.filter(u => {
+    const feet = view.waterLine - 22 - (u.towerHeight || 0);
+    return Math.abs(u.x - x) < 18 && y > feet - 73 && y < feet + 7;
+  }).sort((a,b) => Math.abs(a.x-x)-Math.abs(b.x-x))[0];
+  if (unit) inspectNpc(unit.id);
 });
 
 window.BenkosDB.onStatusChange(({connected})=>{if(!reviewMode)ui.connection(connected);});

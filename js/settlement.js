@@ -1,4 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=c08e58e7c55c';
+import { ALTAR_X } from './exploration.js?v=d9994b11855a';
+import { CAMP_EDGE } from './config.js?v=d9994b11855a';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -6,15 +7,19 @@ export const HQ_NAMES = ['Refugio de la Matuna', 'Casa del consejo', 'Casa de ba
 export const ALTAR_HEIGHT = [0, 53, 57, 65, 73, 83];
 export const altarSprite = level => level === 1 ? 'landmark_altar' : `altar_${level}`;
 export const HQ_X = 0;
+export const TOWER_HEIGHT = [0, 62, 74, 87];
 
 export function initialSettlement() {
-  return { level: 1, homes: [{ id: 'home_west', x: -530, level: 1 }, { id: 'home_inner', x: -245, level: 1 },
-    { id: 'home_east', x: 550, level: 1 }], deposits: {}, projects: [], completed: 0 };
+  return { level: 1, homes: [{ id: 'home_west', x: -890, level: 1 }, { id: 'home_inner', x: -150, level: 1 },
+    { id: 'home_east', x: 890, level: 1 }],
+    towers: [-1, 1].map(side => ({ id: side < 0 ? 'tower_west' : 'tower_east', x: side * (CAMP_EDGE - 75), side, level: 0 })),
+    deposits: {}, projects: [], completed: 0 };
 }
 
 export function buildingTarget(state, kind, id) {
   if (kind === 'hq' && (!id || id === 'hq')) return { id: 'hq', x: HQ_X, level: state.settlement.level };
   if (kind === 'home') return state.settlement.homes.find(home => home.id === id);
+  if (kind === 'tower') return state.settlement.towers.find(tower => tower.id === id);
   if (kind === 'wall') return state.walls.find(wall => wall.id === id);
   if (kind === 'farm') return state.farms.find(farm => farm.id === id);
   if (kind === 'rack') return state.toolRacks.find(rack => rack.id === id);
@@ -36,6 +41,11 @@ export function ensureSettlement(state) {
     home.level = level(home.level);
   }
   if (new Set(s.homes.map(home => home.id)).size !== 3) throw Error('Viviendas duplicadas.');
+  const savedTowers = Array.isArray(s.towers) ? s.towers : [];
+  s.towers = initialSettlement().towers.map(tower => {
+    const saved = savedTowers.find(entry => entry?.id === tower.id);
+    return { ...tower, level: Number.isInteger(saved?.level) ? Math.max(0, Math.min(3, saved.level)) : 0 };
+  });
   for (const key of ['wood', 'stone', 'food']) state.resources[key] = Math.max(0, Math.min(100000, Math.floor(Number(state.resources[key]) || 0)));
   s.completed = Math.max(0, Number(s.completed) || 0);
 
@@ -68,7 +78,7 @@ export function ensureSettlement(state) {
   if (new Set(s.projects.map(job => job.targetId)).size !== s.projects.length) throw Error('Obras duplicadas.');
   for (const job of s.projects) {
     const target = buildingTarget(state, job.kind, job.targetId);
-    const max = job.kind === 'farm' ? 2 : 5;
+    const max = job.kind === 'farm' ? 2 : job.kind === 'tower' ? 3 : 5;
     const validLevel = job.kind === 'rack' ? job.targetLevel === null :
       Number.isInteger(job.targetLevel) && job.targetLevel <= max && job.targetLevel === target?.level + (job.repair ? 0 : 1);
     if (!target || target.id !== job.targetId || job.x !== target.x || !validLevel || (job.repair && job.kind !== 'wall')) throw Error('Destino de construcción inválido.');
@@ -76,8 +86,8 @@ export function ensureSettlement(state) {
 
   const oldDeposits = s.deposits;
   s.deposits = {};
-  for (const id of ['hq', ...homeIds]) {
-    const cost = upgradeInfo(state, id === 'hq' ? 'hq' : 'home', id).coins ?? 0;
+  for (const [kind, id] of [['hq', 'hq'], ...homeIds.map(id => ['home', id]), ...s.towers.map(tower => ['tower', tower.id])]) {
+    const cost = upgradeInfo(state, kind, id).coins ?? 0;
     const paid = oldDeposits?.[id];
     if (cost > 1 && Number.isInteger(paid) && paid > 0) s.deposits[id] = Math.min(cost - 1, paid);
   }
@@ -90,14 +100,15 @@ export function upgradeInfo(state, kind, id) {
   const target = buildingTarget(state, kind, id);
   if (!target) return { reason: 'No existe este edificio.' };
   const next = target.level + 1;
-  const costs = UPGRADE_COSTS[next];
+  const costs = kind === 'tower' ? [null, [5, 3, 0, 5], [7, 4, 2, 6], [9, 4, 5, 8]][next] : UPGRADE_COSTS[next];
   const job = constructionAt(state, target.id);
   if (job) return { target, job, reason: 'Obra en marcha.' };
   if (!costs) return { target, reason: 'Evolución máxima alcanzada.' };
-  const [coins, wood, stone, duration] = kind === 'hq' ? [costs[0], 0, 0, costs[3]] : costs.map(value => Math.ceil(value * .55));
+  const [coins, wood, stone, duration] = kind === 'hq' ? [costs[0], 0, 0, costs[3]] :
+    kind === 'tower' ? costs : costs.map(value => Math.ceil(value * .55));
   const paid = state.settlement.deposits[target.id] ?? 0;
   let reason = '';
-  if (kind === 'home' && next > state.settlement.level) reason = `Requiere Casa del Cuartel de nivel ${next}.`;
+  if ((kind === 'home' || kind === 'tower') && next > state.settlement.level) reason = `Requiere Casa del Cuartel de nivel ${next}.`;
   else if (state.resources.wood < wood || state.resources.stone < stone) reason = 'Faltan materiales para iniciar la obra.';
   return { target, next, coins, paid, wood, stone, duration, reason };
 }

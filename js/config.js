@@ -1,6 +1,7 @@
 // Canonical gameplay balance. SQL catalogs are descriptive legacy metadata.
-export const WORLD_MIN_X = -4350;
-export const WORLD_MAX_X = 4350;
+export const WORLD_MIN_X = -5050;
+export const WORLD_MAX_X = 5050;
+export const CAMP_EDGE = 1060;
 export const WATER_LINE_Y = 268;
 export const BALANCE = Object.freeze({
   bagCapacity: 24, dayDuration: 180, baseWaveSize: 2,
@@ -41,4 +42,7 @@ export const ENEMY_CATALOG = Object.freeze({
   GOBERNADOR_GIRON: { hp: 360, speed: 70, dmg: 26, range: 34, reward: 18, isBoss: true, phase: 1 }
 });
 
-export const STATION_X=Object.freeze({LENADOR:-585,AGRICULTOR:-215,MINERO:-140,CAZADOR:-70,CONSTRUCTOR:125,ARQUERO:200,GUERRERO:275,ESPADACHIN:430,CABALLERO_ALIADO:515});
+export const STATION_X = Object.freeze({
+  LENADOR: -760, AGRICULTOR: -610, MINERO: -455, CAZADOR: -300,
+  CONSTRUCTOR: 150, ARQUERO: 300, GUERRERO: 455, ESPADACHIN: 610, CABALLERO_ALIADO: 760
+});

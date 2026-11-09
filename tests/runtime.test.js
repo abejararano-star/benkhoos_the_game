@@ -90,11 +90,27 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().state.coins, 18);
   assert.equal(inspect().state.settlement.projects[0].targetLevel, 2);
   advance(5.1);assert.equal(inspect().state.settlement.level,2);
-  await loadState(s=>{s.benkos.x=-355;s.enemies=[];});
+  await loadState(s=>{s.benkos.x=s.walls[0].x;s.enemies=[];});
   key('KeyS');advance(1.2);key('KeyS',true);
   assert.equal(inspect().state.walls[0].level,1);
   assert.equal(inspect().state.settlement.projects[0].kind,'wall');
   advance(5.1);assert.equal(inspect().state.walls[0].level,2);
+  await loadState(s => {
+    const tower = s.settlement.towers.find(t => t.side === 1);
+    const archer = s.units.find(unit => unit.role === 'ARQUERO');
+    s.benkos.x = tower.x;
+    s.coins = 24;
+    archer.assignedSide = 1;
+    archer.x = tower.x;
+    archer.leisure = null;
+  });
+  key('KeyS');advance(1.22);key('KeyS',true);
+  assert.equal(inspect().state.settlement.towers[1].level, 0);
+  assert.equal(inspect().state.settlement.projects[0].kind, 'tower');
+  await loadState(() => {});
+  advance(6);
+  assert.equal(inspect().state.settlement.towers[1].level, 1);
+  assert.ok(inspect().state.units.find(unit => unit.role === 'ARQUERO').towerHeight > 0);
   await loadState(s => { s.benkos.x = ALTAR_X + 12; });
   key('KeyS');advance(1.48);key('KeyS',true);
   assert.equal(inspect().state.altarTier, 1);

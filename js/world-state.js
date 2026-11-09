@@ -1,9 +1,9 @@
-import { initialCommunity } from './community.js?v=c08e58e7c55c';
-import { initialStory, majorHaciendas } from './story.js?v=c08e58e7c55c';
-import { initialEcology } from './ecology.js?v=c08e58e7c55c';
-import { initialExploration } from './exploration.js?v=c08e58e7c55c';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X } from './config.js?v=c08e58e7c55c';
-import { initialSettlement } from './settlement.js?v=c08e58e7c55c';
+import { initialCommunity } from './community.js?v=d9994b11855a';
+import { initialStory, majorHaciendas } from './story.js?v=d9994b11855a';
+import { initialEcology } from './ecology.js?v=d9994b11855a';
+import { initialExploration } from './exploration.js?v=d9994b11855a';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=d9994b11855a';
+import { initialSettlement } from './settlement.js?v=d9994b11855a';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -91,21 +91,21 @@ const state = {
   ],
 
   mines: [
-    { id: 'mine_west', x: -295, oreProgress: 0.3, level: 1 },
-    { id: 'mine_east', x: 460,  oreProgress: 0.1, level: 1 }
+    { id: 'mine_west', x: -1660, oreProgress: 0.3, level: 1 },
+    { id: 'mine_east', x: 1660,  oreProgress: 0.1, level: 1 }
   ],
 
   walls: [
-    { id: 'wall_inner_L', x: -355, dir: -1, level: 1, hp: 190, maxHp: 190, filledSlots: 0 },
-    { id: 'wall_inner_R', x: 355,  dir: 1,  level: 1, hp: 190, maxHp: 190, filledSlots: 0 },
-    { id: 'wall_outer_L', x: -690, dir: -1, level: 0, hp: 0,   maxHp: 250, filledSlots: 0 },
-    { id: 'wall_outer_R', x: 690,  dir: 1,  level: 0, hp: 0,   maxHp: 250, filledSlots: 0 }
+    { id: 'wall_inner_L', x: -CAMP_EDGE, dir: -1, level: 1, hp: 190, maxHp: 190, filledSlots: 0 },
+    { id: 'wall_inner_R', x: CAMP_EDGE,  dir: 1,  level: 1, hp: 190, maxHp: 190, filledSlots: 0 },
+    { id: 'wall_outer_L', x: -1350, dir: -1, level: 0, hp: 0,   maxHp: 250, filledSlots: 0 },
+    { id: 'wall_outer_R', x: 1350, dir: 1,  level: 0, hp: 0,   maxHp: 250, filledSlots: 0 }
   ],
 
   farms: [
-    { id: 'farm_L', x: -250, level: 1, cropProgress: 0.5, filledSlots: 0, cost: 3 },
-    { id: 'farm_R', x: 305,  level: 1, cropProgress: 0.2, filledSlots: 0, cost: 3 },
-    { id: 'farm_outer_L', x: -520, level: 0, cropProgress: 0, filledSlots: 0, cost: 4 }
+    { id: 'farm_L', x: -1150, level: 1, cropProgress: 0.5, filledSlots: 0, cost: 3 },
+    { id: 'farm_R', x: 1150,  level: 1, cropProgress: 0.2, filledSlots: 0, cost: 3 },
+    { id: 'farm_outer_L', x: -1250, level: 0, cropProgress: 0, filledSlots: 0, cost: 4 }
   ],
 
   haciendas: [
@@ -129,7 +129,7 @@ const state = {
   floatingTexts: []
 };
 
-const treePositions = [-1300, -1040, -920, -740, -610, -450, -395, 395, 535, 610, 740, 920, 1040, 1300];
+const treePositions = [-1730, -1600, -1295, -1090, -826, -530, -222, 222, 530, 826, 1090, 1295, 1600, 1730];
 treePositions.forEach((tx, idx) => {
   state.trees.push({
     id: `tree_${idx}`,

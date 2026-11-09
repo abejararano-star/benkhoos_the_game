@@ -1,19 +1,19 @@
-import { NIGHT_START } from './daylight.js?v=c08e58e7c55c';
-import { recoverCoins } from './coins.js?v=c08e58e7c55c';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=c08e58e7c55c';
-import { collectEquipment } from './equipment.js?v=c08e58e7c55c';
-import { advanceCrops, tendCrop } from './crops.js?v=c08e58e7c55c';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=c08e58e7c55c';
-import { updateCommunity, joinEncounter } from './community.js?v=c08e58e7c55c';
-import { updateEcology, isHuntable } from './ecology.js?v=c08e58e7c55c';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=c08e58e7c55c';
-import { advanceConstruction, workConstruction, homeRecovery } from './settlement.js?v=c08e58e7c55c';
-import { advanceParticle, emitEffect } from './effects.js?v=c08e58e7c55c';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=c08e58e7c55c';
-import { ensureCampaign, finaleWon } from './campaign.js?v=c08e58e7c55c';
-import { expeditionFormation } from './story.js?v=c08e58e7c55c';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c08e58e7c55c';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=c08e58e7c55c';
+import { NIGHT_START } from './daylight.js?v=d9994b11855a';
+import { recoverCoins } from './coins.js?v=d9994b11855a';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=d9994b11855a';
+import { collectEquipment } from './equipment.js?v=d9994b11855a';
+import { advanceCrops, tendCrop } from './crops.js?v=d9994b11855a';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=d9994b11855a';
+import { updateCommunity, joinEncounter } from './community.js?v=d9994b11855a';
+import { updateEcology, isHuntable } from './ecology.js?v=d9994b11855a';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=d9994b11855a';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=d9994b11855a';
+import { advanceParticle, emitEffect } from './effects.js?v=d9994b11855a';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=d9994b11855a';
+import { ensureCampaign, finaleWon } from './campaign.js?v=d9994b11855a';
+import { expeditionFormation } from './story.js?v=d9994b11855a';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d9994b11855a';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=d9994b11855a';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -264,6 +264,7 @@ return function updateSimulation(dt) {
   const coveringRescue = state.story.expedition?.stage === 'return';
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
+    u.towerHeight = 0;
     ensurePerson(u);
     if (u.kitOrder?.remaining > 0) u.kitOrder.remaining = Math.max(0, u.kitOrder.remaining - dt);
     updateGrief(u, dt);
@@ -484,7 +485,10 @@ return function updateSimulation(dt) {
       }
     } else if (u.role === 'ARQUERO') {
       const activeWall = state.walls.filter(w => w.dir === u.assignedSide && w.level > 0 && w.hp > 0).sort((a,b) => Math.abs(b.x)-Math.abs(a.x))[0];
-      const postX = expeditionX ?? defensePostX(u, state.units, activeWall) + patrolOffset(u, state);
+      const tower = state.settlement.towers.find(post => post.side === u.assignedSide && post.level > 0);
+      const sentry = tower && state.units.find(archer => archer.role === 'ARQUERO' && archer.assignedSide === tower.side &&
+        archer.hp > 0 && !archer.requestedRole && !state.story.expedition?.party.includes(archer.id));
+      const postX = expeditionX ?? (sentry === u ? tower.x : defensePostX(u, state.units, activeWall) + patrolOffset(u, state));
       if (u.activity === 'KITE') {
         // Keep distance and retain the opportunity to shoot.
       } else if (Math.abs(postX - u.x) > (expeditionX === null ? 3 : 14)) {
@@ -495,14 +499,18 @@ return function updateSimulation(dt) {
         u.vx = 0;
         if (expeditionX === null) u.facing = u.assignedSide;
       }
+      if (sentry === u && u.activity !== 'KITE' && Math.abs(tower.x - u.x) <= 3) u.towerHeight = TOWER_HEIGHT[tower.level];
       if (u.attackCooldown <= 0) {
-        const enemyTarget = nearest(u, state.enemies, (en) => en.hp > 0 && Math.abs(en.x - u.x) < 200);
+        const range = u.towerHeight ? 225 + tower.level * 25 : 200;
+        const enemyTarget = nearest(u, state.enemies, (en) => en.hp > 0 && !(en.appearTimer > 0) && Math.abs(en.x - u.x) < range);
         if (enemyTarget) {
           u.attackCooldown = weaponRank === 3 ? 0.85 : 1.1;
           u.attackDuration=.5;u.attackAnimTimer=.5;u.activity='ATTACK';
           u.facing = Math.sign(enemyTarget.x - u.x) || 1;
+          const flight = Math.max(.10, (Math.abs(enemyTarget.x - u.x) - 12) / 245);
           u.pendingShot={eta:.18,
-            x:u.x,y: WATER_LINE_Y - 19, vx: u.facing * 245, vy: -20,
+            x:u.x,y: WATER_LINE_Y - 19 - u.towerHeight, vx: u.facing * 245,
+            vy: u.towerHeight ? u.towerHeight / flight - 22.5 * flight : -20,
             dmg: 15 * moraleMult * tierMult, fromPlayerSide: true, color: weaponRank === 3 ? '#fde047' : '#4ade80'
           };
         }
@@ -805,7 +813,7 @@ return function updateSimulation(dt) {
       if (!hit) {
         for (let j = 0; j < state.wildlife.length; j++) {
           const an = state.wildlife[j];
-          if(isHuntable(an)&&Math.abs(p.x-an.x)<14){
+          if(isHuntable(an)&&Math.abs(p.x-an.x)<14&&Math.abs(p.y-an.y)<28){
             an.hp -= p.dmg;
             an.lastHunterId = p.hunterId ?? null;
             if (p.isNet) an.nettedTimer = 4.0;

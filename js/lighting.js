@@ -1,5 +1,5 @@
-import { blend, color, NIGHT_START, smooth } from './daylight.js?v=c08e58e7c55c';
-import { ALTAR_X, TRAIL_TORCHES, torchIsLit } from './exploration.js?v=c08e58e7c55c';
+import { blend, color, NIGHT_START, smooth } from './daylight.js?v=d9994b11855a';
+import { ALTAR_X, TRAIL_TORCHES, torchIsLit } from './exploration.js?v=d9994b11855a';
 
 function drawFlame(g, x, y, flicker, length) {
   g.fillStyle = '#583824'; g.fillRect(x - 1, y + 2, 3, length);

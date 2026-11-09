@@ -1,14 +1,15 @@
-import { blend, color, daylightAt } from './daylight.js?v=c08e58e7c55c';
-import { drawSky } from './sky.js?v=c08e58e7c55c';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=c08e58e7c55c';
-import { createLighting } from './lighting.js?v=c08e58e7c55c';
-import { RenderInterpolation } from './visual-motion.js?v=c08e58e7c55c';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=c08e58e7c55c';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=c08e58e7c55c';
-import { drawParticle } from './effects.js?v=c08e58e7c55c';
-import { haciendaActive } from './haciendas.js?v=c08e58e7c55c';
-import { ROAD_GATES } from './campaign.js?v=c08e58e7c55c';
-import { WATER_LINE_Y } from './config.js?v=c08e58e7c55c';
+import { blend, color, daylightAt } from './daylight.js?v=d9994b11855a';
+import { drawSky } from './sky.js?v=d9994b11855a';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=d9994b11855a';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=d9994b11855a';
+import { createLighting } from './lighting.js?v=d9994b11855a';
+import { RenderInterpolation } from './visual-motion.js?v=d9994b11855a';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=d9994b11855a';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=d9994b11855a';
+import { drawParticle } from './effects.js?v=d9994b11855a';
+import { haciendaActive } from './haciendas.js?v=d9994b11855a';
+import { ROAD_GATES } from './campaign.js?v=d9994b11855a';
+import { WATER_LINE_Y } from './config.js?v=d9994b11855a';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -87,6 +88,7 @@ function renderWorldAboveWater(g, time, air) {
   drawLandscape(g, w, GROUND_SURFACE_Y, camX, air);
   drawMist(g, w, GROUND_SURFACE_Y, camX, air, wind);
 
+  drawCampEnclosure(g, w, GROUND_SURFACE_Y, camX, state.walls);
   drawRiverbank(g, w, GROUND_SURFACE_Y, camX);
   drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X);
   drawEstateScenery(g, toScreenX, GROUND_SURFACE_Y, w);
@@ -174,6 +176,10 @@ function renderWorldAboveWater(g, time, air) {
       drawFortification(g,sx,GROUND_SURFACE_Y,wall,settings.reduce_motion?0:time);
     }
   });
+  for (const tower of state.settlement.towers) {
+    const x = toScreenX(tower.x);
+    if (x > -55 && x < w + 55) drawWatchtower(g, x, GROUND_SURFACE_Y, tower);
+  }
   drawConstructionSites(g, toScreenX, GROUND_SURFACE_Y, w, state.settlement.projects);
 
   state.droppedCoins.forEach((c) => {
@@ -197,8 +203,9 @@ function renderWorldAboveWater(g, time, air) {
   state.units.forEach((u) => {
     const sx = toScreenX(position(u));
     if (sx < -50 || sx > w + 50) return;
-    drawMarker(g, sx, GROUND_SURFACE_Y, u);
-    window.SpriteManager?.drawAlly?.(g, sx, GROUND_SURFACE_Y, u.facing, u, time);
+    const feet = GROUND_SURFACE_Y - (u.towerHeight || 0);
+    drawMarker(g, sx, feet, u);
+    window.SpriteManager?.drawAlly?.(g, sx, feet, u.facing, u, time);
     if (u.activity === 'BATHE') {
       g.fillStyle = '#558f8d98';
       g.fillRect(sx - 10, GROUND_SURFACE_Y - 1, 20, 5);
@@ -206,7 +213,7 @@ function renderWorldAboveWater(g, time, air) {
       g.fillRect(sx - 9, GROUND_SURFACE_Y + 3 + Math.round(Math.sin(time * 5)), 7, 1);
       g.fillRect(sx + 4, GROUND_SURFACE_Y + 1, 8, 1);
     }
-    drawPersonStory(g,sx,GROUND_SURFACE_Y,u,false);
+    drawPersonStory(g,sx,feet,u,false);
   });
   for (const hacienda of state.haciendas) {
     const x = toScreenX(hacienda.x);

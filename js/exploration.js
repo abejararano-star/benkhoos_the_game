@@ -1,15 +1,17 @@
-import { createAnimal } from './ecology.js?v=c08e58e7c55c';
+import { createAnimal } from './ecology.js?v=d9994b11855a';
 
 export const ALTAR_X = -1880;
-export const TRAIL_SIGNS = [-610, -1040, -1555];
-export const TRAIL_TORCHES = [-3985, -3280, -2815, -1720, -2048, 1685, 2135, 2840, 3455, 4040];
+export const TRAIL_SIGNS = [-1565, -1815, -4360];
+export const TRAIL_TORCHES = [-4620, -3985, -3280, -2815, -1720, -2048, 1685, 2135, 2840, 3455, 4040, 4590];
 export const TRAIL_CACHES = [
   { id: 'ceiba_cache', x: -2350, name: 'Mirador de la Ceiba', wood: 4, stone: 0, coins: 3 },
   { id: 'mangrove_cache', x: 2290, name: 'Manglar de la Marea', wood: 0, stone: 4, coins: 3 },
   { id: 'roots_cache', x: -1265, name: 'Cofre bajo las raíces', wood: 2, stone: 0, coins: 5, hidden: true },
   { id: 'reeds_cache', x: 2074, name: 'Cofre entre los juncos', wood: 0, stone: 2, coins: 5, hidden: true },
   { id: 'jegua_cache', x: -2920, name: 'Alijo de los guías de Jegua', wood: 3, stone: 0, coins: 5, hidden: true },
-  { id: 'coast_cache', x: 3130, name: 'Depósito junto a la marea', wood: 0, stone: 3, coins: 5, hidden: true }
+  { id: 'coast_cache', x: 3130, name: 'Depósito junto a la marea', wood: 0, stone: 3, coins: 5, hidden: true },
+  { id: 'ridge_cache', x: -4740, name: 'Alijo de la Loma del Vigía', wood: 2, stone: 4, coins: 5 },
+  { id: 'marsh_cache', x: 4740, name: 'Provisiones del Estero', wood: 4, stone: 2, coins: 5 }
 ];
 
 export function initialExploration() {
@@ -31,7 +33,7 @@ export function ensureExploration(state) {
 
 export function seedFrontier(state, nextId) {
   ensureExploration(state);
-  for (const [id, x] of [['creek_ravine', -2135], ['creek_mangrove', 2015], ['creek_jegua', -3090], ['creek_tide', 3290]]) {
+  for (const [id, x] of [['creek_ravine', -2135], ['creek_mangrove', 2015], ['creek_jegua', -3090], ['creek_tide', 3290], ['creek_estero', 4545]]) {
     if (!state.ecology.streams.some(stream => stream.id === id)) state.ecology.streams.push({ id, x, fishStock: 3, regrow: 0 });
   }
   if (!state.exploration.estateWildlifeSeeded) {

@@ -1,16 +1,16 @@
-import { daylightLabel, NIGHT_START } from './daylight.js?v=c08e58e7c55c';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=c08e58e7c55c';
-import { describeTraits } from './daily-life.js?v=c08e58e7c55c';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=c08e58e7c55c';
-import { canMediate, relationshipsFor } from './community.js?v=c08e58e7c55c';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=c08e58e7c55c';
-import { ecologyHint } from './ecology.js?v=c08e58e7c55c';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=c08e58e7c55c';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c08e58e7c55c';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=c08e58e7c55c';
-import { arrivalHint } from './campaign.js?v=c08e58e7c55c';
-import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=c08e58e7c55c';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=c08e58e7c55c';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=d9994b11855a';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=d9994b11855a';
+import { describeTraits } from './daily-life.js?v=d9994b11855a';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=d9994b11855a';
+import { canMediate, relationshipsFor } from './community.js?v=d9994b11855a';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=d9994b11855a';
+import { ecologyHint } from './ecology.js?v=d9994b11855a';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=d9994b11855a';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d9994b11855a';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=d9994b11855a';
+import { arrivalHint } from './campaign.js?v=d9994b11855a';
+import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=d9994b11855a';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=d9994b11855a';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -418,10 +418,14 @@ export function createUI({ state, session, settings, actions }) {
     text('settlementTitle',HQ_NAMES[state.settlement.level-1]);
     text('settlementResources',`${state.coins} reales en la bolsa · ${state.resources.wood} madera · ${state.resources.stone} piedra · ${state.units.filter(u=>u.role==='CONSTRUCTOR').length} constructores`);
     const cards=$('buildingCards');cards.replaceChildren();
-    const entries=[['hq','hq','Casa del Cuartel'],...state.settlement.homes.map((h,i)=>['home',h.id,`Vivienda ${i+1}`])];
+    const entries=[['hq','hq','Casa del Cuartel'],...state.settlement.homes.map((h,i)=>['home',h.id,`Vivienda ${i+1}`]),
+      ...state.settlement.towers.map(tower => ['tower', tower.id, `Torre ${tower.side < 0 ? 'oeste' : 'este'}`])];
     for(const [kind,id,label] of entries){
       const info=upgradeInfo(state,kind,id),card=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p'),btn=document.createElement('button');
-      h.textContent=`${label} · ${info.target.level}/5`;p.textContent=MATERIALS[info.target.level-1];card.append(h);card.append(p);
+      const towerMaterials = ['Puesto para un arquero', 'Madera y bejuco', 'Ceiba reforzada', 'Base de piedra'];
+      const materials = kind === 'tower' ? towerMaterials.slice(1) : MATERIALS;
+      h.textContent=`${label} · ${info.target.level}/${materials.length}`;
+      p.textContent=materials[info.target.level-1] ?? towerMaterials[0];card.append(h);card.append(p);
       const job=info.job;
       const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra en marcha · ${Math.ceil((1-job.progress)*job.duration)} s restantes`:(info.next?kind==='hq'?`${info.coins} reales · ${info.duration} s de obra`:`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de obra`:info.reason);card.append(cost);
       if (info.next && !job) {
@@ -430,7 +434,7 @@ export function createUI({ state, session, settings, actions }) {
         balance.textContent = `${info.paid} de ${info.coins} reales aportados`;
         card.append(balance);
       }
-      btn.textContent=job?'En construcción':info.next?'Aportar 1 real':'Evolución máxima';btn.disabled=!!info.reason || state.coins<1;btn.title=info.reason||`Construir con ${MATERIALS[info.next-1]}`;
+      btn.textContent=job?'En construcción':info.next?'Aportar 1 real':'Evolución máxima';btn.disabled=!!info.reason || state.coins<1;btn.title=info.reason||`Construir con ${materials[info.next-1]}`;
       btn.addEventListener('click',()=>{const result=actions.build(kind,id);text('buildingFeedback',result.message);renderBuildings(id);update();});card.append(btn);
       if(info.reason&&info.next){const why=document.createElement('small');why.textContent=info.reason;card.append(why);}cards.append(card);
       if (focusId === id && !btn.disabled) btn.focus?.();

@@ -1,6 +1,10 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=c08e58e7c55c';
-import { landscapeSeed } from './sky.js?v=c08e58e7c55c';
+import { blend, color, mix, smooth } from './daylight.js?v=d9994b11855a';
+import { landscapeSeed } from './sky.js?v=d9994b11855a';
+import { CAMP_EDGE } from './config.js?v=d9994b11855a';
+import { TOWER_HEIGHT } from './settlement.js?v=d9994b11855a';
+
+let regionCanvas;
 
 export function drawLandscape(g, width, ground, camera, air) {
   const manager = window.SpriteManager;
@@ -25,10 +29,26 @@ export function drawLandscape(g, width, ground, camera, air) {
 
   const region = smooth(1280, 1780, Math.abs(camera));
   if (region > 0 && manager?.drawBackdrop) {
+    regionCanvas ??= document.createElement('canvas');
+    if (regionCanvas.width !== width) regionCanvas.width = width;
+    if (regionCanvas.height !== ground) regionCanvas.height = ground;
+    const layer = regionCanvas.getContext('2d');
+    layer.save();
+    layer.clearRect(0, 0, width, ground);
+    layer.imageSmoothingEnabled = false;
+    const regionCamera = camera - Math.sign(camera) * 1840;
+    manager.drawBackdrop(layer, camera < 0 ? 'biome_ravine' : 'biome_mangrove', width, ground, regionCamera, .38, ground * .53);
+    layer.globalCompositeOperation = 'destination-in';
+    const fade = layer.createLinearGradient(0, ground * .48, 0, ground * .81);
+    fade.addColorStop(0, '#ffffff00');
+    fade.addColorStop(.36, '#ffffff00');
+    fade.addColorStop(1, '#ffffffff');
+    layer.fillStyle = fade;
+    layer.fillRect(0, 0, width, ground);
+    layer.restore();
     g.save();
     g.globalAlpha = region * .65;
-    const regionCamera = camera - Math.sign(camera) * 1840;
-    manager.drawBackdrop(g, camera < 0 ? 'biome_ravine' : 'biome_mangrove', width, ground, regionCamera, .38, ground * .53);
+    g.drawImage(regionCanvas, 0, 0);
     g.restore();
   }
 
@@ -97,9 +117,10 @@ export function drawVines(g, project, ground, width, time) {
   for (const [anchor, length, side] of [[-2320, 85, 1], [-1990, 112, -1], [-1270, 94, -1], [1755, 96, 1], [2088, 107, -1], [2440, 85, 1]]) {
     const x = project(anchor);
     if (x < -65 || x > width + 65) continue;
+    window.SpriteManager?.draw?.(g, 'forest_ceiba', ['idle'], x - side * 19, ground - 4, side, 143, 0);
     for (let strand = 0; strand < 3; strand++) {
-      const top = ground - 221 - strand * 7;
-      const end = length + 68 - strand * 13;
+      const top = ground - 124 + strand * 6;
+      const end = length - 24 - strand * 10;
       for (let step = 0; step < end; step += 3) {
         const dx = Math.round(Math.sin(step / 21 + time * .48 + strand) * (4 + step / 18));
         const sx = x + side * (strand * 8 + dx);
@@ -169,7 +190,7 @@ export function drawRiverbank(g, width, ground, camera) {
   const left = camera - width / 2;
   for (let tile = Math.floor(left / span); tile * span < left + width; tile++) {
     const x = (tile + .5) * span;
-    const kind = Math.abs(x) < 665 ? 'bank_camp' : x < -1610 ? 'bank_ruin' : 'bank_forest';
+    const kind = Math.abs(x) < CAMP_EDGE ? 'bank_camp' : x < -1610 ? 'bank_ruin' : 'bank_forest';
     // Alternate mirroring to meet each edge with its matching texture.
     manager.draw(g, kind, ['idle'], x - left, ground + 22, Math.abs(tile % 2) ? -1 : 1, height, 0);
   }
@@ -183,6 +204,7 @@ export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, fore
   ] : [
     ...signs.map(x => [x, 'trail_sign', 33, -1]),
     [altarX + 162, 'trail_arch', 102], [altarX - 97, 'trail_terrace', 47], [altarX + 78, 'trail_stones', 33],
+    [-4810, 'trail_terrace', 49], [-4680, 'trail_stones', 49], [4650, 'forest_mangrove', 105], [4820, 'trail_reeds', 58],
     [-2360, 'trail_stones', 42], [-2200, 'trail_fern', 50], [1705, 'trail_fern', 57],
     [2130, 'trail_reeds', 42], [2300, 'trail_fern', 55], [2450, 'trail_stones', 41]
   ];
@@ -227,7 +249,7 @@ export function drawVillage(g,toScreen,ground,shadow,time,settlement,armyTier,re
 }
 
 export function drawConstructionSites(g, toScreen, ground, width, projects) {
-  const sizes = { hq: [118, 108], home: [78, 64], wall: [36, 48], farm: [57, 32], rack: [45, 55], altar: [49, 64] };
+  const sizes = { hq: [118, 108], home: [78, 64], wall: [36, 48], tower: [44, 86], farm: [57, 32], rack: [45, 55], altar: [49, 64] };
   for (const job of projects) {
     const x = toScreen(job.x);
     if (x < -80 || x > width + 80) continue;
@@ -271,6 +293,106 @@ export function drawToolStand(g,x,ground,rack,tier){
   }
   // An empty rack keeps its hooks, so depleted equipment remains legible.
   if(!rack.stock){g.fillStyle='#a1a190';for(const dx of [-10,0,10])g.fillRect(x+dx,ground-29,1,4);}
+}
+
+export function drawCampEnclosure(g, width, ground, camera, walls) {
+  const left = Math.round(camera - width / 2);
+  for (const side of [-1, 1]) {
+    const wall = walls.filter(w => w.dir === side && w.level && w.hp > 0)
+      .reduce((outer, w) => !outer || Math.abs(w.x) > Math.abs(outer.x) ? w : outer, null);
+    if (!wall) continue;
+    const start = Math.max(Math.min(0, wall.x), left);
+    const end = Math.min(Math.max(0, wall.x), left + width);
+    if (start >= end) continue;
+    const level = wall.level;
+    const height = [0, 27, 35, 43, 51, 60][level];
+    const y = ground - height;
+    const masonry = level >= 3;
+    const span = masonry ? 21 : 9;
+    g.save();
+    g.beginPath();
+    g.rect(start - left, y - 5, end - start, height + 5);
+    g.clip();
+    g.fillStyle = masonry ? '#414844' : '#4b3928';
+    g.fillRect(start - left, y + 5, end - start, height);
+    if (masonry) {
+      const colors = level === 3 ? ['#887c65', '#93886b', '#746e5d'] : ['#818579', '#929484', '#6b766f'];
+      for (let row = 0; row < height / 9; row++) {
+        const shift = (row % 2) * 10;
+        for (let world = Math.floor(start / span) * span - span; world < end; world += span) {
+          const x = world - left + shift;
+          g.fillStyle = colors[Math.floor(landscapeSeed(world + row) * colors.length)];
+          g.fillRect(x, y + row * 9, span - 2, 8);
+          g.fillStyle = '#d4cbb052';
+          g.fillRect(x + 1, y + row * 9, span - 5, 1);
+          if (row === 0 && level >= 4) g.fillRect(x, y - 4, 10, 5);
+        }
+      }
+    } else {
+      for (let world = Math.floor(start / span) * span; world < end; world += span) {
+        const x = world - left;
+        const offset = Math.floor(landscapeSeed(world) * 5);
+        g.fillStyle = level === 1 ? '#795734' : '#886346';
+        g.fillRect(x, y + offset, 8, height);
+        g.fillRect(x + 2, y + offset - 3, 4, 4);
+        g.fillStyle = '#b98c55';
+        g.fillRect(x + 1, y + offset + 4, 1, height - 8);
+      }
+      g.fillStyle = '#3e3027';
+      g.fillRect(start - left, y + 12, end - start, 3);
+      g.fillRect(start - left, ground - 8, end - start, 4);
+    }
+    g.fillStyle = '#1b261c36';
+    g.fillRect(start - left, ground - 8, end - start, 8);
+    g.restore();
+  }
+}
+
+export function drawWatchtower(g, x, ground, tower) {
+  if (!tower.level) {
+    g.fillStyle = '#8f7753';
+    g.fillRect(x - 12, ground - 10, 2, 10);
+    g.fillRect(x + 10, ground - 10, 2, 10);
+    g.fillStyle = '#d2ae72';
+    g.fillRect(x - 12, ground - 8, 24, 2);
+    return;
+  }
+  const deck = ground - TOWER_HEIGHT[tower.level];
+  g.strokeStyle = '#4d3326';
+  g.lineWidth = 5;
+  g.beginPath();
+  g.moveTo(x - 17, ground); g.lineTo(x + 15, deck);
+  g.moveTo(x + 17, ground); g.lineTo(x - 15, deck);
+  g.stroke();
+  for (const offset of [-19, 13]) {
+    g.fillStyle = '#573c2a'; g.fillRect(x + offset, deck, 6, ground - deck);
+    g.fillStyle = '#aa8050'; g.fillRect(x + offset + 1, deck, 2, ground - deck);
+  }
+  for (let y = ground - 4; y > deck; y -= 7) {
+    g.fillStyle = '#8b6745'; g.fillRect(x - 6, y, 12, 3);
+  }
+  g.fillStyle = '#473f34';
+  g.fillRect(x - 22, ground - 6, 44, 6);
+  if (tower.level === 3) {
+    for (let row = 0; row < 3; row++) {
+      for (let block = 0; block < 4; block++) {
+        g.fillStyle = ['#6a746a', '#8b8c77', '#545f58'][(block + row) % 3];
+        g.fillRect(x - 22 + block * 11, ground - 7 * (row + 1), 10, 6);
+      }
+    }
+  }
+  g.fillStyle = '#372e24'; g.fillRect(x - 23, deck, 46, 7);
+  g.fillStyle = '#ba9157'; g.fillRect(x - 22, deck, 44, 2);
+  for (const offset of [-20, 16]) {
+    g.fillStyle = '#81583a'; g.fillRect(x + offset, deck - 12, 4, 12);
+    g.fillStyle = '#d6aa68'; g.fillRect(x + offset, deck - 12, 4, 2);
+  }
+  g.fillStyle = '#866542'; g.fillRect(x - 20, deck - 7, 40, 2);
+  if (tower.level >= 2) {
+    g.fillStyle = '#70462c'; g.fillRect(x + 15, deck - 27, 2, 17);
+    g.fillStyle = '#35614f'; g.fillRect(x + 17, deck - 27, 13, 8);
+    g.fillStyle = '#d7b478'; g.fillRect(x + 20, deck - 25, 4, 4);
+  }
 }
 
 export function drawFortification(g,x,ground,wall,time){

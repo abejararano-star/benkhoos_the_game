@@ -1,4 +1,5 @@
-import { INFANTRY } from './equipment.js?v=c08e58e7c55c';
+import { CAMP_EDGE } from './config.js?v=d9994b11855a';
+import { INFANTRY } from './equipment.js?v=d9994b11855a';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,
@@ -50,7 +51,7 @@ export function beginExpedition(state, id) {
   if (storyChapter(state) !== 2 || !state.story.plan || state.story.expedition || state.story.completed.includes(id) || !estateById(id)) return false;
   const site = state.haciendas.find(h => h.id === id);
   if (site.destroyed && !site.reoccupied) return false;
-  const available = state.units.filter(u => COMPANIONS.includes(u.role) && u.hp >= u.maxHp * .55 && !u.requestedRole && !u.kitOrder && Math.abs(u.x) < 650);
+  const available = state.units.filter(u => COMPANIONS.includes(u.role) && u.hp >= u.maxHp * .55 && !u.requestedRole && !u.kitOrder && Math.abs(u.x) < CAMP_EDGE + 300);
   const party = available.sort((a, b) => (b.role === 'ARQUERO') - (a.role === 'ARQUERO') || b.hp / b.maxHp - a.hp / a.maxHp).slice(0, 3).map(u => u.id);
   state.story.expedition = { site: id, stage: 'march', party, rescued: [] };
   return true;

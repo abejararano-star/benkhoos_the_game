@@ -21,7 +21,7 @@ test('the remote sanctuary is discovered once, and older offerings are refunded 
   assert.equal(loaded.state.exploration.altarFound, true);
   assert.equal(loaded.state.altarSlotsFilled, 0);
   assert.equal(loaded.state.treasuryCoins, state.treasuryCoins + 3);
-  assert.equal(loaded.state.ecology.streams.length, 6);
+  assert.equal(loaded.state.ecology.streams.length, 7);
   const count = loaded.state.wildlife.length;
   seedFrontier(loaded.state, () => { throw new Error('Duplicate spawn'); });
   assert.equal(loaded.state.wildlife.length, count);

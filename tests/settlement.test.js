@@ -102,6 +102,25 @@ test('legacy house and barracks merge at the highest finished level and keep an 
   assert.equal(loaded.coins, 2);
 });
 
+test('the wider settlement keeps legacy wall health and moves partially built jobs', () => {
+  const state = world();
+  const wall = state.walls[0];
+  const currentX = wall.x;
+  wall.x = -355;
+  wall.hp = 161;
+  wall.filledSlots = 1;
+  delete state.settlement.towers;
+  state.settlement.projects.push({ id: 'wall_inner_L_2', kind: 'wall', targetId: wall.id, x: wall.x,
+    targetLevel: 2, progress: .43, duration: 5 });
+  const loaded = restoreSave(makeSave(state, 100), createInitialState()).state;
+  assert.equal(loaded.walls[0].x, currentX);
+  assert.equal(loaded.walls[0].hp, 161);
+  assert.equal(loaded.walls[0].filledSlots, 1);
+  assert.equal(loaded.settlement.projects[0].x, currentX);
+  assert.equal(loaded.settlement.projects[0].progress, .43);
+  assert.equal(loaded.settlement.towers.length, 2);
+});
+
 test('invalid unfinished projects cannot crash the live simulation on load', () => {
   for (const mutate of [
     state => state.settlement.projects.push({ kind: 'home', targetId: 'missing', x: 0, targetLevel: 2, progress: 0, duration: 10 }),
