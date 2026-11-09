@@ -30,18 +30,18 @@ test('deer flee from running people, while feeding calms an aggressive jaguar',(
   interactEcology(cat);assert.equal(cat.resources.food,3);updateEcology(cat,.5,{damagePlayer:()=>hits++});assert.equal(hits,1);
 });
 test('drinking has a cooldown and cannot reduce or mint spirit',()=>{
-  const s=world();s.benkos.x=-850;s.benkos.spirit=60;interactEcology(s);assert.equal(s.benkos.spirit,78);
+  const s=world();s.benkos.x=s.ecology.streams[0].x;s.benkos.spirit=60;interactEcology(s);assert.equal(s.benkos.spirit,78);
   interactEcology(s);assert.equal(s.benkos.spirit,78);updateEcology(s,16);interactEcology(s);assert.equal(s.benkos.spirit,96);
 });
 test('fishing requires time, is cancelled by movement, and consumes a replenishing fish stock',()=>{
-  const s=world();s.benkos.x=-850;const creek=s.ecology.streams[0],initial=s.resources.food;
+  const s=world();s.benkos.x=s.ecology.streams[0].x;const creek=s.ecology.streams[0],initial=s.resources.food;
   interactEcology(s,{fish:true});updateEcology(s,.8);assert.equal(s.resources.food,initial);s.benkos.x+=12;updateEcology(s,.1);assert.equal(s.benkos.interaction,null);assert.equal(creek.fishStock,3);
-  s.benkos.x=-850;for(let i=0;i<3;i++){interactEcology(s,{fish:true});updateEcology(s,1.7);}
+  s.benkos.x=s.ecology.streams[0].x;for(let i=0;i<3;i++){interactEcology(s,{fish:true});updateEcology(s,1.7);}
   assert.equal(s.resources.food,initial+3);assert.equal(creek.fishStock,0);interactEcology(s,{fish:true});assert.equal(s.benkos.interaction,null);
   updateEcology(s,28);assert.ok(creek.fishStock>0);
 });
 test('forest fruit can only be collected once per stream each day',()=>{
-  const s=world();s.benkos.x=-740;interactEcology(s);assert.equal(s.resources.food,6);interactEcology(s);assert.equal(s.resources.food,6);
+  const s=world();s.benkos.x=s.ecology.streams[0].x+110;interactEcology(s);assert.equal(s.resources.food,6);interactEcology(s);assert.equal(s.resources.food,6);
   s.day++;interactEcology(s);assert.equal(s.resources.food,7);
 });
 

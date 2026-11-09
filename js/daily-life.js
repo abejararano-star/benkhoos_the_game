@@ -72,6 +72,7 @@ export function takeLeisure(unit, state, dt) {
     if (unit.role === 'CONSTRUCTOR' && state.settlement.projects.length || unit.role === 'LENADOR' && state.trees.some(tree => tree.markedForChop)) return false;
     const cycle = (unit.id + state.day + (unit.breaksTaken ?? 0)) % 4;
     const creek = state.ecology.streams.reduce((best, stream) => Math.abs(stream.x - unit.x) < Math.abs(best.x - unit.x) ? stream : best);
+    const bridge = state.ecology.streams.find(stream => stream.bridge && Math.abs(stream.x - unit.x) < 850);
     const pet = state.wildlife.find(animal => animal.hp > 0 && !animal.trapped && !animal.aggression && Math.abs(animal.x - unit.x) < 280 &&
       (animal.trust >= 1 || ['TURTLE', 'MONKEY'].includes(animal.species) && animal.fear < 20));
     let kind = 'STROLL';
@@ -79,10 +80,13 @@ export function takeLeisure(unit, state, dt) {
     if (unit.grief && unit.grief.remaining > unit.grief.duration * .52) {
       kind = 'MOURN';
       x = 71;
+    } else if (bridge && cycle === 1) {
+      kind = 'FETCH_WATER';
+      x = bridge.x - 25;
     } else if (pet && unit.traits.curiosity >= 3 && cycle !== 3) {
       kind = 'PLAY';
       x = pet.x;
-    } else if (cycle === 1 && Math.abs(creek.x - unit.x) < 680) {
+    } else if (cycle === 1 && !creek.bridge && Math.abs(creek.x - unit.x) < 680) {
       kind = 'BATHE';
       x = creek.x;
     } else if (cycle === 3) {
@@ -90,7 +94,8 @@ export function takeLeisure(unit, state, dt) {
       x = unit.x < 0 ? -533 : 550;
     }
     unit.breaksTaken = (unit.breaksTaken ?? 0) + 1;
-    unit.leisure = { kind, x, remaining: kind === 'LEAVE' ? 12 : 4.5, expiresAt: now + 28, petId: kind === 'PLAY' ? pet.id : null };
+    unit.leisure = { kind, x, remaining: kind === 'LEAVE' ? 12 : kind === 'FETCH_WATER' ? 2 : 4.5,
+      expiresAt: now + (kind === 'FETCH_WATER' ? 50 : 28), petId: kind === 'PLAY' ? pet.id : null };
   }
   const breakTime = unit.leisure;
   if (!breakTime) return false;
@@ -98,15 +103,23 @@ export function takeLeisure(unit, state, dt) {
   const pet = state.wildlife.find(animal => animal.id === breakTime.petId && animal.hp > 0);
   if (breakTime.kind === 'PLAY' && pet) breakTime.x = pet.x + (unit.x < pet.x ? -17 : 17);
   if (breakTime.kind === 'PLAY' && !pet) breakTime.remaining = 0;
+  if (breakTime.kind === 'FETCH_WATER' && breakTime.remaining <= 0 && now < breakTime.expiresAt) {
+    breakTime.kind = 'CARRY_WATER';
+    breakTime.x = 78;
+    breakTime.remaining = 1;
+  }
   if (breakTime.remaining <= 0 || now >= breakTime.expiresAt) {
+    if (breakTime.kind === 'CARRY_WATER' && breakTime.remaining <= 0) state.morale = Math.min(125, state.morale + 1);
     unit.leisure = null;
     unit.nextLeisure = now + 32 + unit.traits.dedication * 8 + unit.id % 13;
     return false;
   }
   const delta = breakTime.x - unit.x;
   const traveling = Math.abs(delta) > 5;
-  unit.activity = traveling ? 'WALK' : breakTime.kind;
-  unit.mood = { STROLL: 'Paseando', PLAY: 'Jugando con un animal', BATHE: 'Bañándose en el riachuelo', LEAVE: 'De descanso', MOURN: `Llorando a ${unit.grief?.name ?? 'una persona querida'}` }[breakTime.kind];
+  unit.activity = traveling && breakTime.kind !== 'CARRY_WATER' ? 'WALK' : breakTime.kind;
+  unit.mood = { STROLL: 'Paseando', PLAY: 'Jugando con un animal', BATHE: 'Bañándose en el riachuelo',
+    FETCH_WATER: 'Sacando agua del puente', CARRY_WATER: 'Llevando agua a la casa',
+    LEAVE: 'De descanso', MOURN: `Llorando a ${unit.grief?.name ?? 'una persona querida'}` }[breakTime.kind];
   unit.vx = traveling ? Math.sign(delta) * 53 * griefEffect(unit) : 0;
   if (traveling) unit.facing = Math.sign(delta);
   else {

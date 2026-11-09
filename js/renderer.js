@@ -1,15 +1,15 @@
-import { blend, color, daylightAt } from './daylight.js?v=d9994b11855a';
-import { drawSky } from './sky.js?v=d9994b11855a';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=d9994b11855a';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=d9994b11855a';
-import { createLighting } from './lighting.js?v=d9994b11855a';
-import { RenderInterpolation } from './visual-motion.js?v=d9994b11855a';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=d9994b11855a';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=d9994b11855a';
-import { drawParticle } from './effects.js?v=d9994b11855a';
-import { haciendaActive } from './haciendas.js?v=d9994b11855a';
-import { ROAD_GATES } from './campaign.js?v=d9994b11855a';
-import { WATER_LINE_Y } from './config.js?v=d9994b11855a';
+import { blend, color, daylightAt } from './daylight.js?v=290996c6041f';
+import { drawSky } from './sky.js?v=290996c6041f';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=290996c6041f';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=290996c6041f';
+import { createLighting } from './lighting.js?v=290996c6041f';
+import { RenderInterpolation } from './visual-motion.js?v=290996c6041f';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=290996c6041f';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=290996c6041f';
+import { drawParticle } from './effects.js?v=290996c6041f';
+import { haciendaActive } from './haciendas.js?v=290996c6041f';
+import { ROAD_GATES } from './campaign.js?v=290996c6041f';
+import { WATER_LINE_Y } from './config.js?v=290996c6041f';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -92,7 +92,7 @@ function renderWorldAboveWater(g, time, air) {
   drawRiverbank(g, w, GROUND_SURFACE_Y, camX);
   drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X);
   drawEstateScenery(g, toScreenX, GROUND_SURFACE_Y, w);
-  drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion);
+  drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion,w);
   drawVines(g, toScreenX, GROUND_SURFACE_Y, w, settings.reduce_motion ? 0 : time);
   drawVillage(g, toScreenX, GROUND_SURFACE_Y, air.shadow, time, state.settlement, state.armyTier, settings.reduce_motion);
 
@@ -180,7 +180,7 @@ function renderWorldAboveWater(g, time, air) {
     const x = toScreenX(tower.x);
     if (x > -55 && x < w + 55) drawWatchtower(g, x, GROUND_SURFACE_Y, tower);
   }
-  drawConstructionSites(g, toScreenX, GROUND_SURFACE_Y, w, state.settlement.projects);
+  drawConstructionSites(g, toScreenX, GROUND_SURFACE_Y, w, state);
 
   state.droppedCoins.forEach((c) => {
     const sx = toScreenX(position(c));

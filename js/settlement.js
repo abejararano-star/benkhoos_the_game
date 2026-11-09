@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=d9994b11855a';
-import { CAMP_EDGE } from './config.js?v=d9994b11855a';
+import { ALTAR_X } from './exploration.js?v=290996c6041f';
+import { CAMP_EDGE } from './config.js?v=290996c6041f';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -8,6 +8,7 @@ export const ALTAR_HEIGHT = [0, 53, 57, 65, 73, 83];
 export const altarSprite = level => level === 1 ? 'landmark_altar' : `altar_${level}`;
 export const HQ_X = 0;
 export const TOWER_HEIGHT = [0, 62, 74, 87];
+const WORK_REACH = 18;
 
 export function initialSettlement() {
   return { level: 1, homes: [{ id: 'home_west', x: -890, level: 1 }, { id: 'home_inner', x: -150, level: 1 },
@@ -82,6 +83,7 @@ export function ensureSettlement(state) {
     const validLevel = job.kind === 'rack' ? job.targetLevel === null :
       Number.isInteger(job.targetLevel) && job.targetLevel <= max && job.targetLevel === target?.level + (job.repair ? 0 : 1);
     if (!target || target.id !== job.targetId || job.x !== target.x || !validLevel || (job.repair && job.kind !== 'wall')) throw Error('Destino de construcción inválido.');
+    delete job.working;
   }
 
   const oldDeposits = s.deposits;
@@ -134,13 +136,23 @@ export function requestBuilding(state, kind, id) {
   state.resources.wood -= info.wood;
   state.resources.stone -= info.stone;
   queueConstruction(state, kind, info.target, info.next, info.duration);
-  return { success: true, paid, message: `Obra pagada. Estará lista en ${info.duration} s de juego.` };
+  return { success: true, paid, message: `Obra pagada. Requiere ${info.duration} s de trabajo de un constructor.` };
+}
+
+export function constructionStatus(state, job) {
+  if (job.working) return 'En obra';
+  return state.units.some(unit => unit.role === 'CONSTRUCTOR' && unit.hp > 0)
+    ? 'Esperando al constructor' : 'Requiere un constructor';
 }
 
 export function advanceConstruction(state, dt, onComplete) {
   const settlement = state.settlement;
+  if (!settlement.projects.length) return;
+  const builders = state.units.filter(unit => unit.role === 'CONSTRUCTOR' && unit.hp > 0 && unit.activity === 'BUILD');
   for (let index = settlement.projects.length - 1; index >= 0; index--) {
     const job = settlement.projects[index];
+    job.working = builders.some(unit => unit.constructionJob === job.id && Math.abs(unit.x - job.x) <= WORK_REACH);
+    if (!job.working) continue;
     job.progress = Math.min(1, job.progress + dt / job.duration);
     if (job.progress < 1 - 1e-8) continue;
     const target = buildingTarget(state, job.kind, job.targetId);
@@ -163,16 +175,29 @@ export function advanceConstruction(state, dt, onComplete) {
   }
 }
 
-export function workConstruction(unit, state, dt) {
-  const job = state.settlement.projects.reduce((closest, candidate) => !closest || Math.abs(candidate.x - unit.x) < Math.abs(closest.x - unit.x) ? candidate : closest, null);
-  if (!job) { unit.vx = 0; unit.activity = 'IDLE'; unit.mood = 'Esperando una obra'; return; }
-  const dx = job.x - unit.x;
-  if (Math.abs(dx) > 20) {
-    unit.activity = 'DELIVER'; unit.mood = 'Llevando materiales';
-    unit.vx = Math.sign(dx) * 60; unit.facing = Math.sign(dx); unit.x += unit.vx * dt;
-  } else {
-    unit.vx = 0; unit.activity = 'BUILD'; unit.mood = 'Levantando el palenque';
+export function workConstruction(unit, state, dt, reserved = new Set()) {
+  delete unit.constructionJob;
+  let job = null;
+  for (const candidate of state.settlement.projects) {
+    if (reserved.has(candidate.id)) continue;
+    if (!job || Math.abs(candidate.x - unit.x) < Math.abs(job.x - unit.x)) job = candidate;
   }
+  if (!job) { unit.vx = 0; unit.activity = 'IDLE'; unit.mood = 'Esperando una obra'; return null; }
+  reserved.add(job.id);
+  const dx = job.x - unit.x;
+  if (Math.abs(dx) > WORK_REACH) {
+    unit.activity = 'DELIVER'; unit.mood = 'Llevando materiales';
+    unit.vx = Math.sign(dx) * 82;
+    unit.facing = Math.sign(dx);
+    unit.x += Math.sign(dx) * Math.min(Math.abs(dx), 82 * dt);
+    return null;
+  }
+  unit.constructionJob = job.id;
+  unit.vx = 0;
+  unit.facing = Math.sign(dx) || unit.facing || 1;
+  unit.activity = 'BUILD';
+  unit.mood = 'Levantando el palenque';
+  return job;
 }
 
 export function homeRecovery(state) {

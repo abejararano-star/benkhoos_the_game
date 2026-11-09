@@ -97,3 +97,22 @@ test('civilians can rest while sentries and hunters keep their duty', () => {
   assert.equal(takeLeisure(worker, state, 1 / 60), false);
   assert.equal(worker.leisure, null);
 });
+
+test('a civilian gathers water at the bridge and brings it back to camp', () => {
+  const state = createInitialState();
+  const bridge = state.ecology.streams.find(stream => stream.bridge);
+  const worker = person(4, 'AGRICULTOR', bridge.x - 25);
+  worker.nextLeisure = 0;
+  const morale = state.morale;
+  takeLeisure(worker, state, 2);
+  assert.equal(worker.activity, 'FETCH_WATER');
+  assert.equal(state.morale, morale);
+  takeLeisure(worker, state, .1);
+  assert.equal(worker.activity, 'CARRY_WATER');
+  assert.ok(worker.x < bridge.x - 25);
+  worker.x = 78;
+  takeLeisure(worker, state, 1);
+  takeLeisure(worker, state, .1);
+  assert.equal(state.morale, morale + 1);
+  assert.equal(worker.leisure, null);
+});

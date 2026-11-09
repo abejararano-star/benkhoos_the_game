@@ -1,13 +1,13 @@
-import { NIGHT_START } from './daylight.js?v=d9994b11855a';
-import { restoreCommunity } from './community.js?v=d9994b11855a';
-import { ensureEcology, seedEcology } from './ecology.js?v=d9994b11855a';
-import { seedFrontier } from './exploration.js?v=d9994b11855a';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=d9994b11855a';
-import { ensurePerson } from './people.js?v=d9994b11855a';
-import { ensureSettlement } from './settlement.js?v=d9994b11855a';
-import { ensureCampaign } from './campaign.js?v=d9994b11855a';
-import { restoreHaciendas } from './haciendas.js?v=d9994b11855a';
-import { restoreStory } from './story.js?v=d9994b11855a';
+import { NIGHT_START } from './daylight.js?v=290996c6041f';
+import { restoreCommunity } from './community.js?v=290996c6041f';
+import { ensureEcology, seedEcology } from './ecology.js?v=290996c6041f';
+import { seedFrontier } from './exploration.js?v=290996c6041f';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=290996c6041f';
+import { ensurePerson } from './people.js?v=290996c6041f';
+import { ensureSettlement } from './settlement.js?v=290996c6041f';
+import { ensureCampaign } from './campaign.js?v=290996c6041f';
+import { restoreHaciendas } from './haciendas.js?v=290996c6041f';
+import { restoreStory } from './story.js?v=290996c6041f';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -147,7 +147,8 @@ export function restoreSave(save, defaults) {
     const grief = unit.grief;
     if (grief && (typeof grief.name !== 'string' || !Number.isFinite(grief.remaining) || !Number.isFinite(grief.duration) ||
       grief.remaining <= 0 || grief.remaining > grief.duration)) unit.grief = null;
-    if (unit.leisure && (!['STROLL', 'BATHE', 'PLAY', 'LEAVE', 'MOURN'].includes(unit.leisure.kind) ||
+    delete unit.constructionJob;
+    if (unit.leisure && (!['STROLL', 'BATHE', 'PLAY', 'LEAVE', 'MOURN', 'FETCH_WATER', 'CARRY_WATER'].includes(unit.leisure.kind) ||
       !Number.isFinite(unit.leisure.x) || !Number.isFinite(unit.leisure.remaining) || !Number.isFinite(unit.leisure.expiresAt))) unit.leisure = null;
   }
   restoreCommunity(next);
@@ -155,6 +156,7 @@ export function restoreSave(save, defaults) {
   next.settlement = clone(next.settlement);
   restoreLayout(next, defaults);
   ensureSettlement(next);
+  next.ecology = clone(next.ecology);
   ensureEcology(next);
   const campaign = ensureCampaign(next);
   restoreStory(next, !save.snapshot?.state?.story);

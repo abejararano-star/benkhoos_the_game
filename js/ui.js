@@ -1,16 +1,16 @@
-import { daylightLabel, NIGHT_START } from './daylight.js?v=d9994b11855a';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=d9994b11855a';
-import { describeTraits } from './daily-life.js?v=d9994b11855a';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=d9994b11855a';
-import { canMediate, relationshipsFor } from './community.js?v=d9994b11855a';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=d9994b11855a';
-import { ecologyHint } from './ecology.js?v=d9994b11855a';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=d9994b11855a';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d9994b11855a';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=d9994b11855a';
-import { arrivalHint } from './campaign.js?v=d9994b11855a';
-import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=d9994b11855a';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=d9994b11855a';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=290996c6041f';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=290996c6041f';
+import { describeTraits } from './daily-life.js?v=290996c6041f';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=290996c6041f';
+import { canMediate, relationshipsFor } from './community.js?v=290996c6041f';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=290996c6041f';
+import { ecologyHint } from './ecology.js?v=290996c6041f';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=290996c6041f';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=290996c6041f';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=290996c6041f';
+import { arrivalHint } from './campaign.js?v=290996c6041f';
+import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=290996c6041f';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=290996c6041f';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -161,7 +161,7 @@ export function createUI({ state, session, settings, actions }) {
       text('nodeHintDescription', node.sub.replaceAll('[S]', 'S').replace(/\(\d+ reales?\s*\)/g, '').trim());
       const remaining = Math.max(0, node.cost - (node.getFilled() || 0));
       const unit = remaining === 1 ? 'real' : 'reales';
-      text('nodeHintCoins', node.job ? `${Math.ceil((1 - node.job.progress) * node.job.duration)} s` :
+      text('nodeHintCoins', node.job ? `${Math.ceil((1 - node.job.progress) * node.job.duration)} s de labor` :
         node.cost === 0 ? 'Nivel máximo' : node.purchase ? `${node.getFilled()}/${node.cost} reales` : `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
     }
     text('hudCoins', state.coins); text('hudMaxCoins', state.maxCoins); text('hudTreasury', state.treasuryCoins);
@@ -427,7 +427,7 @@ export function createUI({ state, session, settings, actions }) {
       h.textContent=`${label} · ${info.target.level}/${materials.length}`;
       p.textContent=materials[info.target.level-1] ?? towerMaterials[0];card.append(h);card.append(p);
       const job=info.job;
-      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`Obra en marcha · ${Math.ceil((1-job.progress)*job.duration)} s restantes`:(info.next?kind==='hq'?`${info.coins} reales · ${info.duration} s de obra`:`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de obra`:info.reason);card.append(cost);
+      const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`${constructionStatus(state, job)} · ${Math.ceil((1-job.progress)*job.duration)} s de labor`:(info.next?kind==='hq'?`${info.coins} reales · ${info.duration} s de obra`:`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de obra`:info.reason);card.append(cost);
       if (info.next && !job) {
         const balance = document.createElement('small');
         balance.className = 'building-coin-balance';

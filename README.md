@@ -60,7 +60,7 @@ La campaña imagina los destinos, diálogos, combates y decisiones. La Matuna, l
 
 ## Casa del Cuartel y armería · edición 13.2
 
-Mantén **S** frente a la Casa del Cuartel o usa **Aportar 1 real** en **B**. Los niveles II a V cuestan 6, 8, 12 y 16 reales de la bolsa y tardan de 5 a 10 segundos de juego. Las murallas, granjas y viviendas también tienen tiempo de obra. Al cargar una partida anterior se conserva el nivel más alto entre la casa y el cuartel y se reanuda la mejora que siga pendiente.
+Mantén **S** frente a la Casa del Cuartel o usa **Aportar 1 real** en **B**. Los niveles II a V cuestan 6, 8, 12 y 16 reales de la bolsa y requieren de 5 a 10 segundos de trabajo en el sitio. Las murallas, granjas, torres y viviendas también esperan a un constructor. Al cargar una partida anterior se conserva el nivel más alto entre la casa y el cuartel y se reanuda la mejora que siga pendiente.
 
 Pulsa **G** para ver las armas y armaduras desbloqueadas. Elige a un combatiente y el rango de la pieza. El encargo requiere tres segundos de forja y se recoge en la Casa del Cuartel durante el día, cuando el camino sea seguro.
 
@@ -126,7 +126,7 @@ Tras editar el cliente o regenerar atlas, ejecuta `npm run client:stamp` antes d
 
 La tecla **B** abre las obras y un catálogo visual de los cinco niveles. La Casa del Cuartel evoluciona de palma a madera, bahareque, piedra con teja y cantería tallada. Las viviendas añaden un 15 % de recuperación adicional por nivel a quienes descansan o se recuperan en el poblado. Al mejorar las murallas también cambian sus materiales y siluetas.
 
-Los constructores se acercan a las obras y trabajan mientras sea seguro. Puedes proponer este oficio desde **F** y equipar el puesto de martillos si hace falta. Los aportes y el avance de las obras se guardan con la partida.
+Los constructores llevan materiales al sitio y trabajan mientras sea seguro. Sin un constructor trabajando, la obra queda en espera y conserva el avance. Puedes proponer este oficio desde **F** y equipar el puesto de martillos si hace falta. Los aportes y el avance de las obras se guardan con la partida.
 
 Los leñadores entregan entre 4 y 6 unidades de madera por árbol, según su fuerza; los mineros entregan 2 de piedra por viaje además de la plata. La carga se lleva físicamente al cofre. Los árboles talados vuelven a crecer tres días después. Para cambiar de oficio, una persona termina primero su entrega.
 

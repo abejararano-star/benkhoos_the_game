@@ -78,7 +78,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   const selectedId=Number(elements.get('personSelect').value);elements.get('personNewRole').value='MINERO';elements.get('btnAssignProfession').click();
   assert.equal(inspect().state.units.find(u=>u.id===selectedId).requestedRole,'MINERO');
   elements.get('btnClosePeople').click();key('Escape');
-  await loadState(s => { s.benkos.x = 0; s.coins = 24; });
+  await loadState(s => { s.benkos.x = 0; s.coins = 24; s.units.find(u => u.role === 'CONSTRUCTOR').x = 0; });
   key('KeyE');assert.equal(elements.get('settlementDialog').open,true);
   elements.get('btnResumeConstruction').click();
   key('KeyS');advance(.23);key('KeyS',true);advance(.02);
@@ -90,7 +90,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().state.coins, 18);
   assert.equal(inspect().state.settlement.projects[0].targetLevel, 2);
   advance(5.1);assert.equal(inspect().state.settlement.level,2);
-  await loadState(s=>{s.benkos.x=s.walls[0].x;s.enemies=[];});
+  await loadState(s=>{s.benkos.x=s.walls[0].x;s.enemies=[];s.units.find(u => u.role === 'CONSTRUCTOR').x=s.benkos.x;});
   key('KeyS');advance(1.2);key('KeyS',true);
   assert.equal(inspect().state.walls[0].level,1);
   assert.equal(inspect().state.settlement.projects[0].kind,'wall');
@@ -99,6 +99,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
     const tower = s.settlement.towers.find(t => t.side === 1);
     const archer = s.units.find(unit => unit.role === 'ARQUERO');
     s.benkos.x = tower.x;
+    s.units.find(u => u.role === 'CONSTRUCTOR').x = tower.x;
     s.coins = 24;
     archer.assignedSide = 1;
     archer.x = tower.x;
@@ -111,13 +112,17 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   advance(6);
   assert.equal(inspect().state.settlement.towers[1].level, 1);
   assert.ok(inspect().state.units.find(unit => unit.role === 'ARQUERO').towerHeight > 0);
-  await loadState(s => { s.benkos.x = ALTAR_X + 12; });
+  await loadState(s => {
+    s.benkos.x = ALTAR_X + 12;
+    const builder = s.units.find(u => u.role === 'CONSTRUCTOR');
+    Object.assign(builder, { x: ALTAR_X, leisure: null, nextLeisure: 10000, recoveredCoins: 0 });
+  });
   key('KeyS');advance(1.48);key('KeyS',true);
   assert.equal(inspect().state.altarTier, 1);
   advance(4.1);
   assert.equal(inspect().state.altarTier, 2);
   assert.equal(inspect().state.exploration.altarFound, true);
-  await loadState(s => { s.benkos.x = 0; s.coins = 16; });
+  await loadState(s => { s.benkos.x = 0; s.coins = 16; s.units.find(u => u.role === 'CONSTRUCTOR').x = 0; });
   key('KeyB');assert.equal(elements.get('settlementDialog').open,true);
   const beforeBuild=inspect().state.coins;
   for(let i=0;i<8;i++)elements.get('buildingCards').children[0].children.find(c=>c.listeners.click)?.click();

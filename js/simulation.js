@@ -1,19 +1,19 @@
-import { NIGHT_START } from './daylight.js?v=d9994b11855a';
-import { recoverCoins } from './coins.js?v=d9994b11855a';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=d9994b11855a';
-import { collectEquipment } from './equipment.js?v=d9994b11855a';
-import { advanceCrops, tendCrop } from './crops.js?v=d9994b11855a';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=d9994b11855a';
-import { updateCommunity, joinEncounter } from './community.js?v=d9994b11855a';
-import { updateEcology, isHuntable } from './ecology.js?v=d9994b11855a';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=d9994b11855a';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=d9994b11855a';
-import { advanceParticle, emitEffect } from './effects.js?v=d9994b11855a';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=d9994b11855a';
-import { ensureCampaign, finaleWon } from './campaign.js?v=d9994b11855a';
-import { expeditionFormation } from './story.js?v=d9994b11855a';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d9994b11855a';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=d9994b11855a';
+import { NIGHT_START } from './daylight.js?v=290996c6041f';
+import { recoverCoins } from './coins.js?v=290996c6041f';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=290996c6041f';
+import { collectEquipment } from './equipment.js?v=290996c6041f';
+import { advanceCrops, tendCrop } from './crops.js?v=290996c6041f';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=290996c6041f';
+import { updateCommunity, joinEncounter } from './community.js?v=290996c6041f';
+import { updateEcology, isHuntable } from './ecology.js?v=290996c6041f';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=290996c6041f';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=290996c6041f';
+import { advanceParticle, emitEffect } from './effects.js?v=290996c6041f';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=290996c6041f';
+import { ensureCampaign, finaleWon } from './campaign.js?v=290996c6041f';
+import { expeditionFormation } from './story.js?v=290996c6041f';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=290996c6041f';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=290996c6041f';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -34,14 +34,6 @@ return function updateSimulation(dt) {
 
   const prevTime = state.timeOfDay;
   if (state.status !== 'playing') return;
-  advanceConstruction(state, dt, job => {
-    const sanctuary = job.kind === 'altar';
-    emitEffect(state, job.kind === 'rack' || sanctuary ? 'spark' : 'dust', job.x, WATER_LINE_Y - 20);
-    addFloatingText(job.x, WATER_LINE_Y - 65, job.kind === 'rack' ? 'Equipo forjado' : 'Obra terminada', '#d6c78e');
-    audio.playSfx(sanctuary ? 'roar' : 'pickaxe');
-    if (sanctuary) showBanner('NUEVO PODER DEL JAGUAR', state.skills.find(skill => skill.level === job.targetLevel).name);
-    updateHUD();
-  });
   state.timeOfDay += dt / BALANCE.dayDuration;
   if (state.timeOfDay >= NIGHT_START && prevTime < NIGHT_START) {
     if (state.truceDays > 0) {
@@ -109,7 +101,7 @@ return function updateSimulation(dt) {
 
   const isRunning = b.sprintHoldTime > 0.35 || keys['ShiftLeft'] || keys['ShiftRight'] || b.jaguarTimer > 0;
   const baseSpeed = b.mounted ? (isRunning ? 212 : 117) : (isRunning ? 155 : 95);
-  b.inStream=state.ecology.streams.some(c=>Math.abs(c.x-b.x)<23);
+  b.inStream=state.ecology.streams.some(c=>!c.bridge&&Math.abs(c.x-b.x)<23);
   const moveSpeed=(b.jaguarTimer>0?205:baseSpeed)*(b.dashTimer>0?2.2:1)*(b.inStream&&!b.mounted?.72:1);
 
   if(b.hurtTimer>.24&&b.dashTimer<=0){b.vx*=Math.pow(.85,dt*60);}
@@ -261,10 +253,17 @@ return function updateSimulation(dt) {
   // Allied work and defense
   const moraleMult = state.morale / 100;
   const formation = expeditionFormation(state);
+  const reservedJobs = new Set();
+  if (state.settlement.projects.length && !state.units.some(unit => unit.role === 'CONSTRUCTOR' && unit.hp > 0)) {
+    // Keep one reserve hammer so the village can train a replacement after a loss.
+    const rack = state.toolRacks.find(station => station.role === 'CONSTRUCTOR');
+    if (rack?.stock === 0) rack.stock = 1;
+  }
   const coveringRescue = state.story.expedition?.stage === 'return';
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
     u.towerHeight = 0;
+    delete u.constructionJob;
     ensurePerson(u);
     if (u.kitOrder?.remaining > 0) u.kitOrder.remaining = Math.max(0, u.kitOrder.remaining - dt);
     updateGrief(u, dt);
@@ -303,6 +302,15 @@ return function updateSimulation(dt) {
       updateHUD();
     })) continue;
     if (collectEquipment(u, state, dt, personMaxHp)) continue;
+    if (u.role === 'CONSTRUCTOR' && !u.requestedRole && state.settlement.projects.length) {
+      u.leisure = null;
+      const job = workConstruction(u, state, dt, reservedJobs);
+      if (job && Math.random() < dt * 3) {
+        const effect = job.kind === 'rack' ? 'spark' : job.kind === 'wall' || job.kind === 'altar' ? 'stone' : 'wood';
+        emitEffect(state, effect, u.x + u.facing * 8, WATER_LINE_Y - 23, u.facing, .35);
+      }
+      continue;
+    }
     const expeditionX = formation?.get(u.id) ?? null;
     if (expeditionX === null && (joinEncounter(u, state, dt) || takeLeisure(u, state, dt))) continue;
     if (expeditionX !== null && Math.abs(expeditionX - u.x) > 140 && !state.enemies.some(e => e.hp > 0 && Math.abs(e.x - u.x) < 175)) {
@@ -318,8 +326,9 @@ return function updateSimulation(dt) {
     const tierMult = (weaponRank === 3 ? 1.75 : weaponRank === 2 ? 1.35 : 1) * fitMult;
 
     if (u.role === 'CONSTRUCTOR') {
-      workConstruction(u,state,dt);
-      if(u.activity==='BUILD'&&Math.random()<dt*3)emitEffect(state,'wood',u.x,WATER_LINE_Y-27,u.facing,.3);
+      u.vx = 0;
+      u.activity = 'IDLE';
+      u.mood = 'Esperando una obra';
     } else if (u.role === 'ALDEANO') {
       const rack = chooseToolRack(u, state);
       if (rack) {
@@ -544,6 +553,15 @@ return function updateSimulation(dt) {
       }
     }
   }
+
+  advanceConstruction(state, dt, job => {
+    const sanctuary = job.kind === 'altar';
+    emitEffect(state, job.kind === 'rack' || sanctuary ? 'spark' : 'dust', job.x, WATER_LINE_Y - 20);
+    addFloatingText(job.x, WATER_LINE_Y - 65, job.kind === 'rack' ? 'Equipo forjado' : 'Obra terminada', '#d6c78e');
+    audio.playSfx(sanctuary ? 'roar' : 'pickaxe');
+    if (sanctuary) showBanner('NUEVO PODER DEL JAGUAR', state.skills.find(skill => skill.level === job.targetLevel).name);
+    updateHUD();
+  });
 
   // ==================== COLONIAL ENEMIES & BOSS AI ====================
   for (let i = state.enemies.length - 1; i >= 0 && state.status === 'playing'; i--) {

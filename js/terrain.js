@@ -1,8 +1,8 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=d9994b11855a';
-import { landscapeSeed } from './sky.js?v=d9994b11855a';
-import { CAMP_EDGE } from './config.js?v=d9994b11855a';
-import { TOWER_HEIGHT } from './settlement.js?v=d9994b11855a';
+import { blend, color, mix, smooth } from './daylight.js?v=290996c6041f';
+import { landscapeSeed } from './sky.js?v=290996c6041f';
+import { CAMP_EDGE } from './config.js?v=290996c6041f';
+import { TOWER_HEIGHT } from './settlement.js?v=290996c6041f';
 
 let regionCanvas;
 
@@ -248,13 +248,24 @@ export function drawVillage(g,toScreen,ground,shadow,time,settlement,armyTier,re
   g.fillStyle='#d29a50';g.fillRect(x-4,ground-12,8,7);g.fillStyle='#e9c77e';g.fillRect(x-2,ground-16-(reduceMotion?0:Math.round(Math.sin(time*4))),4,9);
 }
 
-export function drawConstructionSites(g, toScreen, ground, width, projects) {
+export function drawConstructionSites(g, toScreen, ground, width, state) {
   const sizes = { hq: [118, 108], home: [78, 64], wall: [36, 48], tower: [44, 86], farm: [57, 32], rack: [45, 55], altar: [49, 64] };
-  for (const job of projects) {
+  for (const job of state.settlement.projects) {
     const x = toScreen(job.x);
     if (x < -80 || x > width + 80) continue;
     const [w, h] = sizes[job.kind];
-    if (job.kind !== 'rack') {
+    const scaffold = job.kind !== 'rack' && (job.working || job.progress > 0);
+    const height = scaffold ? h : 26;
+    for (let i = 0; i < 3; i++) {
+      g.fillStyle = '#362b22'; g.fillRect(x - 16 + i * 3, ground - 5 - i * 3, 25, 4);
+      g.fillStyle = '#a37749'; g.fillRect(x - 15 + i * 3, ground - 5 - i * 3, 22, 1);
+    }
+    if (scaffold) {
+      g.strokeStyle = '#765739';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(x - w / 2, ground - 12); g.lineTo(x + w / 2, ground - h + 11);
+      g.stroke();
       for (const dx of [-w / 2, w / 2]) {
         g.fillStyle = '#624629'; g.fillRect(x + dx - 1, ground - h, 4, h);
         g.fillStyle = '#d2ac6b'; g.fillRect(x + dx, ground - h, 1, h);
@@ -262,10 +273,12 @@ export function drawConstructionSites(g, toScreen, ground, width, projects) {
       }
       g.fillStyle = '#a77f49'; g.fillRect(x - w / 2 - 3, ground - h + 7, w + 6, 3);
     }
-    g.fillStyle = '#12241d'; g.fillRect(x - 24, ground - h - 12, 48, 5);
-    g.fillStyle = '#dbb879'; g.fillRect(x - 23, ground - h - 11, 46 * job.progress, 3);
+    g.fillStyle = '#12241d'; g.fillRect(x - 24, ground - height - 12, 48, 5);
+    g.fillStyle = job.working ? '#dbb879' : '#8a8b69';
+    g.fillRect(x - 23, ground - height - 11, Math.round(46 * job.progress), 3);
     g.fillStyle = '#efdcac'; g.font = '7px monospace'; g.textAlign = 'center';
-    g.fillText(job.kind === 'rack' ? 'FORJANDO' : 'EN OBRA', x, ground - h - 17);
+    const label = job.working ? job.kind === 'rack' ? 'FORJANDO' : 'EN OBRA' : 'EN ESPERA';
+    g.fillText(label, x, ground - height - 17);
   }
 }
 
@@ -295,6 +308,40 @@ export function drawToolStand(g,x,ground,rack,tier){
   if(!rack.stock){g.fillStyle='#a1a190';for(const dx of [-10,0,10])g.fillRect(x+dx,ground-29,1,4);}
 }
 
+function stoneFace(g, x, y, width, height, tint, seed) {
+  g.fillStyle = '#4a4336';
+  g.fillRect(x + 1, y, width - 2, height);
+  g.fillRect(x, y + 1, width, height - 2);
+  g.fillStyle = tint;
+  g.fillRect(x + 1, y + 1, width - 3, height - 3);
+  const chip = 2 + Math.floor(seed * (width - 6));
+  g.fillStyle = '#d3bc8d81';
+  g.fillRect(x + 2, y, Math.max(2, width - 6), 1);
+  g.fillRect(x + chip, y + 2, Math.min(4, width - chip - 1), 1);
+  g.fillStyle = '#504b3a86';
+  g.fillRect(x + 2, y + height - 2, width - 5, 1);
+  g.fillRect(x + chip, y + height - 4, 3, 1);
+  if (seed > .66) {
+    g.fillStyle = '#697545';
+    g.fillRect(x + 2, y + height - 2, 4, 2);
+    g.fillRect(x + 3, y + height - 3, 2, 1);
+  }
+}
+
+function woodFace(g, x, y, width, height, tint, seed) {
+  g.fillStyle = '#382c20';
+  g.fillRect(x, y, width, height);
+  g.fillStyle = tint;
+  g.fillRect(x + 1, y + 1, width - 2, height - 1);
+  g.fillStyle = '#c09a656e';
+  g.fillRect(x + 1, y + 2, 1, height - 3);
+  for (let row = 6; row < height - 3; row += 7) {
+    const grain = landscapeSeed(seed + row);
+    g.fillStyle = grain > .51 ? '#bf8d4e90' : '#39271d8c';
+    g.fillRect(x + 2 + Math.floor(grain * Math.max(1, width - 4)), y + row, 1, 2 + Math.floor(grain * 4));
+  }
+}
+
 export function drawCampEnclosure(g, width, ground, camera, walls) {
   const left = Math.round(camera - width / 2);
   for (const side of [-1, 1]) {
@@ -308,7 +355,7 @@ export function drawCampEnclosure(g, width, ground, camera, walls) {
     const height = [0, 27, 35, 43, 51, 60][level];
     const y = ground - height;
     const masonry = level >= 3;
-    const span = masonry ? 21 : 9;
+    const span = masonry ? 16 : 8;
     g.save();
     g.beginPath();
     g.rect(start - left, y - 5, end - start, height + 5);
@@ -316,27 +363,27 @@ export function drawCampEnclosure(g, width, ground, camera, walls) {
     g.fillStyle = masonry ? '#414844' : '#4b3928';
     g.fillRect(start - left, y + 5, end - start, height);
     if (masonry) {
-      const colors = level === 3 ? ['#887c65', '#93886b', '#746e5d'] : ['#818579', '#929484', '#6b766f'];
+      const colors = level === 3 ? ['#80735c', '#8c8065', '#746753'] : ['#79776a', '#898574', '#6b6f60'];
       for (let row = 0; row < height / 9; row++) {
-        const shift = (row % 2) * 10;
+        const shift = (row % 2) * 8;
         for (let world = Math.floor(start / span) * span - span; world < end; world += span) {
           const x = world - left + shift;
-          g.fillStyle = colors[Math.floor(landscapeSeed(world + row) * colors.length)];
-          g.fillRect(x, y + row * 9, span - 2, 8);
-          g.fillStyle = '#d4cbb052';
-          g.fillRect(x + 1, y + row * 9, span - 5, 1);
-          if (row === 0 && level >= 4) g.fillRect(x, y - 4, 10, 5);
+          const seed = landscapeSeed(world + row);
+          const tint = colors[Math.floor(seed * colors.length)];
+          const stagger = Math.round(seed * 2) - 1;
+          stoneFace(g, x, y + row * 9 + stagger, span - 1, 9, tint, seed);
+          if (row === 0 && level >= 4 && world % 32 === 0) stoneFace(g, x, y - 5, 13, 8, tint, seed);
         }
       }
     } else {
       for (let world = Math.floor(start / span) * span; world < end; world += span) {
         const x = world - left;
         const offset = Math.floor(landscapeSeed(world) * 5);
-        g.fillStyle = level === 1 ? '#795734' : '#886346';
-        g.fillRect(x, y + offset, 8, height);
-        g.fillRect(x + 2, y + offset - 3, 4, 4);
-        g.fillStyle = '#b98c55';
-        g.fillRect(x + 1, y + offset + 4, 1, height - 8);
+        const tint = ['#765337', '#896345', '#6c5036'][Math.floor(landscapeSeed(world + 8) * 3)];
+        woodFace(g, x, y + offset, span, height, tint, world);
+        g.fillStyle = tint; g.fillRect(x + 2, y + offset - 3, 4, 4);
+        g.fillStyle = '#ad8253'; g.fillRect(x + 2, y + offset - 2, 2, 2);
+        g.fillStyle = '#bb9a66'; g.fillRect(x + 3, y + 10, 2, 3);
       }
       g.fillStyle = '#3e3027';
       g.fillRect(start - left, y + 12, end - start, 3);
@@ -365,8 +412,11 @@ export function drawWatchtower(g, x, ground, tower) {
   g.moveTo(x + 17, ground); g.lineTo(x - 15, deck);
   g.stroke();
   for (const offset of [-19, 13]) {
-    g.fillStyle = '#573c2a'; g.fillRect(x + offset, deck, 6, ground - deck);
-    g.fillStyle = '#aa8050'; g.fillRect(x + offset + 1, deck, 2, ground - deck);
+    woodFace(g, x + offset, deck, 7, ground - deck, '#8a613d', tower.x + offset);
+    for (const row of [8, 28, 48]) {
+      g.fillStyle = '#5c452e'; g.fillRect(x + offset - 1, deck + row, 9, 4);
+      g.fillStyle = '#c6aa73'; g.fillRect(x + offset - 1, deck + row, 9, 1);
+    }
   }
   for (let y = ground - 4; y > deck; y -= 7) {
     g.fillStyle = '#8b6745'; g.fillRect(x - 6, y, 12, 3);
@@ -374,15 +424,19 @@ export function drawWatchtower(g, x, ground, tower) {
   g.fillStyle = '#473f34';
   g.fillRect(x - 22, ground - 6, 44, 6);
   if (tower.level === 3) {
-    for (let row = 0; row < 3; row++) {
+    for (let row = 0; row < 4; row++) {
       for (let block = 0; block < 4; block++) {
-        g.fillStyle = ['#6a746a', '#8b8c77', '#545f58'][(block + row) % 3];
-        g.fillRect(x - 22 + block * 11, ground - 7 * (row + 1), 10, 6);
+        const tint = ['#7a7968', '#92907b', '#656c5e'][(block + row) % 3];
+        stoneFace(g, x - 23 + block * 11 + (row % 2) * 3, ground - 7 * (row + 1), 11, 8, tint, landscapeSeed(block + row * 9));
       }
     }
   }
   g.fillStyle = '#372e24'; g.fillRect(x - 23, deck, 46, 7);
   g.fillStyle = '#ba9157'; g.fillRect(x - 22, deck, 44, 2);
+  for (let board = -21; board < 22; board += 6) {
+    g.fillStyle = '#805838'; g.fillRect(x + board, deck + 2, 5, 4);
+    g.fillStyle = '#c09d6a'; g.fillRect(x + board + 1, deck + 3, 2, 1);
+  }
   for (const offset of [-20, 16]) {
     g.fillStyle = '#81583a'; g.fillRect(x + offset, deck - 12, 4, 12);
     g.fillStyle = '#d6aa68'; g.fillRect(x + offset, deck - 12, 4, 2);
@@ -514,10 +568,55 @@ export function drawPersonStory(g,x,ground,unit,showSpeech=false){
   }
 }
 
-export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false){
+function drawCampBridge(g, x, ground, time) {
+  // A small stone sluice lets the stream pass under the enclosure.
+  g.fillStyle = '#26312a';
+  g.fillRect(x - 13, ground - 23, 26, 14);
+  g.fillRect(x - 8, ground - 27, 16, 10);
+  for (const [dx, dy] of [[-16, -25], [-8, -31], [0, -32], [8, -29], [13, -24]]) {
+    stoneFace(g, x + dx, ground + dy, 8, 7, '#827b65', landscapeSeed(dx));
+  }
+  for (let row = -19; row < 22; row++) {
+    const bend = Math.round(Math.sin((row + 8) * .08) * 5);
+    const spread = 8 + Math.floor((row + 19) / 9);
+    g.fillStyle = '#384b37'; g.fillRect(x + bend - spread - 5, ground + row, spread * 2 + 10, 1);
+    g.fillStyle = row < -5 ? '#346b68' : '#367e7d';
+    g.fillRect(x + bend - spread, ground + row, spread * 2, 1);
+    g.fillStyle = '#9ec2a453';
+    g.fillRect(x + bend + (row % 5) - 5, ground + row, 3 + Math.abs(row % 4), 1);
+  }
+  for (let i = 0; i < 15; i++) {
+    const y = ground - 19 + Math.round((time * 14 + i * 7) % 40);
+    g.fillStyle = i % 2 ? '#a2c8ae' : '#5fa89c';
+    g.fillRect(x - 8 + (i * 7 % 16), y, 2 + i % 4, 1);
+  }
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const rockX = x + side * (17 + i % 2 * 4) - 4;
+      stoneFace(g, rockX, ground - 22 + i * 11, 8, 6, '#777860', landscapeSeed(i + side));
+    }
+    woodFace(g, x + side * 25 - 2, ground - 11, 5, 19, '#805b39', x + side);
+  }
+  g.fillStyle = '#573c27'; g.fillRect(x - 30, ground - 2, 60, 7);
+  for (let board = -30; board < 30; board += 5) {
+    const tint = ['#9b764e', '#ab8353', '#816041'][Math.floor(landscapeSeed(board) * 3)];
+    g.fillStyle = tint; g.fillRect(x + board, ground - 4, 4, 6);
+    g.fillStyle = '#c29a62'; g.fillRect(x + board, ground - 4, 4, 1);
+  }
+  g.fillStyle = '#9b7448'; g.fillRect(x - 25, ground - 10, 50, 2);
+  woodFace(g, x - 37, ground - 9, 7, 8, '#8d6845', x);
+  g.fillStyle = '#70a9a0'; g.fillRect(x - 36, ground - 9, 5, 1);
+}
+
+export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,width=Infinity){
   const sm=window.SpriteManager;
   for(const [index,creek]of streams.entries()){
     const x=toScreen(creek.x);
+    if (x < -125 || x > width + 125) continue;
+    if (creek.bridge) {
+      drawCampBridge(g, x, ground, reduceMotion ? 0 : time);
+      continue;
+    }
     sm?.draw?.(g,index?'habitat_bridge':'habitat_cascade',['idle'],x,ground+5,1,84,0);
     sm?.draw?.(g,'habitat_fishing',['idle'],x+37,ground+9,1,35,0);
     sm?.draw?.(g,'habitat_log',['idle'],x-75,ground,1,31,0);

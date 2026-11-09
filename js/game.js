@@ -1,27 +1,27 @@
-import { NIGHT_START } from './daylight.js?v=d9994b11855a';
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=d9994b11855a';
-import { GROUND_COIN_LIFE } from './coins.js?v=d9994b11855a';
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=d9994b11855a';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=d9994b11855a';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=d9994b11855a';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=d9994b11855a';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT } from './settlement.js?v=d9994b11855a';
-import { emitEffect } from './effects.js?v=d9994b11855a';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=d9994b11855a';
-import { AfroColombianAudioEngine } from './audio.js?v=d9994b11855a';
-import { createInitialState } from './world-state.js?v=d9994b11855a';
-import { makeSave, restoreSave } from './save-system.js?v=d9994b11855a';
-import { createRenderer } from './renderer.js?v=d9994b11855a';
-import { createSimulation } from './simulation.js?v=d9994b11855a';
-import { FixedStepper } from './clock.js?v=d9994b11855a';
-import { bindInput } from './input.js?v=d9994b11855a';
-import { createUI } from './ui.js?v=d9994b11855a';
-import { chooseDefenseSide } from './ai.js?v=d9994b11855a';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=d9994b11855a';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=d9994b11855a';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=d9994b11855a';
-import { mediateEncounter } from './community.js?v=d9994b11855a';
-import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=d9994b11855a';
+import { NIGHT_START } from './daylight.js?v=290996c6041f';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=290996c6041f';
+import { GROUND_COIN_LIFE } from './coins.js?v=290996c6041f';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=290996c6041f';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=290996c6041f';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=290996c6041f';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=290996c6041f';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, constructionStatus } from './settlement.js?v=290996c6041f';
+import { emitEffect } from './effects.js?v=290996c6041f';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=290996c6041f';
+import { AfroColombianAudioEngine } from './audio.js?v=290996c6041f';
+import { createInitialState } from './world-state.js?v=290996c6041f';
+import { makeSave, restoreSave } from './save-system.js?v=290996c6041f';
+import { createRenderer } from './renderer.js?v=290996c6041f';
+import { createSimulation } from './simulation.js?v=290996c6041f';
+import { FixedStepper } from './clock.js?v=290996c6041f';
+import { bindInput } from './input.js?v=290996c6041f';
+import { createUI } from './ui.js?v=290996c6041f';
+import { chooseDefenseSide } from './ai.js?v=290996c6041f';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=290996c6041f';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=290996c6041f';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=290996c6041f';
+import { mediateEncounter } from './community.js?v=290996c6041f';
+import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=290996c6041f';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -267,7 +267,7 @@ function updateStoryProgress() {
 
 // ==================== 5. DIEGETIC INTERACTIVE NODES ====================
 function buildingInProgress(job, title) {
-  return { id: job.targetId, x: job.x, title, sub: 'La obra avanza mientras juegas.', locked: true,
+  return { id: job.targetId, x: job.x, title, sub: constructionStatus(state, job), locked: true,
     cost: 0, getFilled: () => 0, job };
 }
 
@@ -787,7 +787,7 @@ function newGame() {
       state.timeOfDay = .75;
       state.phase = 'NIGHT_DEFENSE';
     }
-    if(reviewScene==='creek')state.benkos.x=-850;
+    if(reviewScene==='creek')state.benkos.x=state.ecology.streams.find(stream => stream.bridge).x;
     if (reviewScene === 'hacienda') {
       state.benkos.x = state.haciendas[0].x + 44;
       state.benkos.facing = -1;

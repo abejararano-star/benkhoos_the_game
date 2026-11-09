@@ -95,6 +95,16 @@ class BenkosSpriteManager {
       this.drawPouch(ctx, x - facing * 9, y - 12, 12, u.recoveredCoins / 4);
       return;
     }
+    if (u.activity === 'CARRY_WATER') {
+      const bx = Math.round(x + facing * 11);
+      const by = Math.round(y - 17);
+      ctx.fillStyle = '#312c23'; ctx.fillRect(bx - 2, by - 4, 4, 5);
+      ctx.fillStyle = '#634b36'; ctx.fillRect(bx - 5, by, 10, 8);
+      ctx.fillStyle = '#aa8255'; ctx.fillRect(bx - 4, by + 2, 2, 5);
+      ctx.fillStyle = '#b6a282'; ctx.fillRect(bx - 5, by + 5, 10, 1);
+      ctx.fillStyle = '#84a99b'; ctx.fillRect(bx - 4, by, 8, 2);
+      return;
+    }
     if(!u.carryingSack&&u.activity!=='DELIVER')return;
     const bx=x-facing*9;
     if(u.cargoWood){
@@ -288,7 +298,7 @@ class BenkosSpriteManager {
     if (['CHOP', 'BUILD', 'WORK'].includes(unit.activity)) {
       return this.draw(ctx, cls, ['action'], x, y, facing, height, t, 4);
     }
-    if (unit.activity === 'BATHE' || unit.activity === 'PLAY') {
+    if (['BATHE', 'PLAY', 'FETCH_WATER'].includes(unit.activity)) {
       const lean = this.reduceMotion ? null : { tilt: Math.sin(t * 4) * .045, stretch: 1 };
       return this.draw(ctx, cls, ['rest'], x, y + (unit.activity === 'BATHE' ? 3 : 0), facing, height, t, 0, 0, lean);
     }

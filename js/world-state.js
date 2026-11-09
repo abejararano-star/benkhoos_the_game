@@ -1,9 +1,9 @@
-import { initialCommunity } from './community.js?v=d9994b11855a';
-import { initialStory, majorHaciendas } from './story.js?v=d9994b11855a';
-import { initialEcology } from './ecology.js?v=d9994b11855a';
-import { initialExploration } from './exploration.js?v=d9994b11855a';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=d9994b11855a';
-import { initialSettlement } from './settlement.js?v=d9994b11855a';
+import { initialCommunity } from './community.js?v=290996c6041f';
+import { initialStory, majorHaciendas } from './story.js?v=290996c6041f';
+import { initialEcology } from './ecology.js?v=290996c6041f';
+import { initialExploration } from './exploration.js?v=290996c6041f';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=290996c6041f';
+import { initialSettlement } from './settlement.js?v=290996c6041f';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -129,7 +129,7 @@ const state = {
   floatingTexts: []
 };
 
-const treePositions = [-1730, -1600, -1295, -1090, -826, -530, -222, 222, 530, 826, 1090, 1295, 1600, 1730];
+const treePositions = [-2820, -2560, -2420, -2220, -2070, -1730, -1390, 1390, 1740, 1920, 2170, 2380, 2560, 2820];
 treePositions.forEach((tx, idx) => {
   state.trees.push({
     id: `tree_${idx}`,

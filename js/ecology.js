@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=d9994b11855a';
-import { strikeEnemy } from './combat.js?v=d9994b11855a';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=290996c6041f';
+import { strikeEnemy } from './combat.js?v=290996c6041f';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -12,7 +12,12 @@ export const SPECIES=Object.freeze({
   SNAKE:{name:'Culebra',hp:12,speed:38,food:0}
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-export function initialEcology(){return {version:1,seeded:false,time:0,streams:[{id:'creek_west',x:-850,fishStock:3,regrow:0},{id:'creek_east',x:820,fishStock:3,regrow:0}]};}
+export function initialEcology() {
+  return { version: 1, seeded: false, time: 0, streams: [
+    { id: 'creek_west', x: -1605, fishStock: 3, regrow: 0 },
+    { id: 'creek_east', x: 820, bridge: true, fishStock: 3, regrow: 0 }
+  ] };
+}
 export function ensureAnimal(a){
   a.species??='CAPYBARA';const spec=SPECIES[a.species];if(!spec)throw Error('Especie desconocida en la partida.');
   a.maxHp??=spec.hp;a.hp??=spec.hp;if(!Number.isFinite(a.hp)||!Number.isFinite(a.maxHp)||a.maxHp<=0)throw Error('Salud de animal inválida.');a.homeX??=a.x;a.facing??=1;a.vx??=0;
@@ -26,6 +31,13 @@ export function ensureEcology(state){
   if(!Number.isFinite(e.time)||e.time<0)e.time=0;
   if(new Set(e.streams.map(c=>c.id)).size!==e.streams.length)throw Error('Riachuelos duplicados.');
   for(const creek of e.streams){if(!Number.isFinite(creek.x)||!Number.isFinite(creek.fishStock)||!Number.isFinite(creek.regrow))throw Error('Riachuelo dañado.');creek.fishStock=clamp(Math.floor(creek.fishStock),0,3);}
+  for (const site of initialEcology().streams) {
+    const creek = e.streams.find(stream => stream.id === site.id);
+    if (!creek) continue;
+    if (creek.x !== site.x && state.benkos?.interaction?.streamId === creek.id) state.benkos.interaction = null;
+    creek.x = site.x;
+    if (site.bridge) creek.bridge = true;
+  }
   state.resources.food??=5;state.wildlife.forEach(ensureAnimal);return e;
 }
 export function createAnimal(id,species,x,extra={}){return ensureAnimal({id,species,x,y:WATER_LINE_Y,...extra});}
@@ -40,14 +52,15 @@ export function nearestEcology(state){
   const b=state.benkos;
   const animal=state.wildlife.filter(a=>a.hp>0&&Math.abs(a.x-b.x)<38).sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x))[0];
   const creek=state.ecology?.streams.find(c=>Math.abs(c.x-b.x)<46);
-  const fruit=state.ecology?.streams.find(c=>Math.abs(c.x+110-b.x)<28);
+  const fruit=state.ecology?.streams.find(c=>!c.bridge&&Math.abs(c.x+110-b.x)<28);
+  if (creek?.bridge && Math.abs(creek.x - b.x) < 27) return { kind: 'creek', target: creek };
   return animal?{kind:'animal',target:animal}:creek?{kind:'creek',target:creek}:fruit?{kind:'fruit',target:fruit}:null;
 }
 export function ecologyHint(state){
   if(state.benkos.interaction)return 'Pescando… Muévete o ataca para cancelar.';
   const item=nearestEcology(state);if(!item)return '';
   if(item.kind==='fruit')return 'E · Recoger frutos del bosque';
-  if(item.kind==='creek')return 'E · Beber del riachuelo · Mayús + E · Pescar';
+  if(item.kind==='creek')return item.target.bridge ? 'Puente · E para sacar agua · Mayús + E para pescar' : 'E · Beber del riachuelo · Mayús + E · Pescar';
   const a=item.target,name=SPECIES[a.species].name;
   if (a.species === 'SNAKE') return 'Culebra · Deja espacio al cruzar';
   return a.trapped?`E · Liberar ${name.toLowerCase()} de la trampa`:a.species==='MACAW'&&a.trust?`E · Escuchar a la guacamaya`:`E · Alimentar ${name.toLowerCase()} · ${a.species==='JAGUAR'?2:1} alimento`;
@@ -60,6 +73,9 @@ export function interactEcology(state,{fish=false}={}){
   if(item.kind==='fruit'){if(item.target.berryDay===state.day)return {handled:true,message:'Los frutos ya se recogieron hoy.'};item.target.berryDay=state.day;state.resources.food++;return {handled:true,message:'+1 alimento · frutos del bosque'};}
   if(item.kind==='creek'){
     const creek=item.target;
+    if (!fish && creek.bridge && b.spirit >= b.maxSpirit - 3) {
+      return { handled: true, message: 'Bebes agua fresca del puente. Tu espíritu ya está lleno.' };
+    }
     if(!fish&&b.spirit<b.maxSpirit-3){creek.drinkCooldown??=0;if(creek.drinkCooldown>0){return {handled:true,message:'El agua se está aclarando. Espera unos segundos.'};}b.spirit=Math.min(b.maxSpirit,b.spirit+18);creek.drinkCooldown=15;return {handled:true,message:'Agua fresca · +18 espíritu'};}
     if(creek.fishStock<=0)return {handled:true,message:'El remanso necesita recuperarse. Los peces volverán.'};
     b.interaction={kind:'fish',streamId:creek.id,x:b.x,timer:1.6,duration:1.6};b.resting=false;b.vx=0;
