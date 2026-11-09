@@ -64,14 +64,32 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
   for (const mounted of [false, true]) {
     const name = mounted ? 'actor_hero_mounted_torch' : 'actor_hero_torch';
     const poses = atlas.sprites[name].anims;
-    assert.equal(poses.walk.length, 4);
-    for (const frame of [...poses.idle, ...poses.walk, ...poses.sword]) {
+    const travel = atlas.sprites[name + '_travel'].anims;
+    assert.equal(travel.walk.length, mounted ? 4 : 6);
+    assert.equal(travel.run.length, mounted ? 8 : 6);
+    assert.equal(poses.sword.length, 6);
+    for (const frame of [...Object.values(poses).flat(), ...Object.values(travel).flat()]) {
       assert.ok(frame.flame[0] > frame.ax);
-      assert.ok(frame.flame[1] <= frame.ay - frame.ref);
+      assert.ok(frame.flame[1] < frame.torso[1]);
     }
     for (const facing of [-1, 1]) {
       assert.equal(manager.drawBenkos(ctx, 100, 246, facing, { mounted, vx: 0 }, 0, true), true);
       assert.ok((manager.heroTorch.x - 100) * facing > 0);
+    }
+    for (const [conditions, animation, sprite] of [
+      [{ vx: 70 }, 'walk', name + '_travel'],
+      [{ vx: 175 }, 'run', name + '_travel'],
+      [{ hurtTimer: .3 }, 'hurt', name],
+      [{ payTimer: .3 }, 'pay', name],
+      [{ resting: true }, 'rest', name]
+    ]) {
+      logs.length = 0;
+      const atlasSprite = atlas.sprites[sprite];
+      const actor = { mounted, vx: 0, ...conditions };
+      assert.equal(manager.drawBenkos(ctx, 100, 246, 1, actor, 0, true), true);
+      const renderedFrame = logs[0];
+      assert.equal(renderedFrame[0], manager.sheets[atlasSprite.sheet]);
+      assert.ok(atlasSprite.anims[animation].some(frame => frame.x === renderedFrame[1] && frame.y === renderedFrame[2]));
     }
   }
   for(const tier of [1,2,3])for(const role of ROLES){

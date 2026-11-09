@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=89d5690bb102';
-import { landscapeSeed } from './sky.js?v=89d5690bb102';
-import { CAMP_EDGE } from './config.js?v=89d5690bb102';
-import { TOWER_HEIGHT } from './settlement.js?v=89d5690bb102';
-import { CROSSINGS, deckOffset } from './crossings.js?v=89d5690bb102';
+import { blend, color, mix, smooth } from './daylight.js?v=894cb6888361';
+import { landscapeSeed } from './sky.js?v=894cb6888361';
+import { CAMP_EDGE } from './config.js?v=894cb6888361';
+import { TOWER_HEIGHT } from './settlement.js?v=894cb6888361';
+import { CROSSINGS, deckOffset } from './crossings.js?v=894cb6888361';
 
 let regionCanvas;
 
@@ -673,16 +673,11 @@ export function drawTerrainFeatures(g, project, width, ground, state) {
   const sm = window.SpriteManager;
   for (const creek of state.ecology.streams) {
     const x = project(creek.x);
-    if (creek.bridge || x < -125 || x > width + 125) continue;
-    const cascades = creek.x < 0;
+    if (creek.bridge || creek.x >= 0 || x < -125 || x > width + 125) continue;
     g.save();
-    g.globalAlpha = cascades ? .89 : .62;
-    if (cascades) {
-      if (!sm?.draw?.(g, 'ravine_pool_grounded', ['idle'], x, ground + 3, 1, 79, 0)) {
-        sm?.draw?.(g, 'habitat_cascade', ['idle'], x, ground + 3, 1, 66, 0);
-      }
-    } else {
-      sm?.draw?.(g, 'habitat_water', ['idle'], x, ground + 2, 1, 31, 0);
+    g.globalAlpha = .89;
+    if (!sm?.draw?.(g, 'ravine_pool_grounded', ['idle'], x, ground + 3, 1, 79, 0)) {
+      sm?.draw?.(g, 'habitat_cascade', ['idle'], x, ground + 3, 1, 66, 0);
     }
     g.restore();
   }
@@ -719,11 +714,13 @@ export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,wi
       drawCampBridge(g, x, ground, reduceMotion ? 0 : time);
       continue;
     }
+    if (creek.x > 0) sm?.draw?.(g, 'creek_pond', ['idle'], x, ground - 3, 1, 40, 0);
     sm?.draw?.(g,'habitat_fruit',['idle'],x+110,ground,1,31,0);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 6; i++) {
       const drift = reduceMotion ? i * 2 : (time * 13 + i * 7) % 22;
-      g.fillStyle = i % 2 ? '#9acdc0b8' : '#70b9ac94';
-      g.fillRect(Math.round(x - 12 + drift), ground - 1 + i % 4, 2 + i % 3, 1);
+      g.fillStyle = i % 2 ? '#a4c8ac73' : '#75a3927b';
+      const y = creek.x < 0 ? ground - 1 + i % 3 : ground - 16 + i % 5;
+      g.fillRect(Math.round(x - 12 + drift), y, 2 + i % 3, 1);
     }
   }
 }

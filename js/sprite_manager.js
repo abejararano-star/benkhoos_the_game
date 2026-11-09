@@ -287,6 +287,7 @@ class BenkosSpriteManager {
 
   drawBenkos(ctx, x, y, facing, player, time, torch = false) {
     this.heroTorch = null;
+    if (!torch) this.heroTorchAction = null;
     const mounted = player.mounted;
     const cls = 'actor_hero' + (mounted ? '_mounted' : '') + (player.royalArmor ? '_royal' : '');
     const height = mounted ? 60 : 48;
@@ -297,15 +298,7 @@ class BenkosSpriteManager {
     const gait = this.motion?.sample(player, animationTime, mounted ? (running ? 112 : 76) : undefined);
     const torchClass = mounted ? 'actor_hero_mounted_torch' : 'actor_hero_torch';
     if (torch && this.has(torchClass)) {
-      const moving = gait?.moving ?? Math.abs(player.vx) > 8;
-      const attack = player.attackTimer > 0;
-      const animation = attack ? 'sword' : moving ? 'walk' : 'idle';
-      const phase = attack ? this.attackProgress(player, 3, 1, .15) : moving ? gait?.phase : 0;
-      const winded = !mounted && (player.hurtKneelTimer > 0 || player.resting);
-      const lean = this.reduceMotion ? 0 : player.hurtTimer > 0 ? -.13 : running ? .045 : 0;
-      const stretch = winded ? .87 : !this.reduceMotion && !moving && !attack ? 1 + Math.sin(animationTime * 3) * .009 : 1;
-      return this.draw(ctx, torchClass, [animation], x, y, attack ? player.attackFacing || facing : facing,
-        height, animationTime, running ? 11 : 8, phase, { tilt: lean, stretch, royal: player.royalArmor });
+      return this.drawTorchAction(ctx, torchClass, x, y, facing, height, player, animationTime, gait, running);
     }
     if (player.hurtKneelTimer > 0 || player.resting) {
       return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player, mounted ? 'idle' : 'rest', torchPose);
@@ -329,6 +322,46 @@ class BenkosSpriteManager {
       return this.draw(ctx, cls, [running ? 'run' : 'walk'], x, y - lift, facing, height, animationTime, 9, gait?.phase, torchPose);
     }
     return this.drawIdle(ctx, cls, x, y, facing, height, animationTime, player, 'idle', torchPose);
+  }
+
+  drawTorchAction(ctx, cls, x, y, facing, height, player, time, gait, running) {
+    const frames = this.atlas[cls].anims;
+    const moving = gait?.moving ?? Math.abs(player.vx) > 8;
+    let action = moving ? (running ? 'run' : 'walk') : 'idle';
+    if (player.payTimer > 0) action = 'pay';
+    if (player.attackTimer > 0) action = 'sword';
+    if (player.hurtTimer > 0) action = 'hurt';
+    if (player.hurtKneelTimer > 0 || player.resting) action = 'rest';
+
+    const previous = this.heroTorchAction;
+    const sameActor = previous?.player === player && previous.cls === cls && time >= previous.since;
+    if (sameActor && (action === 'walk' || action === 'idle') && frames.rise) {
+      if (previous.action === 'rest' || previous.action === 'rise' && time - previous.since < .18) action = 'rise';
+    }
+    const since = sameActor && previous.action === action ? previous.since : time;
+    this.heroTorchAction = { player, cls, action, since };
+
+    let phase = null;
+    let fps = 2;
+    if (action === 'walk' || action === 'run') {
+      phase = gait?.phase;
+      fps = running ? 12 : 8;
+    } else if (action === 'sword') {
+      const length = frames.sword.length;
+      const contact = Math.min(length - 1, this.atlas[cls].contactFrame ?? 1);
+      phase = this.attackProgress(player, length, contact, .15);
+      facing = player.attackFacing || facing;
+    } else if (action === 'hurt') phase = 1 - player.hurtTimer / .4;
+    else if (action === 'pay') phase = 1 - player.payTimer / .35;
+    else if (action === 'rest') phase = this.reduceMotion ? 1 : Math.min(1, (time - since) / .38);
+    else if (action === 'rise') phase = Math.min(1, (time - since) / .18);
+    else if (this.reduceMotion) phase = 0;
+
+    const pose = { tilt: 0, stretch: 1, royal: player.royalArmor };
+    if (action === 'walk' || action === 'run') {
+      if (this.draw(ctx, cls + '_travel', [action], x, y, facing, height, time, fps, phase, pose)) return true;
+    }
+    return this.draw(ctx, cls, [action, 'idle'], x, y, facing, height, time, fps, phase, pose);
   }
 
   drawDrowning(ctx, cls, x, y, facing, height, time) {

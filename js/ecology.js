@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=89d5690bb102';
-import { strikeEnemy } from './combat.js?v=89d5690bb102';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=894cb6888361';
+import { strikeEnemy } from './combat.js?v=894cb6888361';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -70,7 +70,11 @@ export function ecologyHint(state){
   if(state.benkos.interaction)return 'Pescando… Muévete o ataca para cancelar.';
   const item=nearestEcology(state);if(!item)return '';
   if(item.kind==='fruit')return 'E · Recoger frutos del bosque';
-  if(item.kind==='creek')return item.target.bridge ? 'Puente · E para sacar agua · Mayús + E para pescar' : 'E · Beber del riachuelo · Mayús + E · Pescar';
+  if (item.kind === 'creek') {
+    if (item.target.bridge) return 'Puente · E para sacar agua · Mayús + E para pescar';
+    return item.target.x > 0 ? 'Remanso · E para beber · Mayús + E para pescar' :
+      'Riachuelo · E para beber · Mayús + E para pescar';
+  }
   const a=item.target,name=SPECIES[a.species].name;
   if (a.species === 'SNAKE') return 'Culebra · Deja espacio al cruzar';
   return a.trapped?`E · Liberar ${name.toLowerCase()} de la trampa`:a.species==='MACAW'&&a.trust?`E · Escuchar a la guacamaya`:`E · Alimentar ${name.toLowerCase()} · ${a.species==='JAGUAR'?2:1} alimento`;
