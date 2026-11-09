@@ -19,6 +19,19 @@ def import_camp_detail(output):
             'crossing_boards': (60, 731, 650, 171, 171),
             'crossing_splash': (828, 637, 644, 292, 292),
         },
+        'estates_v14': {
+            'estate_local': (20, 101, 810, 350, 350),
+            'estate_major': (874, 0, 900, 452, 452),
+            'estate_ruin': (0, 525, 854, 362, 362),
+            'bridge_abutment': (1048, 489, 532, 395, 395),
+        },
+        'river_detail_v14': {
+            'bridge_fixed_span': (12, 132, 719, 307, 307),
+            'bridge_rope_span': (823, 140, 655, 285, 285),
+            'hand_torch_shaft': (320, 663, 101, 311, 311),
+            'hand_torch_flame': (320, 545, 97, 125, 125),
+            'mine_cliff': (792, 529, 735, 446, 446),
+        },
     }
     sprites = {}
     for sheet, items in entries.items():

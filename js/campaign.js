@@ -1,4 +1,4 @@
-import { storyChapter } from './story.js?v=78e42e07133a';
+import { storyChapter } from './story.js?v=0e479f5c479a';
 export const ROAD_GATES = Object.freeze([{side:-1,x:-2485,label:'Camino de Cartagena'},{side:1,x:2485,label:'Camino de la hacienda oriental'}]);
 export function ensureCampaign(state){
   state.messengers??=[];

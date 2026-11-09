@@ -1,20 +1,20 @@
-import { stepCrossings } from './crossings.js?v=78e42e07133a';
-import { NIGHT_START } from './daylight.js?v=78e42e07133a';
-import { recoverCoins } from './coins.js?v=78e42e07133a';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=78e42e07133a';
-import { collectEquipment } from './equipment.js?v=78e42e07133a';
-import { advanceCrops, tendCrop } from './crops.js?v=78e42e07133a';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=78e42e07133a';
-import { updateCommunity, joinEncounter } from './community.js?v=78e42e07133a';
-import { updateEcology, isHuntable } from './ecology.js?v=78e42e07133a';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=78e42e07133a';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=78e42e07133a';
-import { advanceParticle, emitEffect } from './effects.js?v=78e42e07133a';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=78e42e07133a';
-import { ensureCampaign, finaleWon } from './campaign.js?v=78e42e07133a';
-import { expeditionFormation } from './story.js?v=78e42e07133a';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=78e42e07133a';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=78e42e07133a';
+import { stepCrossings } from './crossings.js?v=0e479f5c479a';
+import { NIGHT_START } from './daylight.js?v=0e479f5c479a';
+import { recoverCoins } from './coins.js?v=0e479f5c479a';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=0e479f5c479a';
+import { collectEquipment } from './equipment.js?v=0e479f5c479a';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=0e479f5c479a';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=0e479f5c479a';
+import { updateCommunity, joinEncounter } from './community.js?v=0e479f5c479a';
+import { updateEcology, isHuntable } from './ecology.js?v=0e479f5c479a';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=0e479f5c479a';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=0e479f5c479a';
+import { advanceParticle, emitEffect } from './effects.js?v=0e479f5c479a';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=0e479f5c479a';
+import { ensureCampaign, finaleWon } from './campaign.js?v=0e479f5c479a';
+import { expeditionFormation } from './story.js?v=0e479f5c479a';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=0e479f5c479a';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=0e479f5c479a';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -385,7 +385,7 @@ return function updateSimulation(dt) {
           addFloatingText(48, WATER_LINE_Y - 40, `+${yieldCoins} reales  Cosecha Entregada`, '#fde047');
         }
       } else {
-        const workable = state.farms.filter(farm => farm.stage === 'PLANT' || farm.stage === 'RIPE');
+        const workable = state.farms.filter(canTendCrop);
         const activeFarm = chooseWorksite(u, workable, state.units, 'AGRICULTOR', BALANCE.farmCapacity);
         if (!activeFarm) { u.vx = 0; continue; }
         const targetX = activeFarm.x + ((u.id % 3) - 1) * 14;

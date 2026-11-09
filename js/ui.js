@@ -1,17 +1,18 @@
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=78e42e07133a';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=78e42e07133a';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=78e42e07133a';
-import { describeTraits } from './daily-life.js?v=78e42e07133a';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=78e42e07133a';
-import { canMediate, relationshipsFor } from './community.js?v=78e42e07133a';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=78e42e07133a';
-import { ecologyHint } from './ecology.js?v=78e42e07133a';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=78e42e07133a';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=78e42e07133a';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=78e42e07133a';
-import { arrivalHint } from './campaign.js?v=78e42e07133a';
-import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=78e42e07133a';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=78e42e07133a';
+import { needsCropCare } from './crops.js?v=0e479f5c479a';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=0e479f5c479a';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=0e479f5c479a';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=0e479f5c479a';
+import { describeTraits } from './daily-life.js?v=0e479f5c479a';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=0e479f5c479a';
+import { canMediate, relationshipsFor } from './community.js?v=0e479f5c479a';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=0e479f5c479a';
+import { ecologyHint } from './ecology.js?v=0e479f5c479a';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=0e479f5c479a';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=0e479f5c479a';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=0e479f5c479a';
+import { arrivalHint } from './campaign.js?v=0e479f5c479a';
+import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=0e479f5c479a';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=0e479f5c479a';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -264,7 +265,7 @@ export function createUI({ state, session, settings, actions }) {
     }
     const neighbor = state.units.find(unit => Math.abs(unit.x - state.benkos.x) < 66 && ['BATHE','PLAY','LEAVE','MOURN'].includes(unit.activity));
     const farm = state.farms.find(field => field.level > 0 && Math.abs(field.x - state.benkos.x) < 45);
-    const crop = farm?.stage ? { PLANT: 'E para sembrar', GROW: `Creciendo · ${Math.floor(farm.cropProgress * 100)}%`, RIPE: 'E para cosechar', FALLOW: 'En descanso hasta mañana' }[farm.stage] : '';
+    const crop = farm?.stage ? { PLANT: 'Espera siembra', GROW: needsCropCare(farm) ? 'Espera cuidados' : `Creciendo · ${Math.floor(farm.cropProgress * 100)}%`, RIPE: 'Espera cosecha', FALLOW: 'En descanso hasta mañana' }[farm.stage] : '';
     const messenger = state.messengers.find(m => m.state === 'WAIT' && !m.delivered && Math.abs(m.x-state.benkos.x)<65);
     const hacienda = state.haciendas.find(h => haciendaActive(h) && Math.abs(h.x - state.benkos.x) < 88);
     const context = Math.abs(state.benkos.x) < 23 && chapter > 1 ? 'E · Convocar al consejo · B · Obras' :

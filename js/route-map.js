@@ -1,8 +1,8 @@
-import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=78e42e07133a';
-import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=78e42e07133a';
-import { haciendaActive } from './haciendas.js?v=78e42e07133a';
-import { ESTATES, storyChapter } from './story.js?v=78e42e07133a';
-import { CROSSINGS } from './crossings.js?v=78e42e07133a';
+import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=0e479f5c479a';
+import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=0e479f5c479a';
+import { haciendaActive } from './haciendas.js?v=0e479f5c479a';
+import { ESTATES, storyChapter } from './story.js?v=0e479f5c479a';
+import { CROSSINGS } from './crossings.js?v=0e479f5c479a';
 
 export const mapX = x => 7 + 86 * Math.max(0, Math.min(1, (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X)));
 

@@ -1,26 +1,27 @@
-import { crossingFeet } from './crossings.js?v=78e42e07133a';
-import { torchIsLit } from './exploration.js?v=78e42e07133a';
-import { drawCrossings, drawCropPlot } from './terrain.js?v=78e42e07133a';
-import { blend, color, daylightAt } from './daylight.js?v=78e42e07133a';
-import { drawSky } from './sky.js?v=78e42e07133a';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=78e42e07133a';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=78e42e07133a';
-import { createLighting } from './lighting.js?v=78e42e07133a';
-import { RenderInterpolation } from './visual-motion.js?v=78e42e07133a';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=78e42e07133a';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=78e42e07133a';
-import { drawParticle } from './effects.js?v=78e42e07133a';
-import { haciendaActive } from './haciendas.js?v=78e42e07133a';
-import { ROAD_GATES } from './campaign.js?v=78e42e07133a';
-import { WATER_LINE_Y } from './config.js?v=78e42e07133a';
+import { crossingFeet } from './crossings.js?v=0e479f5c479a';
+import { torchIsLit } from './exploration.js?v=0e479f5c479a';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=0e479f5c479a';
+import { blend, color, daylightAt } from './daylight.js?v=0e479f5c479a';
+import { drawSky } from './sky.js?v=0e479f5c479a';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=0e479f5c479a';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=0e479f5c479a';
+import { createLighting } from './lighting.js?v=0e479f5c479a';
+import { RenderInterpolation } from './visual-motion.js?v=0e479f5c479a';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=0e479f5c479a';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=0e479f5c479a';
+import { drawParticle } from './effects.js?v=0e479f5c479a';
+import { haciendaActive } from './haciendas.js?v=0e479f5c479a';
+import { ROAD_GATES } from './campaign.js?v=0e479f5c479a';
+import { WATER_LINE_Y } from './config.js?v=0e479f5c479a';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
 const position=(e,key='x')=>interpolation.value(e,key,renderAlpha);
-function drawKingdomClusterTree(g, sx, groundY, height, markedForChop, chopped, time=0, variant=0) {
+function drawKingdomClusterTree(g, sx, groundY, height, markedForChop, chopped, time=0, variant=0, worldX=0) {
   const treeClass=chopped?'forest_stump':['forest_ceiba','forest_hardwood','forest_mangrove','forest_palm'][Math.abs(variant)%4];
   if(window.SpriteManager?.has(treeClass)){
-    window.SpriteManager.draw(g,treeClass,['idle'],sx,groundY,1,chopped?20:height+35,0);
+    if (!chopped && window.SpriteManager.drawTree) window.SpriteManager.drawTree(g, treeClass, sx, groundY, 1, height + 35, time, worldX);
+    else window.SpriteManager.draw(g,treeClass,['idle'],sx,groundY,1,chopped?20:height+35,0);
     if(markedForChop){g.fillStyle='#c87952';g.fillRect(sx-7,groundY-26,14,3);g.fillStyle='#ebd3a4';g.fillRect(sx-2,groundY-28,4,7);}
     return;
   }
@@ -88,13 +89,14 @@ function renderWorldAboveWater(g, time, air) {
   const toScreenX = (wx) => Math.round(wx - camX + w / 2);
   const wind = settings.reduce_motion ? 0 : time;
   drawSky(g, w, h, GROUND_SURFACE_Y, camX, wind, air);
-  drawLandscape(g, w, GROUND_SURFACE_Y, camX, air);
+  drawLandscape(g, w, GROUND_SURFACE_Y, camX, air, time);
+  drawTerrainFeatures(g, toScreenX, w, GROUND_SURFACE_Y, camX, state, wind);
   drawMist(g, w, GROUND_SURFACE_Y, camX, air, wind);
 
   drawCampEnclosure(g, w, GROUND_SURFACE_Y, camX, state.walls);
   drawRiverbank(g, w, GROUND_SURFACE_Y, camX);
-  drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X);
-  drawEstateScenery(g, toScreenX, GROUND_SURFACE_Y, w);
+  drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X, time);
+  drawEstateScenery(g, toScreenX, GROUND_SURFACE_Y, w, time);
   drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion,w);
   drawCrossings(g, toScreenX, w, GROUND_SURFACE_Y, state, wind);
   drawVines(g, toScreenX, GROUND_SURFACE_Y, w, settings.reduce_motion ? 0 : time);
@@ -103,23 +105,13 @@ function renderWorldAboveWater(g, time, air) {
   state.trees.forEach((tr) => {
     const sx = toScreenX(tr.x);
     if (sx < -70 || sx > w + 70) return;
-    drawKingdomClusterTree(g, sx, GROUND_SURFACE_Y, tr.height, tr.markedForChop, tr.chopped, time,Number(String(tr.id).split('_').pop())||0);
-  });
-
-  state.mines.forEach((mn) => {
-    const sx = toScreenX(mn.x);
-    if (sx < -50 || sx > w + 50) return;
-    window.SpriteManager?.draw?.(g,'landmark_mine',['idle'],sx,GROUND_SURFACE_Y,1,50,0);
+    drawKingdomClusterTree(g, sx, GROUND_SURFACE_Y, tr.height, tr.markedForChop, tr.chopped, time,Number(String(tr.id).split('_').pop())||0,tr.x);
   });
 
   state.haciendas.forEach((hac) => {
     const sx = toScreenX(hac.x);
     if (sx < -150 || sx > w + 150) return;
-    if (hac.major) {
-      g.save(); g.translate(sx, GROUND_SURFACE_Y); g.scale(1.47, 1.27);
-      drawHacienda(g, 0, 0, !haciendaActive(hac));
-      g.restore();
-    } else drawHacienda(g, sx, GROUND_SURFACE_Y, !haciendaActive(hac));
+    drawHacienda(g, sx, GROUND_SURFACE_Y, !haciendaActive(hac), hac.major);
   });
 
   for (const farm of state.farms) {
@@ -298,7 +290,7 @@ function renderWorldAboveWater(g, time, air) {
     drawParticle(g, particle, x, Math.round(position(particle, 'y') + GROUND_SURFACE_Y - WATER_LINE_Y));
   }
 
-  drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X, true);
+  drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X, time, true);
   lightScene(g, state, toScreenX, window.SpriteManager?.heroTorch, GROUND_SURFACE_Y, w, time, settings.reduce_motion, air);
   drawAmbientMotes(g, w, GROUND_SURFACE_Y, camX, air, wind);
 }

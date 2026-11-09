@@ -62,7 +62,7 @@ export function deckOffset(state, site, x) {
   const bridge = state.crossings[site.id];
   if (!bridge.cut) return Math.round(bridge.sag * spanShape(site, x));
   const u = Math.abs(x - site.x) / site.half;
-  return u > .72 ? Math.round((1 - u) * (36 + bridge.sag)) : 0;
+  return u >= .72 - 1e-8 ? Math.round((1 - u) * (36 + bridge.sag)) : 0;
 }
 
 export function crossingFeet(state, actor, x = actor.x) {

@@ -6,7 +6,7 @@ import { ensurePerson, personMaxHp, proficiency } from '../js/people.js';
 import { orderEquipment, collectEquipment, armyRequirement } from '../js/equipment.js';
 import { updateCommunity } from '../js/community.js';
 import { recordLoss, updateGrief, takeLeisure } from '../js/daily-life.js';
-import { ensureCrop, advanceCrops, tendCrop } from '../js/crops.js';
+import { ensureCrop, advanceCrops, GROW_SECONDS, needsCropCare, tendCrop } from '../js/crops.js';
 
 const person = (id, role, x) => ensurePerson({ id, role, tier: 1, x, hp: 80, maxHp: 80 });
 
@@ -68,12 +68,26 @@ test('planting needs labor, growth needs daylight and a ripe crop can only be ha
   const farm = state.farms[0];
   farm.cropProgress = 0;
   ensureCrop(farm);
+  advanceCrops(state, GROW_SECONDS);
+  assert.equal(farm.stage, 'PLANT');
   assert.equal(tendCrop(farm, state, 3, 1), null);
   assert.equal(farm.stage, 'GROW');
-  advanceCrops(state, 21);
-  assert.equal(farm.cropProgress, .5);
-  assert.equal(tendCrop(farm, state, 3.5, 1), null);
-  advanceCrops(state, 21);
+  state.phase = 'NIGHT_DEFENSE';
+  advanceCrops(state, 90);
+  assert.equal(farm.cropProgress, 0);
+  state.phase = 'DAY_EXPLORE';
+  for (const checkpoint of [.30, .65]) {
+    advanceCrops(state, GROW_SECONDS);
+    assert.equal(farm.cropProgress, checkpoint);
+    assert.equal(needsCropCare(farm), true);
+    advanceCrops(state, GROW_SECONDS);
+    assert.equal(farm.cropProgress, checkpoint);
+    assert.equal(tendCrop(farm, state, 2.4, 1), null);
+    assert.equal(needsCropCare(farm), false);
+  }
+  advanceCrops(state, GROW_SECONDS * .18);
+  assert.equal(farm.stage, 'GROW');
+  advanceCrops(state, GROW_SECONDS * .18);
   assert.deepEqual(tendCrop(farm, state, 3.5, 1), { food: 5, coins: 2 });
   assert.equal(tendCrop(farm, state, 10, 1), null);
   state.day++;

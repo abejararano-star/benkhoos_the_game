@@ -83,7 +83,23 @@ class BenkosSpriteManager {
       ctx.rotate(pose.tilt);
       ctx.scale(1, pose.stretch);
     }
-    ctx.drawImage(this.sheets[sp.sheet], f.x, f.y, f.w, f.h, Math.round(-f.ax * s), Math.round(-f.ay * s), Math.round(dw), Math.round(dh));
+    if (pose?.torch) this.drawHeldTorch(ctx, x, y, facing, names[0], idx, pose);
+    const dx = Math.round(-f.ax * s);
+    const dy = Math.round(-f.ay * s);
+    if (pose?.bend) {
+      const bands = 8;
+      for (let band = 0; band < bands; band++) {
+        const from = Math.round(f.h * band / bands);
+        const to = Math.round(f.h * (band + 1) / bands);
+        const top = Math.round(dh * band / bands);
+        const bottom = Math.round(dh * (band + 1) / bands);
+        const shift = Math.round(pose.bend * (1 - (band + .5) / bands) ** 2);
+        ctx.drawImage(this.sheets[sp.sheet], f.x, f.y + from, f.w, to - from,
+          dx + shift, dy + top, Math.round(dw), bottom - top);
+      }
+    } else {
+      ctx.drawImage(this.sheets[sp.sheet], f.x, f.y, f.w, f.h, dx, dy, Math.round(dw), Math.round(dh));
+    }
     if (f.rod) {
       const tipX = Math.round((f.rod[0] - f.ax) * s);
       const tipY = Math.round((f.rod[1] - f.ay) * s);
@@ -96,22 +112,6 @@ class BenkosSpriteManager {
       ctx.stroke();
       ctx.fillStyle = '#d29c70';
       ctx.fillRect(tipX + 2, bob, 3, 2);
-    }
-    if (pose?.torch) {
-      const name = names[0];
-      const grips = TORCH_GRIPS[pose.mounted ? name === 'sword' ? 'mountedSword' :
-        name === 'run' ? 'mountedRun' : 'mounted' : name] ?? TORCH_GRIPS.idle;
-      const [gx, gy] = grips[idx % grips.length];
-      const flicker = this.reduceMotion ? 0 : Math.round(Math.sin(pose.clock * 11));
-      const flameY = gy - 14;
-      ctx.fillStyle = '#362315'; ctx.fillRect(gx - 1, flameY, 3, 20);
-      ctx.fillStyle = '#b9854b'; ctx.fillRect(gx, flameY + 4, 1, 15);
-      ctx.fillStyle = '#a97448'; ctx.fillRect(gx - 2, gy - 2, 5, 4);
-      ctx.fillStyle = '#c39360'; ctx.fillRect(gx - 1, gy - 2, 3, 1);
-      ctx.fillStyle = '#e16d32'; ctx.fillRect(gx - 2, flameY - 3, 5, 6);
-      ctx.fillStyle = '#ffc56a'; ctx.fillRect(gx - 1, flameY - 5 - flicker, 3, 7);
-      ctx.fillStyle = '#ffe9a6'; ctx.fillRect(gx, flameY - 2, 2, 3);
-      this.heroTorch = { x: Math.round(x) + gx * (facing < 0 ? -1 : 1), y: Math.round(y) + Math.round(flameY * pose.stretch) };
     }
     ctx.restore();
     return true;
@@ -256,13 +256,43 @@ class BenkosSpriteManager {
     return drawn;
   }
 
+  drawHeldTorch(ctx, x, y, facing, animation, index, pose) {
+    const grip = pose.mounted
+      ? { sword: 'mountedSword', run: 'mountedRun' }[animation] ?? 'mounted'
+      : animation;
+    const grips = TORCH_GRIPS[grip] ?? TORCH_GRIPS.idle;
+    const [gx, gy] = grips[index % grips.length];
+    const speed = Math.min(1, Math.abs(pose.speed) / 160);
+    const sway = this.reduceMotion ? 0 : Math.sin(pose.clock * 9) * .08;
+    const angle = -.39 - speed * .19 + sway;
+    const flameHeight = this.reduceMotion ? 8 : 8 + Math.round(Math.sin(pose.clock * 14));
+    ctx.save();
+    ctx.translate(gx, gy);
+    ctx.rotate(angle);
+    if (!this.draw(ctx, 'hand_torch_shaft', ['idle'], 0, 4, 1, 19, 0)) {
+      ctx.fillStyle = '#704321';
+      ctx.fillRect(-1, -15, 3, 19);
+    }
+    if (!this.draw(ctx, 'hand_torch_flame', ['idle'], 0, -14, 1, flameHeight, 0)) {
+      ctx.fillStyle = '#f2aa51';
+      ctx.fillRect(-2, -19, 4, 5);
+    }
+    ctx.restore();
+    const flameX = gx + Math.sin(angle) * 17;
+    const flameY = gy - Math.cos(angle) * 17;
+    this.heroTorch = {
+      x: Math.round(x) + flameX * (facing < 0 ? -1 : 1),
+      y: Math.round(y) + flameY * pose.stretch
+    };
+  }
+
   drawBenkos(ctx, x, y, facing, player, time, torch = false) {
     this.heroTorch = null;
     const mounted = player.mounted;
     const cls = 'actor_hero' + (mounted ? '_mounted' : '') + (player.royalArmor ? '_royal' : '');
     const height = mounted ? 60 : 48;
     const animationTime = player.animTime ?? time;
-    const torchPose = torch ? { torch, mounted, clock: animationTime, tilt: 0, stretch: 1 } : null;
+    const torchPose = torch ? { torch, mounted, clock: animationTime, speed: player.vx, tilt: 0, stretch: 1 } : null;
     if (player.waterFall) return this.drawDrowning(ctx, cls, x, y, facing, height, player.waterFall.time);
     const running = Math.abs(player.vx) > (mounted ? 150 : 120) || player.dashTimer > 0;
     const gait = this.motion?.sample(player, animationTime, mounted ? (running ? 112 : 76) : undefined);
@@ -301,6 +331,13 @@ class BenkosSpriteManager {
   drawHorse(ctx, x, y, horse, time) {
     if (horse.waterFall) return this.drawDrowning(ctx, 'actor_horse', x, y, horse.facing, 48, horse.waterFall.time);
     return this.drawIdle(ctx, 'actor_horse', x, y, horse.facing, 48, time, horse);
+  }
+
+  drawTree(ctx, cls, x, y, facing, height, clock, worldX) {
+    const gust = Math.sin(clock * .69 - worldX * .005) + .41 * Math.sin(clock * 1.83 - worldX * .011);
+    const bend = this.reduceMotion ? 0 : gust * height * (cls === 'forest_palm' ? .041 : .028) * facing;
+    const pose = bend ? { tilt: 0, stretch: 1, bend } : null;
+    return this.draw(ctx, cls, ['idle'], x, y, facing, height, 0, 0, null, pose);
   }
 
   drawAlly(ctx, x, y, facing, unit, time) {

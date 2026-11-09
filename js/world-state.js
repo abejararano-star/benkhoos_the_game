@@ -1,10 +1,10 @@
-import { ensureCrossings } from './crossings.js?v=78e42e07133a';
-import { initialCommunity } from './community.js?v=78e42e07133a';
-import { initialStory, majorHaciendas } from './story.js?v=78e42e07133a';
-import { initialEcology } from './ecology.js?v=78e42e07133a';
-import { initialExploration } from './exploration.js?v=78e42e07133a';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=78e42e07133a';
-import { initialSettlement } from './settlement.js?v=78e42e07133a';
+import { ensureCrossings } from './crossings.js?v=0e479f5c479a';
+import { initialCommunity } from './community.js?v=0e479f5c479a';
+import { initialStory, majorHaciendas } from './story.js?v=0e479f5c479a';
+import { initialEcology } from './ecology.js?v=0e479f5c479a';
+import { initialExploration } from './exploration.js?v=0e479f5c479a';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=0e479f5c479a';
+import { initialSettlement } from './settlement.js?v=0e479f5c479a';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -105,8 +105,8 @@ const state = {
   ],
 
   farms: [
-    { id: 'farm_L', x: -1150, level: 1, cropProgress: 0.5, filledSlots: 0, cost: 3 },
-    { id: 'farm_R', x: 1150,  level: 1, cropProgress: 0.2, filledSlots: 0, cost: 3 },
+    { id: 'farm_L', x: -1150, level: 1, cropProgress: 0, filledSlots: 0, cost: 3 },
+    { id: 'farm_R', x: 1150,  level: 1, cropProgress: 0, filledSlots: 0, cost: 3 },
     { id: 'farm_outer_L', x: -1250, level: 0, cropProgress: 0, filledSlots: 0, cost: 4 }
   ],
 

@@ -1,13 +1,21 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=78e42e07133a';
-import { landscapeSeed } from './sky.js?v=78e42e07133a';
-import { CAMP_EDGE } from './config.js?v=78e42e07133a';
-import { TOWER_HEIGHT } from './settlement.js?v=78e42e07133a';
-import { CROSSINGS, deckOffset } from './crossings.js?v=78e42e07133a';
+import { blend, color, mix, smooth } from './daylight.js?v=0e479f5c479a';
+import { landscapeSeed } from './sky.js?v=0e479f5c479a';
+import { CAMP_EDGE } from './config.js?v=0e479f5c479a';
+import { TOWER_HEIGHT } from './settlement.js?v=0e479f5c479a';
+import { CROSSINGS, deckOffset } from './crossings.js?v=0e479f5c479a';
 
 let regionCanvas;
 
-export function drawLandscape(g, width, ground, camera, air) {
+function drawLandscapeProp(g, sprite, x, y, facing, height, time, worldX) {
+  const sm = window.SpriteManager;
+  if (sprite.startsWith('forest_') && sm?.drawTree) {
+    return sm.drawTree(g, sprite, x, y, facing, height, time, worldX);
+  }
+  return sm?.draw?.(g, sprite, ['idle'], x, y, facing, height, 0);
+}
+
+export function drawLandscape(g, width, ground, camera, air, time) {
   const manager = window.SpriteManager;
   for (let layer = 0; layer < 2; layer++) {
     const left = camera * (.09 + layer * .10) - width / 2;
@@ -67,7 +75,9 @@ export function drawLandscape(g, width, ground, camera, air) {
       const base = ground - (layer === 0 ? 18 : 4);
       const height = (layer === 0 ? 53 : centerClearing ? 61 : 96) + landscapeSeed(id + 61) * 44;
       const tree = trees[Math.floor(landscapeSeed(id + 26) * trees.length)];
-      manager.draw(g, tree, ['idle'], x, base, cell % 2 === 0 ? 1 : -1, height, 0);
+      const facing = cell % 2 === 0 ? 1 : -1;
+      if (layer === 1 && manager.drawTree) manager.drawTree(g, tree, x, base, facing, height, time, cell * span);
+      else manager.draw(g, tree, ['idle'], x, base, facing, height, 0);
     }
     g.restore();
   }
@@ -118,7 +128,7 @@ export function drawVines(g, project, ground, width, time) {
   for (const [anchor, length, side] of [[-2320, 85, 1], [-1990, 112, -1], [-1270, 94, -1], [1755, 96, 1], [2088, 107, -1], [2440, 85, 1]]) {
     const x = project(anchor);
     if (x < -65 || x > width + 65) continue;
-    window.SpriteManager?.draw?.(g, 'forest_ceiba', ['idle'], x - side * 19, ground - 4, side, 143, 0);
+    drawLandscapeProp(g, 'forest_ceiba', x - side * 19, ground - 4, side, 143, time, anchor);
     for (let strand = 0; strand < 3; strand++) {
       const top = ground - 124 + strand * 6;
       const end = length - 24 - strand * 10;
@@ -166,11 +176,11 @@ const OUTER_SCENERY = [
   [4060, 'trail_reeds', 43], [4180, 'forest_palm', 123]
 ];
 
-export function drawEstateScenery(g, project, ground, width) {
+export function drawEstateScenery(g, project, ground, width, time) {
   for (const [worldX, art, height] of OUTER_SCENERY) {
     const x = project(worldX);
     if (x < -170 || x > width + 170) continue;
-    window.SpriteManager?.draw?.(g, art, ['idle'], x, ground, worldX < 0 ? -1 : 1, height, 0);
+    drawLandscapeProp(g, art, x, ground, worldX < 0 ? -1 : 1, height, time, worldX);
   }
   for (const [worldX, label] of [[-2740, 'PASO DE JEGUA'], [2720, 'BOCA DE MAREA']]) {
     const x = project(worldX);
@@ -197,14 +207,13 @@ export function drawRiverbank(g, width, ground, camera) {
   }
 }
 
-export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, foreground = false) {
-  const manager = window.SpriteManager;
+export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, time, foreground = false) {
   const details = foreground ? [
     [-2240, 'trail_reeds', 14], [-2090, 'trail_reeds', 14], [-1970, 'trail_fern', 15],
     [-1245, 'trail_reeds', 12], [1770, 'trail_fern', 12], [2058, 'trail_reeds', 16], [2385, 'trail_fern', 16]
   ] : [
     ...signs.map(x => [x, 'trail_sign', 33, -1]),
-    [altarX + 162, 'trail_arch', 102], [altarX - 97, 'trail_terrace', 47], [altarX + 78, 'trail_stones', 33],
+    [altarX + 112, 'trail_arch', 102], [altarX - 97, 'trail_terrace', 47], [altarX + 78, 'trail_stones', 33],
     [-5590, 'trail_terrace', 53], [-5395, 'forest_hardwood', 120], [5400, 'forest_mangrove', 125], [5600, 'trail_reeds', 50],
     [-4810, 'trail_terrace', 49], [-4680, 'trail_stones', 49], [4650, 'forest_mangrove', 105], [4820, 'trail_reeds', 58],
     [-2360, 'trail_stones', 42], [-2200, 'trail_fern', 50], [1705, 'trail_fern', 57],
@@ -212,7 +221,7 @@ export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, fore
   ];
   for (const [x, sprite, height, facing = 1] of details) {
     const sx = toScreen(x);
-    if (sx > -120 && sx < width + 120) manager?.draw?.(g, sprite, ['idle'], sx, ground + (foreground ? 12 : -1), facing, height, 0);
+    if (sx > -120 && sx < width + 120) drawLandscapeProp(g, sprite, sx, ground + (foreground ? 12 : -1), facing, height, time, x);
   }
 }
 
@@ -513,7 +522,9 @@ export function drawFortification(g,x,ground,wall,time){
   if(wall.hp/wall.maxHp<.6){g.strokeStyle='#3b332a';g.beginPath();g.moveTo(x-2,ground-h+8);g.lineTo(x+4,ground-h+20);g.lineTo(x-1,ground-h+30);g.stroke();}
 }
 
-export function drawHacienda(g, x, ground, destroyed) {
+export function drawHacienda(g, x, ground, destroyed, major = false) {
+  const sprite = destroyed ? 'estate_ruin' : major ? 'estate_major' : 'estate_local';
+  if (window.SpriteManager?.draw?.(g, sprite, ['idle'], x, ground, 1, destroyed ? (major ? 76 : 53) : major ? 127 : 91, 0)) return;
   if (destroyed) {
     g.fillStyle = '#382e29'; g.fillRect(x - 37, ground - 12, 74, 12);
     g.fillStyle = '#675343';
@@ -650,6 +661,60 @@ function drawCampBridge(g, x, ground, time) {
   g.fillStyle = '#70a9a0'; g.fillRect(x - 36, ground - 9, 5, 1);
 }
 
+export function drawTerrainFeatures(g, project, width, ground, camera, state, time) {
+  const sm = window.SpriteManager;
+  for (const creek of state.ecology.streams) {
+    const x = project(creek.x);
+    if (creek.bridge || x < -125 || x > width + 125) continue;
+    const drift = Math.round((camera - creek.x) * .14);
+    g.save();
+    g.globalAlpha = .89;
+    sm?.draw?.(g, 'habitat_cascade', ['idle'], x + drift, ground - 21, 1, 72, 0);
+    g.restore();
+    for (let row = 0; row < 24; row++) {
+      const stretch = 1 - row / 24;
+      const middle = x + Math.round(drift * stretch + Math.sin(row * .22) * 4);
+      const half = 8 + Math.round(row * .24);
+      const y = ground - 24 + row;
+      g.fillStyle = '#41664ecb';
+      g.fillRect(middle - half - 4, y, half * 2 + 8, 1);
+      g.fillStyle = '#4b8d81d9';
+      g.fillRect(middle - half, y, half * 2, 1);
+      if ((row + Math.floor(time * 10)) % 5 === 0) {
+        g.fillStyle = '#a2d3be';
+        g.fillRect(middle - half + 3, y, half, 1);
+      }
+    }
+  }
+  for (const mine of state.mines) {
+    const x = project(mine.x);
+    if (x < -155 || x > width + 155) continue;
+    const drift = Math.round((camera - mine.x) * .11);
+    g.save();
+    g.globalAlpha = .78;
+    sm?.draw?.(g, 'trail_stones', ['idle'], x + drift - 32, ground - 14, -1, 57, 0);
+    g.restore();
+    if (!sm?.draw?.(g, 'mine_cliff', ['idle'], x, ground, 1, 70, 0)) {
+      sm?.draw?.(g, 'landmark_mine', ['idle'], x, ground, 1, 50, 0);
+    }
+  }
+  for (const site of CROSSINGS) {
+    const x = project(site.x);
+    if (x < -180 || x > width + 180) continue;
+    const half = site.half;
+    const water = g.createLinearGradient(0, ground - 44, 0, ground);
+    water.addColorStop(0, '#5b9b8d00');
+    water.addColorStop(.65, '#518c7fa5');
+    water.addColorStop(1, '#387971');
+    g.fillStyle = water;
+    for (let row = 0; row < 44; row++) {
+      const reach = Math.round(half * (.53 + row / 93));
+      const center = x + Math.round(Math.sin(row / 13) * 8);
+      g.fillRect(center - reach, ground - 44 + row, reach * 2, 1);
+    }
+  }
+}
+
 export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,width=Infinity){
   const sm=window.SpriteManager;
   for(const creek of streams){
@@ -659,14 +724,12 @@ export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,wi
       drawCampBridge(g, x, ground, reduceMotion ? 0 : time);
       continue;
     }
-    sm?.draw?.(g,'habitat_cascade',['idle'],x,ground+5,1,84,0);
-    sm?.draw?.(g,'habitat_fishing',['idle'],x+37,ground+9,1,35,0);
-    sm?.draw?.(g,'habitat_log',['idle'],x-75,ground,1,31,0);
-    sm?.draw?.(g,'habitat_fruit',['idle'],x+110,ground,1,39,0);
-    g.fillStyle='#285f64';g.fillRect(x-8,ground+6,18,16);g.fillStyle='#3e9391';g.fillRect(x-6,ground+7,12,16);
-    for(let i=0;i<11;i++){
-      const flow=reduceMotion?i*2:(time*19+i*5)%23;
-      g.fillStyle=i%2?'#9acdc0':'#70b9ac';g.fillRect(Math.round(x-6+(i*7)%12),Math.round(ground+flow),2+i%3,1);
+    sm?.draw?.(g,'habitat_fishing',['idle'],x+28,ground+4,1,24,0);
+    sm?.draw?.(g,'habitat_fruit',['idle'],x+110,ground,1,31,0);
+    for (let i = 0; i < 10; i++) {
+      const drift = reduceMotion ? i * 2 : (time * 13 + i * 7) % 22;
+      g.fillStyle = i % 2 ? '#9acdc0b8' : '#70b9ac94';
+      g.fillRect(Math.round(x - 12 + drift), ground - 1 + i % 4, 2 + i % 3, 1);
     }
     for(let i=0;i<creek.fishStock;i++){
       const fx=x-13+Math.sin(time*.9+i*2)*10,fy=ground-4+i*3;
@@ -675,49 +738,67 @@ export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,wi
   }
 }
 
+function drawBridgeModule(g, name, left, right, fromY, toY, fixed) {
+  const sm = window.SpriteManager;
+  const width = right - left;
+  if (sm?.has(name)) {
+    const sprite = sm.atlas[name];
+    const f = sprite.anims.idle[0];
+    const top = fixed ? 11 : 18;
+    const height = fixed ? 44 : 22;
+    g.save();
+    g.imageSmoothingEnabled = false;
+    g.translate(left, fromY);
+    g.transform(1, (toY - fromY) / width, 0, 1, 0, 0);
+    g.drawImage(sm.sheets[sprite.sheet], f.x, f.y, f.w, f.h, 0, -top, width + 1, height);
+    g.restore();
+    return;
+  }
+  g.strokeStyle = '#8f6746';
+  g.lineWidth = 4;
+  g.beginPath();
+  g.moveTo(left, fromY);
+  g.lineTo(right, toY);
+  g.stroke();
+}
+
 export function drawCrossings(g, toScreen, width, ground, state, time) {
   for (const site of CROSSINGS) {
     const x = toScreen(site.x);
     const left = x - site.half;
     const right = x + site.half;
-    if (right < -40 || left > width + 40) continue;
-    const cut = state.crossings[site.id].cut;
+    if (right < -55 || left > width + 55) continue;
     const fixed = site.kind === 'fixed';
-    g.fillStyle = '#235153';
-    g.fillRect(left, ground - 1, right - left, 23);
-    g.fillStyle = '#397b77';
-    g.fillRect(left + 4, ground + 12, right - left - 8, 10);
-    for (let i = 0; i < 28; i++) {
-      const drift = (time * (12 + i % 4) + i * 41) % (right - left - 14);
-      g.fillStyle = i % 3 ? '#87b7a670' : '#b7d4b7a6';
-      g.fillRect(left + 3 + Math.floor(drift), ground + 13 + i % 9, 3 + i % 7, 1);
+    const cut = state.crossings[site.id].cut;
+    for (let row = 0; row < 22; row++) {
+      const edge = row > 4 ? Math.round(Math.sin(row / 5) * 3) : 0;
+      g.fillStyle = ['#3f8078', '#44837a', '#39756e', '#366d68'][Math.floor(row / 6)];
+      g.fillRect(left - edge, ground + row, right - left + edge * 2, 1);
     }
-    if (fixed) {
-      for (let dx = -site.half + 24; dx < site.half; dx += 42) {
-        woodFace(g, x + dx, ground - 5, 7, 27, '#745434', dx);
-      }
+    for (let i = 0; i < 49; i++) {
+      const drift = (time * (12 + i % 4) + i * 41) % (right - left - 16);
+      const tint = ['#9ec1a15b', '#5a9e8d', '#285c5d', '#b5d3a892'];
+      g.fillStyle = tint[i % tint.length];
+      g.fillRect(left + 4 + Math.floor(drift), ground + 2 + i % 19, 3 + i % 8, 1);
     }
     for (const side of [-1, 1]) {
       const post = x + side * site.half;
-      woodFace(g, post - 4, ground - 26, 9, 32, '#927047', post);
-      stoneFace(g, post - 10, ground - 2, 18, 10, '#797664', .77);
-      g.fillStyle = '#d4ae76';
-      g.fillRect(post - 5, ground - 19, 11, 2);
-      g.fillRect(post - 5, ground - 15, 11, 2);
-    }
-    for (let dx = -site.half + 3; dx < site.half - 2; dx += 7) {
-      if (cut && Math.abs(dx) <= site.half * .72) continue;
-      const deck = ground + deckOffset(state, site, site.x + dx);
-      const sx = x + dx;
-      const tile = window.SpriteManager?.draw?.(g, 'crossing_boards', ['idle'], sx + 3, deck + 5, 1, 5, 0);
-      if (!tile) {
-        g.fillStyle = '#473221'; g.fillRect(sx, deck - 1, 7, 6);
-        g.fillStyle = '#a87d4d'; g.fillRect(sx, deck - 1, 6, 2);
+      if (!window.SpriteManager?.draw?.(g, 'bridge_abutment', ['idle'], post, ground + 8, side, 43, 0)) {
+        woodFace(g, post - 4, ground - 26, 9, 32, '#927047', post);
+        stoneFace(g, post - 10, ground - 2, 18, 10, '#797664', .77);
       }
-      if (!fixed) {
-        g.fillStyle = '#bb965e';
-        g.fillRect(sx, deck - 14, 8, 2);
-        if (Math.abs(dx % 3) === 0) g.fillRect(sx, deck - 13, 1, 13);
+    }
+    const sections = fixed ? 3 : 12;
+    const breakAt = site.half * .72;
+    const ranges = cut ? [[-site.half, -breakAt], [breakAt, site.half]] : [[-site.half, site.half]];
+    for (const [from, to] of ranges) {
+      const pieces = cut ? 2 : sections;
+      for (let part = 0; part < pieces; part++) {
+        const a = mix(from, to, part / pieces);
+        const b = mix(from, to, (part + 1) / pieces);
+        const deckAt = offset => ground + deckOffset(state, site, site.x + offset);
+        drawBridgeModule(g, fixed ? 'bridge_fixed_span' : 'bridge_rope_span',
+          Math.round(x + a), Math.round(x + b), deckAt(a), deckAt(b), fixed);
       }
     }
   }

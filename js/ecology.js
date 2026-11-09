@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=78e42e07133a';
-import { strikeEnemy } from './combat.js?v=78e42e07133a';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=0e479f5c479a';
+import { strikeEnemy } from './combat.js?v=0e479f5c479a';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
