@@ -1,12 +1,13 @@
-import { restoreCommunity } from './community.js?v=645f44b03ee0';
-import { ensureEcology, seedEcology } from './ecology.js?v=645f44b03ee0';
-import { seedFrontier } from './exploration.js?v=645f44b03ee0';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=645f44b03ee0';
-import { ensurePerson } from './people.js?v=645f44b03ee0';
-import { ensureSettlement } from './settlement.js?v=645f44b03ee0';
-import { ensureCampaign } from './campaign.js?v=645f44b03ee0';
-import { restoreHaciendas } from './haciendas.js?v=645f44b03ee0';
-import { restoreStory } from './story.js?v=645f44b03ee0';
+import { NIGHT_START } from './daylight.js?v=c08e58e7c55c';
+import { restoreCommunity } from './community.js?v=c08e58e7c55c';
+import { ensureEcology, seedEcology } from './ecology.js?v=c08e58e7c55c';
+import { seedFrontier } from './exploration.js?v=c08e58e7c55c';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp, STATION_X } from './config.js?v=c08e58e7c55c';
+import { ensurePerson } from './people.js?v=c08e58e7c55c';
+import { ensureSettlement } from './settlement.js?v=c08e58e7c55c';
+import { ensureCampaign } from './campaign.js?v=c08e58e7c55c';
+import { restoreHaciendas } from './haciendas.js?v=c08e58e7c55c';
+import { restoreStory } from './story.js?v=c08e58e7c55c';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -66,7 +67,7 @@ export function restoreSave(save, defaults) {
       const saved = save.construcciones?.find(w => w.tipo_nodo === 'MURALLA' && Math.abs(w.posicion_x - wall.x) < 1);
       if (saved) { wall.level = Number(saved.nivel); wall.hp = Number(saved.salud_actual); wall.maxHp = Math.max(wall.hp, 150 + wall.level * 90); }
     }
-    next.phase = next.timeOfDay >= 0.68 ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
+    next.phase = next.timeOfDay >= NIGHT_START ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
     source = next;
   }
   for (const key of Object.keys(next)) {
@@ -109,7 +110,7 @@ export function restoreSave(save, defaults) {
   next.benkos.spirit = number(next.benkos.spirit, 0, 0, next.benkos.maxSpirit);
   next.benkos.royalArmor = next.benkos.royalArmor && next.armorUnlocked;
   if (!['playing', 'victory', 'defeat'].includes(next.status)) next.status = 'playing';
-  if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= 0.68 ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
+  if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= NIGHT_START ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);
   for (const unit of next.units) {
@@ -135,7 +136,7 @@ export function restoreSave(save, defaults) {
   restoreStory(next, !save.snapshot?.state?.story);
   restoreHaciendas(next);
   if (!Array.isArray(campaign.orders) || !Array.isArray(campaign.letters) || campaign.orders.some(o => !ENEMY_CATALOG[o.type] || !Number.isFinite(o.eta) || ![-1,1].includes(o.side))) throw new Error('La ruta de campaña está dañada.');
-  if (save.save_version < 3 && next.timeOfDay >= .68) campaign.lastRaidDay = next.day;
+  if (save.save_version < 3 && next.timeOfDay >= NIGHT_START) campaign.lastRaidDay = next.day;
   const checkNumbers = value => {
     if (typeof value === 'number' && !Number.isFinite(value)) throw new Error('La partida contiene números inválidos.');
     if (value && typeof value === 'object') Object.values(value).forEach(checkNumbers);

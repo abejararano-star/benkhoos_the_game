@@ -1,26 +1,27 @@
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=645f44b03ee0';
-import { GROUND_COIN_LIFE } from './coins.js?v=645f44b03ee0';
-import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=645f44b03ee0';
-import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=645f44b03ee0';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=645f44b03ee0';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=645f44b03ee0';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT } from './settlement.js?v=645f44b03ee0';
-import { emitEffect } from './effects.js?v=645f44b03ee0';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=645f44b03ee0';
-import { AfroColombianAudioEngine } from './audio.js?v=645f44b03ee0';
-import { createInitialState } from './world-state.js?v=645f44b03ee0';
-import { makeSave, restoreSave } from './save-system.js?v=645f44b03ee0';
-import { createRenderer } from './renderer.js?v=645f44b03ee0';
-import { createSimulation } from './simulation.js?v=645f44b03ee0';
-import { FixedStepper } from './clock.js?v=645f44b03ee0';
-import { bindInput } from './input.js?v=645f44b03ee0';
-import { createUI } from './ui.js?v=645f44b03ee0';
-import { chooseDefenseSide } from './ai.js?v=645f44b03ee0';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=645f44b03ee0';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=645f44b03ee0';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=645f44b03ee0';
-import { mediateEncounter } from './community.js?v=645f44b03ee0';
-import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=645f44b03ee0';
+import { NIGHT_START } from './daylight.js?v=c08e58e7c55c';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=c08e58e7c55c';
+import { GROUND_COIN_LIFE } from './coins.js?v=c08e58e7c55c';
+import { createAnimal, seedEcology, interactEcology, SPECIES } from './ecology.js?v=c08e58e7c55c';
+import { startPlayerAttack, PLAYER_COMBOS, inStrikeRange, strikeEnemy } from './combat.js?v=c08e58e7c55c';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=c08e58e7c55c';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=c08e58e7c55c';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT } from './settlement.js?v=c08e58e7c55c';
+import { emitEffect } from './effects.js?v=c08e58e7c55c';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=c08e58e7c55c';
+import { AfroColombianAudioEngine } from './audio.js?v=c08e58e7c55c';
+import { createInitialState } from './world-state.js?v=c08e58e7c55c';
+import { makeSave, restoreSave } from './save-system.js?v=c08e58e7c55c';
+import { createRenderer } from './renderer.js?v=c08e58e7c55c';
+import { createSimulation } from './simulation.js?v=c08e58e7c55c';
+import { FixedStepper } from './clock.js?v=c08e58e7c55c';
+import { bindInput } from './input.js?v=c08e58e7c55c';
+import { createUI } from './ui.js?v=c08e58e7c55c';
+import { chooseDefenseSide } from './ai.js?v=c08e58e7c55c';
+import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=c08e58e7c55c';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=c08e58e7c55c';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=c08e58e7c55c';
+import { mediateEncounter } from './community.js?v=c08e58e7c55c';
+import { ESTATES, advanceExpedition, beginExpedition, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=c08e58e7c55c';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -902,7 +903,7 @@ function choosePolitics(accept) {
   if (accept) {
     state.coins -= 15; state.truceDays = 3; state.enemies = state.enemies.filter(enemy => enemy.guardSite || enemy.finalRaid || enemy.isBoss);
     state.campaign.orders = state.campaign.orders.filter(order=>order.kind==='boss'||order.kind==='final');
-    if (state.timeOfDay>=.68) state.phase='TRUCE_NIGHT';
+    if (state.timeOfDay>=NIGHT_START) state.phase='TRUCE_NIGHT';
   }
   else { state.morale = 125; spawnCimarron('CAMPEON_REAL', -1550, 3); spawnSpanishWave(1.2); }
   state.politicalEventSeen = true; ui.resume(); updateHUD();

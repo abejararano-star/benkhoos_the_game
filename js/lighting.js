@@ -1,4 +1,5 @@
-import { ALTAR_X, TRAIL_TORCHES, torchIsLit } from './exploration.js?v=645f44b03ee0';
+import { blend, color, NIGHT_START, smooth } from './daylight.js?v=c08e58e7c55c';
+import { ALTAR_X, TRAIL_TORCHES, torchIsLit } from './exploration.js?v=c08e58e7c55c';
 
 function drawFlame(g, x, y, flicker, length) {
   g.fillStyle = '#583824'; g.fillRect(x - 1, y + 2, 3, length);
@@ -12,39 +13,49 @@ export function createLighting() {
   const mask = document.createElement('canvas');
   const shade = mask.getContext('2d');
 
-  return function lightScene(g, state, toScreen, playerX, ground, width, time, reduceMotion) {
-    const night = state.phase !== 'DAY_EXPLORE';
+  return function lightScene(g, state, toScreen, playerX, ground, width, time, reduceMotion, air) {
+    const glowAmount = smooth(.08, .57, air.shadow);
     const lit = torchIsLit(state);
     const flicker = reduceMotion ? 0 : Math.sin(time * 6) * 2 + Math.sin(time * 11) * .9;
     const torchX = playerX + state.benkos.facing * (state.benkos.mounted ? -11 : -9);
     const torchY = ground - (state.benkos.mounted ? 46 : 32);
     const lights = [];
     const posts = TRAIL_TORCHES.map(toScreen).filter(x => x > -60 && x < width + 60);
-    if (!night && !lit && !posts.length) return;
-    for (const x of posts) lights.push({ x, y: ground - 32, radius: 62 + flicker, warmth: night ? .21 : .08 });
-    if (lit) lights.push({ x: torchX, y: torchY, radius: 107 + flicker, warmth: .20 });
-    if (night) {
-      lights.push({ x: toScreen(70), y: ground - 9, radius: 62, warmth: .15 });
-      if (state.exploration.altarFound) lights.push({ x: toScreen(ALTAR_X), y: ground - 18, radius: 58, warmth: .12 });
-      for (const wall of state.walls) if (wall.level && wall.hp > 0) lights.push({ x: toScreen(wall.x), y: ground - 28, radius: 47, warmth: .12 });
+    for (const x of posts) lights.push({ x, y: ground - 32, radius: 62 + flicker, warmth: .06 + glowAmount * .19 });
+    const torchGlow = state.benkos.torchManual ? 1 : smooth(NIGHT_START, .72, air.t) * (1 - smooth(.96, 1, air.t));
+    if (lit) lights.push({ x: torchX, y: torchY, radius: 107 + flicker, warmth: .20 * torchGlow, strength: torchGlow });
+    if (glowAmount > 0) {
+      lights.push({ x: toScreen(70), y: ground - 9, radius: 72, warmth: glowAmount * .25, strength: glowAmount });
+      if (state.exploration.altarFound) lights.push({ x: toScreen(ALTAR_X), y: ground - 18, radius: 58, warmth: glowAmount * .12, strength: glowAmount });
+      for (const wall of state.walls) if (wall.level && wall.hp > 0) lights.push({ x: toScreen(wall.x), y: ground - 28, radius: 47, warmth: glowAmount * .12, strength: glowAmount });
     }
     for (const enemy of state.enemies) {
       if (enemy.muzzleFlash > 0 && !reduceMotion) lights.push({ x: toScreen(enemy.x) + enemy.facing * 16, y: ground - 22, radius: 46, warmth: .32 });
     }
     const visible = lights.filter(light => light.x + light.radius >= 0 && light.x - light.radius <= width);
 
-    if (night) {
+    if (air.shadow > 0 || air.warmth > 0) {
       const height = ground + 22;
       if (mask.width !== width || mask.height !== height) { mask.width = width; mask.height = height; }
       shade.globalCompositeOperation = 'source-over';
       shade.clearRect(0, 0, width, height);
-      shade.fillStyle = state.phase === 'RED_NIGHT' ? '#2b0e246b' : '#091c34a2';
+      const tint = blend([15, 26, 49], [58, 20, 39], air.red);
+      const shadow = shade.createLinearGradient(0, 0, 0, ground);
+      shadow.addColorStop(.38, color(tint, 0));
+      shadow.addColorStop(.73, color(tint, air.shadow * .54));
+      shadow.addColorStop(1, color(tint, air.shadow));
+      shade.fillStyle = shadow;
+      shade.fillRect(0, 0, width, height);
+      const amber = shade.createLinearGradient(0, ground * .44, 0, ground);
+      amber.addColorStop(0, color([172, 74, 36], 0));
+      amber.addColorStop(1, color([172, 74, 36], air.warmth * .57));
+      shade.fillStyle = amber;
       shade.fillRect(0, 0, width, height);
       shade.globalCompositeOperation = 'destination-out';
-      for (const { x, y, radius } of visible) {
+      for (const { x, y, radius, strength = 1 } of visible) {
         const falloff = shade.createRadialGradient(x, y, 0, x, y, radius);
-        falloff.addColorStop(0, '#ffffffff');
-        falloff.addColorStop(.42, '#ffffffcc');
+        falloff.addColorStop(0, color([255, 255, 255], strength));
+        falloff.addColorStop(.42, color([255, 255, 255], strength * .8));
         falloff.addColorStop(1, '#ffffff00');
         shade.fillStyle = falloff;
         shade.fillRect(x - radius, y - radius, radius * 2, radius * 2);

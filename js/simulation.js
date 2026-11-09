@@ -1,18 +1,19 @@
-import { recoverCoins } from './coins.js?v=645f44b03ee0';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=645f44b03ee0';
-import { collectEquipment } from './equipment.js?v=645f44b03ee0';
-import { advanceCrops, tendCrop } from './crops.js?v=645f44b03ee0';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=645f44b03ee0';
-import { updateCommunity, joinEncounter } from './community.js?v=645f44b03ee0';
-import { updateEcology, isHuntable } from './ecology.js?v=645f44b03ee0';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=645f44b03ee0';
-import { advanceConstruction, workConstruction, homeRecovery } from './settlement.js?v=645f44b03ee0';
-import { advanceParticle, emitEffect } from './effects.js?v=645f44b03ee0';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=645f44b03ee0';
-import { ensureCampaign, finaleWon } from './campaign.js?v=645f44b03ee0';
-import { expeditionFormation } from './story.js?v=645f44b03ee0';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=645f44b03ee0';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=645f44b03ee0';
+import { NIGHT_START } from './daylight.js?v=c08e58e7c55c';
+import { recoverCoins } from './coins.js?v=c08e58e7c55c';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=c08e58e7c55c';
+import { collectEquipment } from './equipment.js?v=c08e58e7c55c';
+import { advanceCrops, tendCrop } from './crops.js?v=c08e58e7c55c';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=c08e58e7c55c';
+import { updateCommunity, joinEncounter } from './community.js?v=c08e58e7c55c';
+import { updateEcology, isHuntable } from './ecology.js?v=c08e58e7c55c';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=c08e58e7c55c';
+import { advanceConstruction, workConstruction, homeRecovery } from './settlement.js?v=c08e58e7c55c';
+import { advanceParticle, emitEffect } from './effects.js?v=c08e58e7c55c';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=c08e58e7c55c';
+import { ensureCampaign, finaleWon } from './campaign.js?v=c08e58e7c55c';
+import { expeditionFormation } from './story.js?v=c08e58e7c55c';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c08e58e7c55c';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=c08e58e7c55c';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -42,7 +43,7 @@ return function updateSimulation(dt) {
     updateHUD();
   });
   state.timeOfDay += dt / BALANCE.dayDuration;
-  if (state.timeOfDay >= 0.68 && prevTime < 0.68) {
+  if (state.timeOfDay >= NIGHT_START && prevTime < NIGHT_START) {
     if (state.truceDays > 0) {
       state.truceDays--;
       state.phase = 'TRUCE_NIGHT';

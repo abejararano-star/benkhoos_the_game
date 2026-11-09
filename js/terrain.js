@@ -1,85 +1,93 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-export function drawLandscape(g, width, ground, camera, night, time) {
-  const manager=window.SpriteManager;
-  if(manager?.has('jungle_far')&&manager.drawBackdrop){
-    g.save();g.globalAlpha=night?.7:1;
-    manager.drawBackdrop(g,'jungle_far',width,ground,camera,.12,ground+12);
-    g.globalAlpha=night?.72:.86;
-    manager.drawBackdrop(g,'jungle_near',width,ground+1,camera,.29,ground+4);
-    const edge = Math.max(0, Math.min(1, (Math.abs(camera) - 1320) / 430));
-    if (edge > 0) {
-      g.globalAlpha = edge * (night ? .8 : 1);
-      const regionCamera = camera - Math.sign(camera) * 1840;
-      manager.drawBackdrop(g, camera < 0 ? 'biome_ravine' : 'biome_mangrove', width, ground, regionCamera, .38, ground + 4);
+import { blend, color, mix, smooth } from './daylight.js?v=c08e58e7c55c';
+import { landscapeSeed } from './sky.js?v=c08e58e7c55c';
+
+export function drawLandscape(g, width, ground, camera, air) {
+  const manager = window.SpriteManager;
+  for (let layer = 0; layer < 2; layer++) {
+    const left = camera * (.09 + layer * .10) - width / 2;
+    const step = 3;
+    const ridge = blend(air.horizon, layer === 0 ? [84, 118, 112] : [38, 79, 68], .47 + layer * .23);
+    const ridgeShade = blend(ridge, air.zenith, air.shadow * .64);
+    const shade = color(ridgeShade);
+    const light = color(blend(ridgeShade, air.horizon, .18));
+    for (let x = -step; x < width; x += step) {
+      const wx = left + x;
+      const hills = Math.sin(wx * .010 + layer * 3) * 13 + Math.sin(wx * .025 + layer * 2) * 8;
+      const canopy = landscapeSeed(Math.floor(wx / 4) + layer * 71) * (3 + layer * 3);
+      const top = Math.round(ground * (.54 + layer * .13) + hills - canopy);
+      g.fillStyle = shade;
+      g.fillRect(x, top, step, ground - top);
+      g.fillStyle = light;
+      g.fillRect(x, top, step, layer + 1);
+    }
+  }
+
+  const region = smooth(1280, 1780, Math.abs(camera));
+  if (region > 0 && manager?.drawBackdrop) {
+    g.save();
+    g.globalAlpha = region * .65;
+    const regionCamera = camera - Math.sign(camera) * 1840;
+    manager.drawBackdrop(g, camera < 0 ? 'biome_ravine' : 'biome_mangrove', width, ground, regionCamera, .38, ground * .53);
+    g.restore();
+  }
+
+  if (!manager?.has('forest_hardwood')) return;
+  const trees = ['forest_ceiba', 'forest_hardwood', 'forest_mangrove', 'forest_palm'];
+  for (let layer = 0; layer < 2; layer++) {
+    const span = layer === 0 ? 55 : 101;
+    const left = camera * (.23 + layer * .18) - width / 2;
+    g.save();
+    g.globalAlpha = (layer === 0 ? .43 : .77) * (1 - air.shadow * .19);
+    for (let cell = Math.floor(left / span) - 2; cell <= (left + width) / span + 2; cell++) {
+      const id = cell + layer * 503;
+      const x = Math.round(cell * span - left + landscapeSeed(id) * span * .74);
+      const centerClearing = layer === 1 && Math.abs(cell * span) < 140;
+      const base = ground - (layer === 0 ? 18 : 4);
+      const height = (layer === 0 ? 53 : centerClearing ? 61 : 96) + landscapeSeed(id + 61) * 44;
+      const tree = trees[Math.floor(landscapeSeed(id + 26) * trees.length)];
+      manager.draw(g, tree, ['idle'], x, base, cell % 2 === 0 ? 1 : -1, height, 0);
     }
     g.restore();
-    if(night){g.fillStyle='#0b282c35';g.fillRect(0,0,width,ground);}
-    return;
-  }
-  for (let layer = 0; layer < 3; layer++) {
-    const span = 240 - layer * 35;
-    const offset = ((camera * (.12 + layer * .12)) % span + span) % span;
-    g.fillStyle = night ? ['#202f36','#263c3c','#29463f'][layer] : ['#8b9894','#6e8980','#4c7263'][layer];
-    g.beginPath(); g.moveTo(-span, ground);
-    for (let i = -2; i < Math.ceil(width / span) + 3; i++) {
-      const x = i * span - offset;
-      const h = 40 + layer * 13 + ((i * 17 + layer * 31) & 31);
-      g.lineTo(x, ground - h); g.lineTo(x + span * .24, ground - h - 16);
-      g.lineTo(x + span * .46, ground - h - 9); g.lineTo(x + span * .7, ground - h + 16);
-    }
-    g.lineTo(width + span, ground); g.closePath(); g.fill();
-  }
-  if(window.SpriteManager?.has('forest_hardwood')){
-    g.globalAlpha=night?.38:.58;
-    for(let i=-2;i<Math.ceil(width/90)+2;i++){
-      const x=i*90-((camera*.45)%90+90)%90;
-      window.SpriteManager.draw(g,['forest_hardwood','forest_mangrove','forest_palm'][((i%3)+3)%3],['idle'],x,ground,1,62+Math.abs(i*13)%28,0);
-    }g.globalAlpha=1;
-  }
-  // Sparse fireflies are intentionally gentle, not strobing.
-  if (night) {
-    g.fillStyle = '#d6d793';
-    for (let i = 0; i < 12; i++) {
-      const x = ((i * 137 - camera * .7 + Math.sin(time + i) * 12) % width + width) % width;
-      g.globalAlpha = .25 + .3 * (1 + Math.sin(time * .7 + i)) / 2;
-      g.fillRect(Math.round(x), ground - 20 - (i * 31 % 65), 1, 1);
-    }
-    g.globalAlpha = 1;
   }
 }
 
-export function drawMist(g, width, ground, camera, night, time) {
-  const mist = g.createLinearGradient(0, ground - 104, 0, ground + 1);
-  mist.addColorStop(0, '#c1d7c200');
-  mist.addColorStop(.66, night ? '#89b0ad20' : '#c1d7c238');
-  mist.addColorStop(1, '#c1d7c209');
+export function drawMist(g, width, ground, camera, air, time) {
+  const mistColor = blend(air.horizon, [192, 213, 199], .30);
+  const amount = .18 + air.shadow * .25 + (1 - smooth(0, .16, air.t)) * .11;
+  const mist = g.createLinearGradient(0, ground - 115, 0, ground + 1);
+  mist.addColorStop(0, color(mistColor, 0));
+  mist.addColorStop(.68, color(mistColor, amount));
+  mist.addColorStop(1, color(mistColor, .06));
   g.fillStyle = mist;
-  g.fillRect(0, ground - 104, width, 105);
-  for (let i = 0; i < 3; i++) {
-    const x = ((i * 247 + time * (2 + i) - camera * .18) % (width + 270) + width + 270) % (width + 270) - 135;
-    const y = ground - 26 - i * 17;
+  g.fillRect(0, ground - 115, width, 116);
+
+  const left = camera * .18 - width / 2 - time * 2.5;
+  for (let cell = Math.floor(left / 245) - 1; cell <= (left + width) / 245 + 1; cell++) {
+    const x = cell * 245 - left + Math.sin(time * .35 + cell) * 20;
+    const y = ground - 26 - landscapeSeed(cell) * 36;
     g.save();
-    g.translate(Math.round(x), y); g.scale(1, .21);
+    g.translate(Math.round(x), Math.round(y));
+    g.scale(1, .19);
     const patch = g.createRadialGradient(0, 0, 0, 0, 0, 128);
-    patch.addColorStop(0, night ? '#abc5bc23' : '#d7e2c334');
-    patch.addColorStop(1, '#d7e2c300');
+    patch.addColorStop(0, color(mistColor, amount * .63));
+    patch.addColorStop(1, color(mistColor, 0));
     g.fillStyle = patch;
     g.fillRect(-128, -128, 256, 256);
     g.restore();
   }
 }
 
-export function drawAmbientMotes(g, width, ground, camera, night, time) {
+export function drawAmbientMotes(g, width, ground, camera, air, time) {
   const left = camera - width / 2;
+  const night = smooth(.17, .55, air.shadow);
+  g.fillStyle = color(blend([238, 226, 163], [212, 228, 155], night));
   for (let cell = Math.floor((left - 30) / 47); cell <= (left + width + 30) / 47; cell++) {
-    const seed = Math.sin(cell * 73.13) * 5237.55;
-    const phase = seed - Math.floor(seed);
+    const phase = landscapeSeed(cell);
     const flow = time * (.35 + phase * .4) + phase * Math.PI * 2;
     const x = Math.round(cell * 47 - left + Math.sin(flow) * 15);
-    const y = Math.round(ground - 8 - phase * (night ? 67 : 118) + Math.cos(flow * .73) * 8);
-    if (night && phase > .66) continue;
-    g.globalAlpha = (night ? .52 : .25) * (.65 + .35 * Math.sin(flow * 1.8) ** 2);
-    g.fillStyle = night ? '#d4e49b' : '#eee2a3';
+    const y = Math.round(ground - 8 - phase * mix(118, 67, night) + Math.cos(flow * .73) * 8);
+    g.globalAlpha = mix(.25, phase > .66 ? 0 : .52, night) * (.65 + .35 * Math.sin(flow * 1.8) ** 2);
     g.fillRect(x, y, phase > .55 ? 2 : 1, 1);
   }
   g.globalAlpha = 1;
@@ -184,7 +192,7 @@ export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, fore
   }
 }
 
-export function drawVillage(g,toScreen,ground,night,time,settlement,armyTier,reduceMotion=false) {
+export function drawVillage(g,toScreen,ground,shadow,time,settlement,armyTier,reduceMotion=false) {
   const sm=window.SpriteManager, buildings=[{kind:'hq',x:0,level:settlement.level,h:124},...settlement.homes.map(h=>({...h,kind:'home',h:80}))];
   for(const b of buildings){
     const x=toScreen(b.x),y=ground-6;
@@ -193,8 +201,8 @@ export function drawVillage(g,toScreen,ground,night,time,settlement,armyTier,red
       g.fillStyle='#9b7b4c';g.fillRect(x-24,y-40,48,40);g.fillStyle='#645431';g.fillRect(x-30,y-48,60,12);
     }
     // Doors glow at night; smoke drifts above occupied roofs.
-    if(night){const glow=g.createRadialGradient(x,y-8,1,x,y-8,30);glow.addColorStop(0,'#e0a84d40');glow.addColorStop(1,'#e0a84d00');g.fillStyle=glow;g.fillRect(x-30,y-38,60,60);}
-    for(let i=0;i<3;i++){const phase=reduceMotion?i/3:(time*.14+i/3)%1;g.globalAlpha=(1-phase)*.16;g.fillStyle=night?'#b9bca7':'#e5d5ba';g.beginPath();g.ellipse(x+18+phase*10,y-b.h*.64-phase*27,3+phase*7,2+phase*5,0,0,Math.PI*2);g.fill();}g.globalAlpha=1;
+    if(shadow > .08){const glow=g.createRadialGradient(x,y-8,1,x,y-8,30);glow.addColorStop(0,color([224,168,77],shadow*.42));glow.addColorStop(1,'#e0a84d00');g.fillStyle=glow;g.fillRect(x-30,y-38,60,60);}
+    for(let i=0;i<3;i++){const phase=reduceMotion?i/3:(time*.14+i/3)%1;g.globalAlpha=(1-phase)*.16;g.fillStyle=color(blend([229,213,186],[185,188,167],shadow));g.beginPath();g.ellipse(x+18+phase*10,y-b.h*.64-phase*27,3+phase*7,2+phase*5,0,0,Math.PI*2);g.fill();}g.globalAlpha=1;
     // Pottery, planted beds and timber piles give every building a lived-in edge.
     g.fillStyle='#815234';g.fillRect(x+b.h*.37,y-9,8,9);g.fillStyle='#c18c5a';g.fillRect(x+b.h*.37-1,y-9,10,2);
     g.fillStyle='#6d8b4d';for(let k=0;k<3;k++)g.fillRect(x+b.h*.37+2+k*2,y-17+k%2*2,2,8);
@@ -239,14 +247,14 @@ export function drawConstructionSites(g, toScreen, ground, width, projects) {
   }
 }
 
-export function drawToolStand(g,x,ground,rack,tier,night){
+export function drawToolStand(g,x,ground,rack,tier){
   if(window.SpriteManager?.has('station_'+rack.role)){
     g.fillStyle='#0c1f1755';g.beginPath();g.ellipse(x,ground+1,25,3,0,0,Math.PI*2);g.fill();
     window.SpriteManager.draw(g,'station_'+rack.role,['idle'],x,ground,1,54,0);
     if(tier>1){g.fillStyle=tier===3?'#d3b76c':'#67885b';g.fillRect(x+18,ground-40,4,13);}
     return;
   }
-  g.fillStyle=night?'#5e4530':'#8b603c';g.fillRect(x-17,ground-32,3,32);g.fillRect(x+14,ground-32,3,32);g.fillRect(x-19,ground-31,38,4);
+  g.fillStyle='#8b603c';g.fillRect(x-17,ground-32,3,32);g.fillRect(x+14,ground-32,3,32);g.fillRect(x-19,ground-31,38,4);
   g.fillStyle='#c09b67';g.fillRect(x-17,ground-31,1,29);g.fillRect(x-19,ground-31,38,1);
   g.fillStyle='#423829';g.fillRect(x-19,ground-6,38,3);g.fillStyle='#a98e5d';g.fillRect(x-19,ground-8,38,2);
   const metal=tier===3?'#d9ba67':tier===2?'#c5c9b7':'#9dafa7';
@@ -265,7 +273,7 @@ export function drawToolStand(g,x,ground,rack,tier,night){
   if(!rack.stock){g.fillStyle='#a1a190';for(const dx of [-10,0,10])g.fillRect(x+dx,ground-29,1,4);}
 }
 
-export function drawFortification(g,x,ground,wall,night,time){
+export function drawFortification(g,x,ground,wall,time){
   const cls=wall.hp<=0?'fortification_ruin':'fortification_'+wall.level;
   if(window.SpriteManager?.has(cls)){
     const h=wall.hp<=0?28:[0,54,64,70,76,86][wall.level];
@@ -275,19 +283,19 @@ export function drawFortification(g,x,ground,wall,night,time){
   }
   const h=28+wall.level*9,w=wall.level>=3?28:22,stone=wall.level>=4;
   if(stone||wall.level===3){
-    g.fillStyle=stone?(night?'#696759':'#b5ad8c'):'#a18659';g.fillRect(x-w/2,ground-h,w,h);
+    g.fillStyle=stone?('#b5ad8c'):'#a18659';g.fillRect(x-w/2,ground-h,w,h);
     g.strokeStyle=stone?'#696850':'#7f6540';g.lineWidth=1;
     for(let y=8;y<h;y+=9){g.beginPath();g.moveTo(x-w/2,ground-y);g.lineTo(x+w/2,ground-y);g.stroke();for(let k=-1;k<=1;k++)g.fillRect(x+k*10+(y%2?0:4),ground-y,1,8);}
     g.fillStyle=stone?'#d1c29a':'#705137';for(let dx=-w/2;dx<w/2;dx+=9)g.fillRect(x+dx,ground-h-5,6,6);
   }else{
-    for(let dx=-10;dx<=10;dx+=5){g.fillStyle=night?'#61452c':'#976a3e';g.fillRect(x+dx,ground-h,4,h);g.fillStyle='#c09a60';g.fillRect(x+dx,ground-h,1,h);g.fillStyle='#bd9761';g.beginPath();g.moveTo(x+dx,ground-h);g.lineTo(x+dx+2,ground-h-5);g.lineTo(x+dx+4,ground-h);g.fill();}
+    for(let dx=-10;dx<=10;dx+=5){g.fillStyle='#976a3e';g.fillRect(x+dx,ground-h,4,h);g.fillStyle='#c09a60';g.fillRect(x+dx,ground-h,1,h);g.fillStyle='#bd9761';g.beginPath();g.moveTo(x+dx,ground-h);g.lineTo(x+dx+2,ground-h-5);g.lineTo(x+dx+4,ground-h);g.fill();}
     g.fillStyle='#4b3a2c';g.fillRect(x-12,ground-h+12,26,3);if(wall.level===2)g.fillRect(x-12,ground-13,26,3);
   }
   if(wall.level>=2){g.fillStyle='#ad9566';g.fillRect(x+9,ground-h-24,1,25);g.fillStyle=wall.level>=5?'#dec27d':'#3e735a';for(let k=0;k<4;k++)g.fillRect(x+10+k*3,ground-h-24+Math.round(Math.sin(time*2-k*.6)),3,9);}
   if(wall.hp/wall.maxHp<.6){g.strokeStyle='#3b332a';g.beginPath();g.moveTo(x-2,ground-h+8);g.lineTo(x+4,ground-h+20);g.lineTo(x-1,ground-h+30);g.stroke();}
 }
 
-export function drawHacienda(g, x, ground, destroyed, night) {
+export function drawHacienda(g, x, ground, destroyed) {
   if (destroyed) {
     g.fillStyle = '#382e29'; g.fillRect(x - 37, ground - 12, 74, 12);
     g.fillStyle = '#675343';
@@ -295,7 +303,7 @@ export function drawHacienda(g, x, ground, destroyed, night) {
     g.fillStyle = '#91b28c'; g.fillRect(x - 2, ground - 31, 2, 25); g.fillRect(x, ground - 31, 18, 9);
     return;
   }
-  const plaster = night ? ['#77695a', '#897a66', '#625743'] : ['#c7a97b', '#e2c79a', '#a48259'];
+  const plaster = ['#c7a97b', '#e2c79a', '#a48259'];
   g.fillStyle = '#463b2b'; g.fillRect(x - 43, ground - 57, 88, 57);
   g.fillStyle = plaster[0]; g.fillRect(x - 41, ground - 57, 81, 52);
   for (let i = 0; i < 38; i++) {
@@ -303,7 +311,7 @@ export function drawHacienda(g, x, ground, destroyed, night) {
     g.fillRect(x - 39 + i * 17 % 78, ground - 50 + i * 11 % 46, 2 + i % 6, 1 + i % 2);
   }
   g.fillStyle = plaster[2]; g.fillRect(x - 42, ground - 54, 85, 4);
-  const tiles = night ? ['#7f5540', '#684233', '#533429'] : ['#ba784f', '#97573c', '#6f3e2f'];
+  const tiles = ['#ba784f', '#97573c', '#6f3e2f'];
   for (let row = 0; row < 6; row++) {
     const left = x - 49 + row * 3;
     const width = 101 - row * 6;

@@ -1,15 +1,16 @@
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=645f44b03ee0';
-import { describeTraits } from './daily-life.js?v=645f44b03ee0';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=645f44b03ee0';
-import { canMediate, relationshipsFor } from './community.js?v=645f44b03ee0';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=645f44b03ee0';
-import { ecologyHint } from './ecology.js?v=645f44b03ee0';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=645f44b03ee0';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=645f44b03ee0';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=645f44b03ee0';
-import { arrivalHint } from './campaign.js?v=645f44b03ee0';
-import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=645f44b03ee0';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=645f44b03ee0';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=c08e58e7c55c';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=c08e58e7c55c';
+import { describeTraits } from './daily-life.js?v=c08e58e7c55c';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=c08e58e7c55c';
+import { canMediate, relationshipsFor } from './community.js?v=c08e58e7c55c';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=c08e58e7c55c';
+import { ecologyHint } from './ecology.js?v=c08e58e7c55c';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite } from './settlement.js?v=c08e58e7c55c';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c08e58e7c55c';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=c08e58e7c55c';
+import { arrivalHint } from './campaign.js?v=c08e58e7c55c';
+import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=c08e58e7c55c';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=c08e58e7c55c';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -171,13 +172,14 @@ export function createUI({ state, session, settings, actions }) {
     if(bagSignature!==lastPouch){lastPouch=bagSignature;const g=$('hudPouchArt').getContext('2d');g.clearRect(0,0,72,72);window.SpriteManager?.drawPouch?.(g,36,69,64,state.coins/state.maxCoins);}
     text('hudMaterials', `${state.resources.wood} madera · ${state.resources.stone} piedra · ${state.resources.food} alimento`);
     text('hudDay', `DÍA ${state.day}`); text('hudAlertLevel', `${state.alertLevel}%`);
-    const night = state.timeOfDay >= .68;
-    text('hudPhaseBadge', state.phase === 'TRUCE_NIGHT' ? 'Noche de tregua' : night ? 'Defensa nocturna' : 'Exploración');
+    const night = state.timeOfDay >= NIGHT_START;
+    const label = daylightLabel(state.timeOfDay);
+    text('hudPhaseBadge', state.phase === 'TRUCE_NIGHT' ? 'Noche de tregua' : state.phase === 'RED_NIGHT' && label === 'Noche' ? 'Noche roja' : label);
     const phaseUse = $('phaseIcon').querySelector('use');
     const icon = `assets/ui/icons.svg#${night ? 'moon' : 'sun'}`;
     if (phaseUse.getAttribute('href') !== icon) phaseUse.setAttribute('href', icon);
-    const seconds = Math.ceil(((night ? 1 : .68) - state.timeOfDay) * BALANCE.dayDuration);
-    text('phaseCountdown', `${Math.max(0, seconds)} s · ${night ? 'amanecer' : 'anochecer'}`);
+    const seconds = Math.ceil(((night ? 1 : NIGHT_START) - state.timeOfDay) * BALANCE.dayDuration);
+    text('phaseCountdown', `${Math.max(0, seconds)} s · ${night ? 'al alba' : 'a la noche'}`);
     $('phaseProgress').style.width = `${state.timeOfDay * 100}%`;
     text('hudSpiritText', `${Math.floor(state.benkos.spirit)} / ${state.benkos.maxSpirit}`);
     $('hudSpiritBar').style.width = `${state.benkos.spirit / state.benkos.maxSpirit * 100}%`;

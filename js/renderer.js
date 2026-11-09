@@ -1,17 +1,19 @@
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=645f44b03ee0';
-import { createLighting } from './lighting.js?v=645f44b03ee0';
-import { RenderInterpolation } from './visual-motion.js?v=645f44b03ee0';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=645f44b03ee0';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=645f44b03ee0';
-import { drawParticle } from './effects.js?v=645f44b03ee0';
-import { haciendaActive } from './haciendas.js?v=645f44b03ee0';
-import { ROAD_GATES } from './campaign.js?v=645f44b03ee0';
-import { WATER_LINE_Y } from './config.js?v=645f44b03ee0';
+import { blend, color, daylightAt } from './daylight.js?v=c08e58e7c55c';
+import { drawSky } from './sky.js?v=c08e58e7c55c';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=c08e58e7c55c';
+import { createLighting } from './lighting.js?v=c08e58e7c55c';
+import { RenderInterpolation } from './visual-motion.js?v=c08e58e7c55c';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=c08e58e7c55c';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=c08e58e7c55c';
+import { drawParticle } from './effects.js?v=c08e58e7c55c';
+import { haciendaActive } from './haciendas.js?v=c08e58e7c55c';
+import { ROAD_GATES } from './campaign.js?v=c08e58e7c55c';
+import { WATER_LINE_Y } from './config.js?v=c08e58e7c55c';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
 const position=(e,key='x')=>interpolation.value(e,key,renderAlpha);
-function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, chopped, time=0, variant=0) {
+function drawKingdomClusterTree(g, sx, groundY, height, markedForChop, chopped, time=0, variant=0) {
   const treeClass=chopped?'forest_stump':['forest_ceiba','forest_hardwood','forest_mangrove','forest_palm'][Math.abs(variant)%4];
   if(window.SpriteManager?.has(treeClass)){
     window.SpriteManager.draw(g,treeClass,['idle'],sx,groundY,1,chopped?20:height+35,0);
@@ -20,9 +22,9 @@ function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, 
   }
   if (chopped) {
     // Tocón de Ceiba talada
-    g.fillStyle = isNight ? '#27170e' : '#451a03';
+    g.fillStyle = '#451a03';
     g.fillRect(sx - 7, groundY - 14, 14, 14);
-    g.fillStyle = isNight ? '#5c3a21' : '#78350f';
+    g.fillStyle = '#78350f';
     g.fillRect(sx - 5, groundY - 15, 10, 3);
     g.fillStyle = '#b45309';
     g.fillRect(sx - 2, groundY - 15, 4, 1);
@@ -35,14 +37,14 @@ function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, 
   g.fillStyle='#14291b66';g.beginPath();g.ellipse(sx,groundY,24,4,0,0,Math.PI*2);g.fill();
   g.fillStyle = '#3b2314';
   g.fillRect(sx-5,groundY-height,10,height);
-  g.fillStyle=isNight?'#715137':'#ab7a47';g.fillRect(sx-4,groundY-height,2,height);
+  g.fillStyle='#ab7a47';g.fillRect(sx-4,groundY-height,2,height);
   for(let y=8;y<height;y+=13){g.fillStyle='#2c281b';g.fillRect(sx+(y%3)-1,groundY-y,2,7);}
-  g.strokeStyle=isNight?'#57402a':'#826039';g.lineWidth=3;
+  g.strokeStyle='#826039';g.lineWidth=3;
   for(const side of [-1,1]){g.beginPath();g.moveTo(sx,groundY-height*.55);g.lineTo(sx+side*18,groundY-height+10);g.stroke();g.beginPath();g.moveTo(sx+side*3,groundY-12);g.lineTo(sx+side*15,groundY);g.stroke();}
 
-  const cShadow = isNight ? '#0a2618' : '#1b3b1a';
-  const cMid = isNight ? '#133c26' : '#355e27';
-  const cLight = isNight ? '#1e5235' : '#588136';
+  const cShadow = '#1b3b1a';
+  const cMid = '#355e27';
+  const cLight = '#588136';
 
   const puffs = [
     { dx: -18, dy: -height + 8, r: 16 },
@@ -61,7 +63,7 @@ function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, 
       g.fillRect(cx-span,cy+dy,span*2,4);
       if(span>8){g.fillStyle=dy<0?cLight:cShadow;g.fillRect(cx-span+3+(index*7+dy*dy)%Math.max(1,span),cy+dy,4,2);}
     }
-    g.fillStyle=isNight?'#2e6040':'#80954c';
+    g.fillStyle='#80954c';
     for(let k=0;k<5;k++){const dx=((k*13+index*7)%25)-12,dy=((k*11+index*3)%19)-12;g.fillRect(cx+dx,cy+dy,3,1);}
   });
 
@@ -74,55 +76,28 @@ function drawKingdomClusterTree(g, sx, groundY, height, isNight, markedForChop, 
 }
 
 // ==================== 10. HD-2D SCENE & REFLECTION RENDERER ====================
-function renderWorldAboveWater(g, time) {
+function renderWorldAboveWater(g, time, air) {
   const w = view.width;
   const h = view.waterLine;
   const GROUND_SURFACE_Y = h - 22;
   const camX = renderCamera;
   const toScreenX = (wx) => Math.round(wx - camX + w / 2);
-  const isNight = state.phase !== 'DAY_EXPLORE';
-
-  const skyGrad = g.createLinearGradient(0, 0, 0, GROUND_SURFACE_Y);
-  if (state.phase === 'RED_NIGHT') {
-    skyGrad.addColorStop(0, '#1f050a');
-    skyGrad.addColorStop(0.55, '#5c111b');
-    skyGrad.addColorStop(1, '#991b1b');
-  } else if (state.phase === 'NIGHT_DEFENSE' || state.phase === 'TRUCE_NIGHT') {
-    skyGrad.addColorStop(0, '#142a31');
-    skyGrad.addColorStop(0.6, '#2a4449');
-    skyGrad.addColorStop(1, '#607b75');
-  } else {
-    skyGrad.addColorStop(0, '#688b8d');
-    skyGrad.addColorStop(0.58, '#adc0b1');
-    skyGrad.addColorStop(1, '#e0cda7');
-  }
-  g.fillStyle = skyGrad;
-  g.fillRect(0, 0, w, h);
-
-  if(!window.SpriteManager?.has('jungle_far')){
-  const sunX = Math.round(w * 0.54 + Math.cos(state.timeOfDay * Math.PI * 2 - Math.PI / 2) * (w * 0.25));
-  const sunY = Math.round(78 + Math.sin(state.timeOfDay * Math.PI) * 18);
-  const haze=g.createRadialGradient(sunX,sunY,12,sunX,sunY,55);haze.addColorStop(0,isNight?'#dce6cc30':'#f6e7bb70');haze.addColorStop(1,'#e8cf9800');g.fillStyle=haze;g.fillRect(sunX-55,sunY-55,110,110);
-  g.fillStyle=state.phase==='RED_NIGHT'?'#dda39a':isNight?'#dce0c8':'#f1dfad';g.beginPath();g.arc(sunX,sunY,isNight?16:19,0,Math.PI*2);g.fill();
-  g.fillStyle=isNight?'#c2d2c40a':'#f0e1c128';
-  for(let i=0;i<5;i++){const cloudX=((i*193-camX*.07+(settings.reduce_motion?0:time*.8))%(w+160)+w+160)%(w+160)-80;for(let band=0;band<3;band++)g.fillRect(Math.round(cloudX+band*7),35+i%3*25+band*4,45+band*13,3);}
-
-  }
-
-  drawLandscape(g, w, GROUND_SURFACE_Y, camX, isNight, time);
-  drawMist(g, w, GROUND_SURFACE_Y, camX, isNight, settings.reduce_motion ? 0 : time);
+  const wind = settings.reduce_motion ? 0 : time;
+  drawSky(g, w, h, GROUND_SURFACE_Y, camX, wind, air);
+  drawLandscape(g, w, GROUND_SURFACE_Y, camX, air);
+  drawMist(g, w, GROUND_SURFACE_Y, camX, air, wind);
 
   drawRiverbank(g, w, GROUND_SURFACE_Y, camX);
   drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X);
   drawEstateScenery(g, toScreenX, GROUND_SURFACE_Y, w);
   drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion);
   drawVines(g, toScreenX, GROUND_SURFACE_Y, w, settings.reduce_motion ? 0 : time);
-  drawVillage(g, toScreenX, GROUND_SURFACE_Y, isNight, time, state.settlement, state.armyTier, settings.reduce_motion);
+  drawVillage(g, toScreenX, GROUND_SURFACE_Y, air.shadow, time, state.settlement, state.armyTier, settings.reduce_motion);
 
   state.trees.forEach((tr) => {
     const sx = toScreenX(tr.x);
     if (sx < -70 || sx > w + 70) return;
-    drawKingdomClusterTree(g, sx, GROUND_SURFACE_Y, tr.height, isNight, tr.markedForChop, tr.chopped, time,Number(String(tr.id).split('_').pop())||0);
+    drawKingdomClusterTree(g, sx, GROUND_SURFACE_Y, tr.height, tr.markedForChop, tr.chopped, time,Number(String(tr.id).split('_').pop())||0);
   });
 
   state.mines.forEach((mn) => {
@@ -136,9 +111,9 @@ function renderWorldAboveWater(g, time) {
     if (sx < -150 || sx > w + 150) return;
     if (hac.major) {
       g.save(); g.translate(sx, GROUND_SURFACE_Y); g.scale(1.47, 1.27);
-      drawHacienda(g, 0, 0, !haciendaActive(hac), isNight);
+      drawHacienda(g, 0, 0, !haciendaActive(hac));
       g.restore();
-    } else drawHacienda(g, sx, GROUND_SURFACE_Y, !haciendaActive(hac), isNight);
+    } else drawHacienda(g, sx, GROUND_SURFACE_Y, !haciendaActive(hac));
   });
 
   state.farms.forEach((f) => {
@@ -167,7 +142,7 @@ function renderWorldAboveWater(g, time) {
   state.toolRacks.forEach((rk) => {
     const sx = toScreenX(rk.x);
     if (sx < -50 || sx > w + 50) return;
-    drawToolStand(g,sx,GROUND_SURFACE_Y,rk,state.armyTier,isNight);
+    drawToolStand(g,sx,GROUND_SURFACE_Y,rk,state.armyTier);
   });
 
   window.SpriteManager?.draw?.(g,'landmark_totem',['idle'],toScreenX(-48),GROUND_SURFACE_Y,1,57,0);
@@ -196,7 +171,7 @@ function renderWorldAboveWater(g, time) {
     const sx = toScreenX(wall.x);
     if (sx < -50 || sx > w + 50) return;
     if (wall.level > 0) {
-      drawFortification(g,sx,GROUND_SURFACE_Y,wall,isNight,settings.reduce_motion?0:time);
+      drawFortification(g,sx,GROUND_SURFACE_Y,wall,settings.reduce_motion?0:time);
     }
   });
   drawConstructionSites(g, toScreenX, GROUND_SURFACE_Y, w, state.settlement.projects);
@@ -299,13 +274,9 @@ function renderWorldAboveWater(g, time) {
     drawParticle(g, particle, x, Math.round(position(particle, 'y') + GROUND_SURFACE_Y - WATER_LINE_Y));
   }
 
-  if (state.phase === 'DAY_EXPLORE' && state.timeOfDay > .56) {
-    g.fillStyle = `rgba(121, 57, 29, ${Math.min(.22, (state.timeOfDay - .56) * 1.8)})`;
-    g.fillRect(0, 0, w, h);
-  }
   drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X, true);
-  lightScene(g, state, toScreenX, bsx, GROUND_SURFACE_Y, w, time, settings.reduce_motion);
-  drawAmbientMotes(g, w, GROUND_SURFACE_Y, camX, isNight, settings.reduce_motion ? 0 : time);
+  lightScene(g, state, toScreenX, bsx, GROUND_SURFACE_Y, w, time, settings.reduce_motion, air);
+  drawAmbientMotes(g, w, GROUND_SURFACE_Y, camX, air, wind);
 }
 
 function renderFrame(time,alpha=1) {
@@ -315,7 +286,8 @@ function renderFrame(time,alpha=1) {
   const h = view.height;
   const waterHeight = h - view.waterLine;
 
-  renderWorldAboveWater(sctx, time);
+  const air = daylightAt(state.timeOfDay, state.phase === 'RED_NIGHT');
+  renderWorldAboveWater(sctx, time, air);
 
   ctx.save();
   if (state.screenShake > 0 && !settings.reduce_motion) {
@@ -333,11 +305,11 @@ function renderFrame(time,alpha=1) {
   }
 
   const riverGrad = ctx.createLinearGradient(0, view.waterLine, 0, h);
-  riverGrad.addColorStop(0, state.phase === 'RED_NIGHT' ? 'rgba(69, 10, 10, 0.32)' : 'rgba(28, 45, 52, 0.28)');
-  riverGrad.addColorStop(1, 'rgba(14, 24, 32, 0.58)');
+  riverGrad.addColorStop(0, color(blend([27, 51, 58], air.horizon, .27), .25 + air.shadow * .24));
+  riverGrad.addColorStop(1, color(blend([15, 31, 40], air.zenith, .27), .50 + air.shadow * .22));
   ctx.fillStyle = riverGrad;
   ctx.fillRect(0, view.waterLine, w, waterHeight);
-  ctx.fillStyle = state.phase === 'DAY_EXPLORE' ? '#9fc4a850' : '#90aca72e';
+  ctx.fillStyle = color(blend(air.horizon, [194, 221, 204], .45), .44 - air.shadow * .37);
   for (let i = 0; i < 16; i++) {
     const drift = settings.reduce_motion ? 0 : time * (4 + i % 3);
     const x = ((i * 67 - renderCamera * .56 + drift) % w + w) % w;

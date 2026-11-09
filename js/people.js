@@ -1,6 +1,6 @@
-import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=645f44b03ee0';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=645f44b03ee0';
-import { ensureTraits, griefEffect } from './daily-life.js?v=645f44b03ee0';
+import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c08e58e7c55c';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=c08e58e7c55c';
+import { ensureTraits, griefEffect } from './daily-life.js?v=c08e58e7c55c';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
