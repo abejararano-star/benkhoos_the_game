@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=894cb6888361';
-import { landscapeSeed } from './sky.js?v=894cb6888361';
-import { CAMP_EDGE } from './config.js?v=894cb6888361';
-import { TOWER_HEIGHT } from './settlement.js?v=894cb6888361';
-import { CROSSINGS, deckOffset } from './crossings.js?v=894cb6888361';
+import { blend, color, mix, smooth } from './daylight.js?v=3daf42021c75';
+import { landscapeSeed } from './sky.js?v=3daf42021c75';
+import { CAMP_EDGE } from './config.js?v=3daf42021c75';
+import { TOWER_HEIGHT } from './settlement.js?v=3daf42021c75';
+import { CROSSINGS, deckOffset } from './crossings.js?v=3daf42021c75';
 
 let regionCanvas;
 
@@ -669,11 +669,23 @@ function drawCampBridge(g, x, ground, time) {
   g.fillStyle = '#70a9a0'; g.fillRect(x - 36, ground - 9, 5, 1);
 }
 
-export function drawTerrainFeatures(g, project, width, ground, state) {
+export function drawTerrainFeatures(g, project, width, ground, state, wind) {
   const sm = window.SpriteManager;
   for (const creek of state.ecology.streams) {
     const x = project(creek.x);
-    if (creek.bridge || creek.x >= 0 || x < -125 || x > width + 125) continue;
+    if (creek.bridge || x < -125 || x > width + 125) continue;
+    if (creek.x > 0) {
+      const facing = creek.x > 3000 && creek.x < 4000 ? -1 : 1;
+      if (sm?.draw?.(g, 'creek_eddy', ['idle'], x, ground + 1, facing, 13, 0, 0, null, { tilt: 0, stretch: 1.35 })) {
+        for (let i = 0; i < 3; i++) {
+          const phase = (wind * .34 + i * .32) % 1;
+          const px = Math.round(x + facing * (-21 + i * 15 + phase * 8));
+          g.fillStyle = color([172, 208, 185], Math.sin(phase * Math.PI) * .47);
+          g.fillRect(px, ground - 8 + i % 2, 3 + i, 1);
+        }
+      }
+      continue;
+    }
     g.save();
     g.globalAlpha = .89;
     if (!sm?.draw?.(g, 'ravine_pool_grounded', ['idle'], x, ground + 3, 1, 79, 0)) {
@@ -714,12 +726,12 @@ export function drawStreams(g,toScreen,ground,streams,time,reduceMotion=false,wi
       drawCampBridge(g, x, ground, reduceMotion ? 0 : time);
       continue;
     }
-    if (creek.x > 0) sm?.draw?.(g, 'creek_pond', ['idle'], x, ground - 3, 1, 40, 0);
     sm?.draw?.(g,'habitat_fruit',['idle'],x+110,ground,1,31,0);
+    if (creek.x > 0) continue;
     for (let i = 0; i < 6; i++) {
       const drift = reduceMotion ? i * 2 : (time * 13 + i * 7) % 22;
       g.fillStyle = i % 2 ? '#a4c8ac73' : '#75a3927b';
-      const y = creek.x < 0 ? ground - 1 + i % 3 : ground - 16 + i % 5;
+      const y = ground - 1 + i % 3;
       g.fillRect(Math.round(x - 12 + drift), y, 2 + i % 3, 1);
     }
   }

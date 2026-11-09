@@ -180,14 +180,25 @@ class BenkosSpriteManager {
     ctx.restore();
     return true;
   }
-  drawAnimal(ctx,x,y,a,time){
+  drawAnimal(ctx,x,y,a,time,jaguarPose){
     if (a.species === 'SNAKE') return this.drawSnake(ctx, x, y, a);
     const cls='animal_'+(a.species||'CAPYBARA'),height={CAPYBARA:19,DEER:31,BOAR:23,MONKEY:23,MACAW:23,TURTLE:12,JAGUAR:28}[a.species]||19;
     if (a.waterFall) return this.drawDrowning(ctx, cls, x, y, a.facing, height, a.waterFall.time);
-    const t=a.animTime??time,gait=this.motion?.sample(a,t);
+    const t=a.animTime??time,gait=this.motion?.sample(a,t,a.species==='JAGUAR' ? (a.state==='FLEE' ? 20 : 23) : undefined);
+    if (jaguarPose && this.has('animal_jaguar_motion') && this.has('animal_jaguar_combat')) {
+      const combat = { CROUCH:'crouch', POUNCE:'pounce', SWIPE:'swipe', RECOVER:'recover', EAT:'eat' }[a.state];
+      const action = a.hurtTimer > 0 && a.state !== 'POUNCE' && a.state !== 'FLEE' ? 'hurt' : combat;
+      if (action) {
+        return this.draw(ctx, 'animal_jaguar_combat', [action], x, y - jaguarPose.lift,
+          a.facing, height, t, 0, jaguarPose.progress);
+      }
+      const movement = a.state === 'STALK' ? 'stalk' : a.state === 'FLEE' ? 'run'
+        : Math.abs(a.vx) > 2 ? 'walk' : 'idle';
+      return this.draw(ctx, 'animal_jaguar_motion', [movement], x, y, a.facing, height, t, .75,
+        movement === 'idle' ? (this.reduceMotion ? 0 : null) : gait?.phase ?? 0);
+    }
     const anim=a.hurtTimer>0||a.state==='CHARGE'?'hurt':a.state==='EAT'?'eat':gait?.moving||Math.abs(a.vx)>2?'walk':'idle';
-    const pounce = a.pounceTimer > 0 ? Math.sin(a.pounceTimer / .32 * Math.PI) : 0;
-    return this.draw(ctx,cls,[pounce ? 'walk' : anim],x+(a.facing||1)*pounce*7,y-pounce*4,a.facing,height,t,6,pounce ? .62 : anim==='walk'?(gait?.phase??0):null);
+    return this.draw(ctx,cls,[anim],x,y-(jaguarPose?.lift??0),a.facing,height,t,6,anim==='walk'?(gait?.phase??0):null);
   }
 
   personClass(role, tier = 1, weapon = 1) {

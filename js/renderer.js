@@ -1,19 +1,20 @@
-import { crossingFeet } from './crossings.js?v=894cb6888361';
-import { animalInStream } from './ecology.js?v=894cb6888361';
-import { torchIsLit } from './exploration.js?v=894cb6888361';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=894cb6888361';
-import { blend, color, daylightAt } from './daylight.js?v=894cb6888361';
-import { drawSky } from './sky.js?v=894cb6888361';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=894cb6888361';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=894cb6888361';
-import { createLighting } from './lighting.js?v=894cb6888361';
-import { RenderInterpolation } from './visual-motion.js?v=894cb6888361';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=894cb6888361';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=894cb6888361';
-import { drawParticle } from './effects.js?v=894cb6888361';
-import { haciendaActive } from './haciendas.js?v=894cb6888361';
-import { ROAD_GATES } from './campaign.js?v=894cb6888361';
-import { WATER_LINE_Y } from './config.js?v=894cb6888361';
+import { crossingFeet } from './crossings.js?v=3daf42021c75';
+import { animalInStream } from './ecology.js?v=3daf42021c75';
+import { jaguarPose } from './jaguar.js?v=3daf42021c75';
+import { torchIsLit } from './exploration.js?v=3daf42021c75';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=3daf42021c75';
+import { blend, color, daylightAt } from './daylight.js?v=3daf42021c75';
+import { drawSky } from './sky.js?v=3daf42021c75';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=3daf42021c75';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=3daf42021c75';
+import { createLighting } from './lighting.js?v=3daf42021c75';
+import { RenderInterpolation } from './visual-motion.js?v=3daf42021c75';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=3daf42021c75';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=3daf42021c75';
+import { drawParticle } from './effects.js?v=3daf42021c75';
+import { haciendaActive } from './haciendas.js?v=3daf42021c75';
+import { ROAD_GATES } from './campaign.js?v=3daf42021c75';
+import { WATER_LINE_Y } from './config.js?v=3daf42021c75';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -91,7 +92,7 @@ function renderWorldAboveWater(g, time, air) {
   const wind = settings.reduce_motion ? 0 : time;
   drawSky(g, w, h, GROUND_SURFACE_Y, camX, wind, air);
   drawLandscape(g, w, GROUND_SURFACE_Y, camX, air, time);
-  drawTerrainFeatures(g, toScreenX, w, GROUND_SURFACE_Y, state);
+  drawTerrainFeatures(g, toScreenX, w, GROUND_SURFACE_Y, state, wind);
   drawMist(g, w, GROUND_SURFACE_Y, camX, air, wind);
 
   drawCampEnclosure(g, w, GROUND_SURFACE_Y, camX, state.walls);
@@ -203,7 +204,8 @@ function renderWorldAboveWater(g, time, air) {
       g.fillRect(sx - 9, ay - 1, 6, 1);
       g.fillRect(sx + 5, ay + 1, 6, 1);
     }
-    if(window.SpriteManager?.drawAnimal?.(g,sx,ay,an,time)){
+    const pose = an.species === 'JAGUAR' ? jaguarPose(an) : null;
+    if(window.SpriteManager?.drawAnimal?.(g,sx,ay,an,time,pose)){
       if(an.trapped||an.nettedTimer>0){g.strokeStyle='#c2ac70';g.lineWidth=1;g.strokeRect(sx-9,ay-9,18,9);for(let i=-6;i<9;i+=4){g.beginPath();g.moveTo(sx+i,ay-9);g.lineTo(sx+i+6,ay);g.stroke();}}
       if(an.trust>=2){g.fillStyle='#a8c984';g.fillRect(sx-1,ay+2,3,2);}
     }

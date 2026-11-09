@@ -4,7 +4,11 @@ import {createInitialState} from '../js/world-state.js';
 import {createAnimal,seedEcology,interactEcology,updateEcology,isHuntable,SPECIES} from '../js/ecology.js';
 import {makeSave,restoreSave} from '../js/save-system.js';
 import {seedFrontier} from '../js/exploration.js';
+import {jaguarPose} from '../js/jaguar.js';
 function world(species){const s=createInitialState();s.benkos.x=0;if(species)s.wildlife=[createAnimal(1,species,10)];return s;}
+function step(state, frames, hooks) {
+  for (let frame = 0; frame < frames; frame++) updateEcology(state, 1 / 60, hooks);
+}
 
 test('migration seeds seven species without duplicate animals or identifiers',()=>{
   const s=world();s.wildlife=[createAnimal(1,'CAPYBARA',-560)];let id=2;seedEcology(s,()=>id++);
@@ -31,6 +35,12 @@ test('a turtle stays dry on the village bridge and enters water in an open creek
   updateEcology(state, .1);
   assert.equal(turtle.inWater, true);
   assert.equal(turtle.y, state.benkos.y + 3);
+  let id = 200;
+  seedFrontier(state, () => id++);
+  turtle.x = state.ecology.streams.find(stream => stream.id === 'creek_mangrove').x;
+  updateEcology(state, .1);
+  assert.equal(turtle.inWater, false);
+  assert.equal(turtle.y, state.benkos.y);
 });
 test('monkey gifts are limited to once a day and macaws report the incoming route',()=>{
   const s=world('MONKEY');interactEcology(s);assert.equal(s.coins,17);updateEcology(s,16);interactEcology(s);assert.equal(s.coins,17);
@@ -39,8 +49,16 @@ test('monkey gifts are limited to once a day and macaws report the incoming rout
 });
 test('deer flee from running people, while feeding calms an aggressive jaguar',()=>{
   const deer=world('DEER');deer.benkos.vx=155;updateEcology(deer,.1);assert.equal(deer.wildlife[0].state,'FLEE');assert.ok(deer.wildlife[0].vx>0);
-  const cat=world('JAGUAR');let hits=0;updateEcology(cat,.1,{damagePlayer:()=>hits++});assert.equal(hits,1);
-  interactEcology(cat);assert.equal(cat.resources.food,3);updateEcology(cat,.5,{damagePlayer:()=>hits++});assert.equal(hits,1);
+  const cat = world('JAGUAR');
+  let hits = 0;
+  const hooks = { damagePlayer: () => hits++ };
+  step(cat, 3, hooks);
+  assert.equal(cat.wildlife[0].state, 'SWIPE');
+  assert.equal(hits, 0);
+  interactEcology(cat);
+  assert.equal(cat.resources.food, 3);
+  step(cat, 140, hooks);
+  assert.equal(hits, 0);
 });
 test('drinking has a cooldown and cannot reduce or mint spirit',()=>{
   const s=world();s.benkos.x=s.ecology.streams[0].x;s.benkos.spirit=60;interactEcology(s);assert.equal(s.benkos.spirit,78);
@@ -61,9 +79,9 @@ test('forest fruit can only be collected once per stream each day',()=>{
 test('jaguars strike colonial enemies and culebras warn before biting or retreat from light', () => {
   const jaguar = world('JAGUAR');
   jaguar.wildlife[0].trust = 2;
-  jaguar.enemies.push({x: 29, hp: 40});
+  jaguar.enemies.push({id: 20, x: 29, hp: 40});
   let bites = 0;
-  updateEcology(jaguar, .1, {damagePlayer: () => bites++});
+  step(jaguar, 28, {damagePlayer: () => bites++});
   assert.equal(jaguar.enemies[0].hp, 16);
   assert.equal(bites, 0);
   const snake = world('SNAKE');
@@ -76,6 +94,53 @@ test('jaguars strike colonial enemies and culebras warn before biting or retreat
   updateEcology(lit, .6, {torchLit: true, damagePlayer: () => bites++});
   assert.equal(lit.wildlife[0].state, 'FLEE');
   assert.equal(bites, 1);
+});
+test('a jaguar telegraphs its pounce, moves through the air and can be dodged', () => {
+  for (const dodge of [false, true]) {
+    const state = world('JAGUAR');
+    const jaguar = state.wildlife[0];
+    state.benkos.x = 62;
+    let hits = 0;
+    const hooks = { damagePlayer: () => hits++ };
+    step(state, 12, hooks);
+    assert.equal(jaguar.state, 'CROUCH');
+    assert.equal(hits, 0);
+    step(state, 12, hooks);
+    assert.equal(jaguar.state, 'POUNCE');
+    assert.ok(jaguar.x > 10 && jaguarPose(jaguar).lift > 0);
+    if (dodge) state.benkos.x = -50;
+    step(state, 18, hooks);
+    assert.equal(jaguar.state, 'RECOVER');
+    assert.equal(jaguarPose(jaguar).lift, 0);
+    assert.equal(hits, dodge ? 0 : 1);
+  }
+});
+test('a jaguar retreats from a crowd, injury or a torch', () => {
+  for (const danger of ['crowd', 'injury', 'torch']) {
+    const state = world('JAGUAR');
+    const jaguar = state.wildlife[0];
+    state.benkos.x = 38;
+    if (danger === 'injury') jaguar.hp = 20;
+    if (danger === 'crowd') state.enemies = [50, 60, 65].map((x, id) => ({ x, id, hp: 40 }));
+    let hits = 0;
+    step(state, 30, { torchLit: danger === 'torch', damagePlayer: () => hits++ });
+    assert.equal(jaguar.state, 'FLEE');
+    assert.ok(jaguar.x < -30);
+    assert.equal(hits, 0);
+  }
+});
+test('saving a jaguar mid-pounce preserves whether it already landed its hit', () => {
+  const state = world('JAGUAR');
+  state.benkos.x = 62;
+  let hits = 0;
+  const hooks = { damagePlayer: () => hits++ };
+  step(state, 33, hooks);
+  assert.equal(state.wildlife[0].state, 'POUNCE');
+  assert.equal(hits, 1);
+  const {state: restored} = restoreSave(makeSave(state, 100), createInitialState());
+  step(restored, 12, hooks);
+  assert.equal(restored.wildlife[0].state, 'RECOVER');
+  assert.equal(hits, 1);
 });
 test('animals, trust, food and water stocks survive saves; old attacks do not deal damage twice on migration',()=>{
   const s=world('TURTLE');s.ecology.seeded=true;s.wildlife[0].trust=2;s.ecology.streams[0].fishStock=1;

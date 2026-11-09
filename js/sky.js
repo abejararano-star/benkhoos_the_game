@@ -1,4 +1,4 @@
-import { blend, color, smooth } from './daylight.js?v=894cb6888361';
+import { blend, color, smooth } from './daylight.js?v=3daf42021c75';
 
 const fract = value => value - Math.floor(value);
 export const landscapeSeed = index => fract(Math.sin(index * 78.233 + 19.19) * 43758.5453);

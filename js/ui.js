@@ -1,18 +1,18 @@
-import { needsCropCare } from './crops.js?v=894cb6888361';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=894cb6888361';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=894cb6888361';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=894cb6888361';
-import { describeTraits } from './daily-life.js?v=894cb6888361';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=894cb6888361';
-import { canMediate, relationshipsFor } from './community.js?v=894cb6888361';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=894cb6888361';
-import { ecologyHint } from './ecology.js?v=894cb6888361';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=894cb6888361';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=894cb6888361';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=894cb6888361';
-import { arrivalHint } from './campaign.js?v=894cb6888361';
-import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=894cb6888361';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=894cb6888361';
+import { needsCropCare } from './crops.js?v=3daf42021c75';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=3daf42021c75';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=3daf42021c75';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=3daf42021c75';
+import { describeTraits } from './daily-life.js?v=3daf42021c75';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=3daf42021c75';
+import { canMediate, relationshipsFor } from './community.js?v=3daf42021c75';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=3daf42021c75';
+import { ecologyHint } from './ecology.js?v=3daf42021c75';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=3daf42021c75';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3daf42021c75';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=3daf42021c75';
+import { arrivalHint } from './campaign.js?v=3daf42021c75';
+import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=3daf42021c75';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=3daf42021c75';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);

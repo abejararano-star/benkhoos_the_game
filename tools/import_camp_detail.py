@@ -32,7 +32,7 @@ def import_camp_detail(output):
             'hand_torch_flame': (320, 545, 97, 125, 125),
             'mine_cliff': (792, 529, 735, 446, 446),
         },
-        'creek_pond_v16': {'creek_pond': (4, 128, 2164, 474, 474)},
+        'creek_eddy_v17': {'creek_eddy': (53, 313, 2066, 199, 199)},
         'grounded_creeks_v15': {
             'camp_creek_grounded': (0, 96, 990, 616, 610),
             'ravine_pool_grounded': (1060, 0, 1112, 724, 724),
@@ -102,4 +102,32 @@ def import_camp_detail(output):
         sprites[name] = dict(sheet=sheet, ref=scale, contactFrame=2,
                              anims={action: [frames[index] for index in indices]
                                     for action, indices in animations.items()})
+    jaguar_sequences = [
+        ('animal_jaguar_motion', 'jaguar_motion_v17',
+         [196, 540, 891, 1250, 187, 547, 888, 1252, 196, 550, 891, 1251],
+         [286] * 4 + [617] * 4 + [953] * 4,
+         [(65,113,319,285), (410,113,660,285), (748,137,1023,282), (1110,145,1384,279),
+          (50,456,322,616), (403,456,676,616), (748,464,1041,614), (1107,464,1402,614),
+          (32,806,360,936), (398,809,689,952), (757,806,1025,951), (1111,793,1400,952)],
+         {'idle': [0, 1], 'stalk': [2, 3], 'walk': [4, 5, 6, 7], 'run': [8, 9, 10, 11]}),
+        ('animal_jaguar_combat', 'jaguar_combat_v17',
+         [182, 528, 893, 1251, 175, 531, 890, 1245, 181, 529, 889, 1251],
+         [299, 299, 266, 299] + [625] * 4 + [958] * 4,
+         [(41,188,323,296), (388,141,664,297), (737,147,1075,264), (1111,169,1411,298),
+          (39,454,291,623), (387,450,695,624), (745,477,1041,623), (1108,462,1378,623),
+          (35,819,325,955), (391,783,665,956), (743,790,1035,956), (1107,813,1398,960)],
+         {'crouch': [0], 'pounce': [1, 2, 3], 'swipe': [4, 5, 6, 7],
+          'recover': [8, 9], 'hurt': [10], 'eat': [11]}),
+    ]
+    for name, sheet, axes, ground_lines, bounds, animations in jaguar_sequences:
+        filename = sheet + '.png'
+        if output.resolve() != source:
+            copyfile(source / filename, output / filename)
+        frames = []
+        for index, (left, top, right, bottom) in enumerate(bounds):
+            x, y = left - 4, top - 4
+            frames.append(dict(i=index, x=x, y=y, w=right-x+5, h=bottom-y+5,
+                               ax=axes[index]-x, ay=ground_lines[index]-y))
+        sprites[name] = dict(sheet=sheet, ref=172,
+                             anims={name: [frames[i] for i in indices] for name, indices in animations.items()})
     return sprites

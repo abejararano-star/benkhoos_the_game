@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=894cb6888361';
-import { strikeEnemy } from './combat.js?v=894cb6888361';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3daf42021c75';
+import { updateJaguar } from './jaguar.js?v=3daf42021c75';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -12,7 +12,7 @@ export const SPECIES=Object.freeze({
   SNAKE:{name:'Culebra',hp:12,speed:38,food:0}
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-export const shallowWaterAt = (streams, x) => streams.some(creek => !creek.bridge && Math.abs(creek.x - x) < 23);
+export const shallowWaterAt = (streams, x) => streams.some(creek => !creek.bridge && creek.x <= 0 && Math.abs(creek.x - x) < 23);
 export const animalInStream = (animal, streams, x = animal.x) =>
   (animal.species === 'TURTLE' || animal.species === 'CAPYBARA') && shallowWaterAt(streams, x);
 export function initialEcology() {
@@ -77,6 +77,7 @@ export function ecologyHint(state){
   }
   const a=item.target,name=SPECIES[a.species].name;
   if (a.species === 'SNAKE') return 'Culebra · Deja espacio al cruzar';
+  if (a.jaguarAction?.kind === 'POUNCE') return 'Jaguar · Esquiva el salto';
   return a.trapped?`E · Liberar ${name.toLowerCase()} de la trampa`:a.species==='MACAW'&&a.trust?`E · Escuchar a la guacamaya`:`E · Alimentar ${name.toLowerCase()} · ${a.species==='JAGUAR'?2:1} alimento`;
 }
 export function interactEcology(state,{fish=false}={}){
@@ -97,12 +98,14 @@ export function interactEcology(state,{fish=false}={}){
   }
   const a=item.target,spec=SPECIES[a.species];
   if (a.species === 'SNAKE') return { handled: true, message: 'Dale espacio a la culebra. Con la antorcha se aparta.' };
+  if (a.jaguarAction?.kind === 'POUNCE') return { handled: true, message: 'Esquiva el salto antes de acercarte.' };
   if(a.trapped){a.trapped=false;a.rescued=true;a.trust=1;state.score+=25;state.morale=Math.min(125,state.morale+2);return {handled:true,message:`${spec.name} libre · +25 puntos`};}
   if(a.species==='MACAW'&&a.trust>0){const order=state.campaign?.orders?.[0];const enemy=state.enemies[0];return {handled:true,message:order?`La guacamaya mira al ${order.side<0?'occidente':'oriente'}: una expedición está en camino.`:enemy?`La guacamaya avisa de movimiento al ${enemy.x<0?'occidente':'oriente'}.`:'La guacamaya no distingue enemigos por los senderos.'};}
   if(a.feedCooldown>0)return {handled:true,message:`${spec.name} ya ha comido. Acércate con calma.`};
   const cost=a.species==='JAGUAR'?2:1;
   if(state.resources.food<cost)return {handled:true,message:`Necesitas ${cost} de alimento. Los agricultores y cazadores abastecen el palenque.`};
   state.resources.food-=cost;a.trust=Math.min(5,a.trust+(a.species==='MACAW'?2:1));a.feedCooldown=15;a.aggression=0;a.fear=0;a.state='EAT';a.eatTimer=2;
+  if (a.species === 'JAGUAR') { a.jaguarAction = null; a.fleeTime = 0; }
   let coins=0;if(a.species==='MONKEY'&&a.lastGiftDay!==state.day&&state.coins<state.maxCoins){coins=1;state.coins++;a.lastGiftDay=state.day;}
   return {handled:true,message:coins?'El mono te entrega una moneda que encontró.':a.trust>=2?`${spec.name} confía en ti. Te acompañará si avanzas con calma.`:`${spec.name} acepta el alimento. Su confianza aumenta.`};
 }
@@ -123,17 +126,22 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
     a.feedCooldown=Math.max(0,a.feedCooldown-dt);a.attackCooldown=Math.max(0,a.attackCooldown-dt);a.aggression=Math.max(0,a.aggression-dt);
     if(a.waterFall && a.hp > 0) continue;
     if(a.hp<=0){if(!a.waterFall && spec.huntable&&!collectHunt(a,spec.food)){state.resources.food+=spec.food;dropCoin(a.x);notice(a.x,`+${spec.food} alimento · caza`);}state.wildlife.splice(i,1);continue;}
-    if(a.hp<(a.lastHp??a.hp)){a.aggression=spec.predator?8:0;a.fear=90;a.hurtTimer=.3;}a.lastHp=a.hp;a.hurtTimer=Math.max(0,(a.hurtTimer??0)-dt);
+    const hurt = a.hp < (a.lastHp ?? a.hp);
+    if(hurt){a.aggression=spec.predator?8:0;a.fear=90;a.hurtTimer=.3;}a.lastHp=a.hp;a.hurtTimer=Math.max(0,(a.hurtTimer??0)-dt);
     updateAnimalWater(a, e.streams);
     if(a.trapped||a.nettedTimer>0){a.nettedTimer=Math.max(0,a.nettedTimer-dt);a.vx=0;a.state='TRAPPED';continue;}
     if(a.eatTimer>0){a.eatTimer-=dt;a.vx=0;a.state='EAT';continue;}
+    if (a.species === 'JAGUAR' && updateJaguar(a, state, dt, spec.speed, { damagePlayer, notice, torchLit, hurt })) {
+      a.x = clamp(a.x, WORLD_MIN_X + 50, WORLD_MAX_X - 50);
+      continue;
+    }
     const dx=b.x-a.x,dist=Math.abs(dx);
     const enemy = state.enemies.reduce((closest, candidate) => {
       const gap = Math.abs(candidate.x - a.x);
       return candidate.hp > 0 && !(candidate.appearTimer > 0) && gap < (closest ? Math.abs(closest.x - a.x) : 120) ? candidate : closest;
     }, null);
     const danger = !!enemy;
-    const threatened=danger||dist<100&&(Math.abs(b.vx)>115||b.attackTimer>0);
+    const threatened=a.species!=='JAGUAR'&&(danger||dist<100&&(Math.abs(b.vx)>115||b.attackTimer>0));
     if(a.trust>0)a.aggression=0;
     if (a.species === 'SNAKE' && (dist < 45 || danger)) {
       const retreat = torchLit || danger || a.attackCooldown > 0;
@@ -147,20 +155,10 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
         a.warningTime = 0;
         damagePlayer(8, a.facing);
       }
-    } else if (a.species === 'JAGUAR' && enemy && (a.trust > 0 || dist > 55 || Math.abs(enemy.x - a.x) < dist)) {
-      const gap = enemy.x - a.x;
-      a.state = 'HUNT_ENEMY';
-      a.facing = Math.sign(gap) || a.facing;
-      a.vx = Math.abs(gap) > 21 ? a.facing * spec.speed * 1.35 : 0;
-      if (Math.abs(gap) <= 24 && a.attackCooldown <= 0 && strikeEnemy(enemy, a.trust >= 2 ? 24 : 17, a.facing)) {
-        a.attackCooldown = 2.4;
-        a.pounceTimer = .32;
-        notice(enemy.x, 'Zarpazo del jaguar');
-      }
-    }else if(spec.predator&&a.trust===0&&(a.aggression>0||a.species==='JAGUAR'&&dist<55)){
+    }else if(spec.predator&&a.species!=='JAGUAR'&&a.trust===0&&a.aggression>0){
       a.state='CHARGE';a.vx=Math.sign(dx)*spec.speed*1.35;a.facing=Math.sign(dx)||1;
-      if(dist<24&&a.attackCooldown<=0){a.attackCooldown=1.8;damagePlayer(a.species==='JAGUAR'?16:10,a.facing);}
-    }else if(threatened&&a.trust<2||a.fear>30){a.state='FLEE';a.vx=-(Math.sign(dx)||1)*spec.speed*1.5;a.facing=Math.sign(a.vx);a.fear=Math.max(0,a.fear-dt*25);}
+      if(dist<24&&a.attackCooldown<=0){a.attackCooldown=1.8;damagePlayer(10,a.facing);}
+    }else if(threatened&&a.trust<2||a.species!=='JAGUAR'&&a.fear>30){a.state='FLEE';a.vx=-(Math.sign(dx)||1)*spec.speed*1.5;a.facing=Math.sign(a.vx);a.fear=Math.max(0,a.fear-dt*25);}
     else if(a.trust>=2&&dist<350){
       const target=b.x-b.facing*(48+(Number(a.id)%3)*22);a.vx=Math.abs(target-a.x)>22?Math.sign(target-a.x)*spec.speed*1.3:0;a.state=a.vx?'FOLLOW':'IDLE';if(a.vx)a.facing=Math.sign(a.vx);
     }else{
@@ -170,7 +168,6 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
       if(Math.abs(a.x-a.homeX)>150)a.vx=-Math.sign(a.x-a.homeX)*spec.speed*.6;
       a.state=a.vx?'WALK':'IDLE';if(a.vx)a.facing=Math.sign(a.vx);
     }
-    a.pounceTimer = Math.max(0, (a.pounceTimer ?? 0) - dt);
     a.x = clamp(a.x + a.vx * dt, WORLD_MIN_X + 50, WORLD_MAX_X - 50);
     updateAnimalWater(a, e.streams);
     if (spec.flying) a.y = WATER_LINE_Y - 25 - Math.sin(e.time * 2 + (Number(a.id) || 1)) * 7;
