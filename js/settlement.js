@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=c2813accfb42';
-import { CAMP_EDGE } from './config.js?v=c2813accfb42';
+import { ALTAR_X } from './exploration.js?v=3d37a370ad47';
+import { CAMP_EDGE } from './config.js?v=3d37a370ad47';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -141,6 +141,7 @@ export function requestBuilding(state, kind, id) {
 
 export function constructionStatus(state, job) {
   if (job.working) return 'En obra';
+  if (job.kind === 'rack' && job.targetId === 'rack_hammer') return 'Esperando al forjador';
   return state.units.some(unit => unit.role === 'CONSTRUCTOR' && unit.hp > 0)
     ? 'Esperando al constructor' : 'Requiere un constructor';
 }
@@ -148,10 +149,11 @@ export function constructionStatus(state, job) {
 export function advanceConstruction(state, dt, onComplete) {
   const settlement = state.settlement;
   if (!settlement.projects.length) return;
-  const builders = state.units.filter(unit => unit.role === 'CONSTRUCTOR' && unit.hp > 0 && unit.activity === 'BUILD');
+  const builders = state.units.filter(unit => unit.hp > 0 && unit.activity === 'BUILD' && unit.constructionJob);
   for (let index = settlement.projects.length - 1; index >= 0; index--) {
     const job = settlement.projects[index];
-    job.working = builders.some(unit => unit.constructionJob === job.id && Math.abs(unit.x - job.x) <= WORK_REACH);
+    job.working = builders.some(unit => unit.constructionJob === job.id && Math.abs(unit.x - job.x) <= WORK_REACH &&
+      (unit.role === 'CONSTRUCTOR' || job.kind === 'rack' && job.targetId === 'rack_hammer'));
     if (!job.working) continue;
     job.progress = Math.min(1, job.progress + dt / job.duration);
     if (job.progress < 1 - 1e-8) continue;
@@ -175,11 +177,11 @@ export function advanceConstruction(state, dt, onComplete) {
   }
 }
 
-export function workConstruction(unit, state, dt, reserved = new Set()) {
+export function workConstruction(unit, state, dt, reserved = new Set(), onlyJob = null) {
   delete unit.constructionJob;
   let job = null;
   for (const candidate of state.settlement.projects) {
-    if (reserved.has(candidate.id)) continue;
+    if (reserved.has(candidate.id) || onlyJob && candidate !== onlyJob) continue;
     if (!job || Math.abs(candidate.x - unit.x) < Math.abs(job.x - unit.x)) job = candidate;
   }
   if (!job) { unit.vx = 0; unit.activity = 'IDLE'; unit.mood = 'Esperando una obra'; return null; }

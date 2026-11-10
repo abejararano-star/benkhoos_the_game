@@ -1,21 +1,21 @@
-import { crossingFeet } from './crossings.js?v=c2813accfb42';
-import { animalInStream } from './ecology.js?v=c2813accfb42';
-import { jaguarPose } from './jaguar.js?v=c2813accfb42';
-import { torchIsLit } from './exploration.js?v=c2813accfb42';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=c2813accfb42';
-import { blend, color, daylightAt } from './daylight.js?v=c2813accfb42';
-import { drawSky } from './sky.js?v=c2813accfb42';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=c2813accfb42';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=c2813accfb42';
-import { createLighting } from './lighting.js?v=c2813accfb42';
-import { RenderInterpolation } from './visual-motion.js?v=c2813accfb42';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=c2813accfb42';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=c2813accfb42';
-import { drawParticle } from './effects.js?v=c2813accfb42';
-import { haciendaActive } from './haciendas.js?v=c2813accfb42';
-import { ROAD_GATES } from './campaign.js?v=c2813accfb42';
-import { CITIES, OUTPOSTS } from './story.js?v=c2813accfb42';
-import { WATER_LINE_Y } from './config.js?v=c2813accfb42';
+import { crossingFeet } from './crossings.js?v=3d37a370ad47';
+import { animalInStream } from './ecology.js?v=3d37a370ad47';
+import { jaguarPose } from './jaguar.js?v=3d37a370ad47';
+import { torchIsLit } from './exploration.js?v=3d37a370ad47';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=3d37a370ad47';
+import { blend, color, daylightAt } from './daylight.js?v=3d37a370ad47';
+import { drawSky } from './sky.js?v=3d37a370ad47';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=3d37a370ad47';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=3d37a370ad47';
+import { createLighting } from './lighting.js?v=3d37a370ad47';
+import { RenderInterpolation } from './visual-motion.js?v=3d37a370ad47';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=3d37a370ad47';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=3d37a370ad47';
+import { drawParticle } from './effects.js?v=3d37a370ad47';
+import { haciendaActive } from './haciendas.js?v=3d37a370ad47';
+import { COLONIAL_POSTS, orderPost } from './frontier.js?v=3d37a370ad47';
+import { CITIES, OUTPOSTS } from './story.js?v=3d37a370ad47';
+import { WATER_LINE_Y } from './config.js?v=3d37a370ad47';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -104,7 +104,7 @@ function renderWorldAboveWater(g, time, air) {
   for (const city of CITIES) {
     const x = toScreenX(city.cityX);
     if (x < -240 || x > w + 240) continue;
-    sprites?.draw?.(g, city.sprite, ['idle'], x, GROUND_SURFACE_Y + 1, 1, 151, 0);
+    sprites?.draw?.(g, city.sprite, ['idle'], x, GROUND_SURFACE_Y + 1, 1, city.side < 0 ? 163 : 142, 0);
     const envoy = city.side < 0 ? 'actor_messenger' : 'actor_identity_f';
     sprites?.draw?.(g, envoy, ['idle'], x + city.gateOffset + 18, GROUND_SURFACE_Y, -city.side, 43, 0);
   }
@@ -224,12 +224,17 @@ function renderWorldAboveWater(g, time, air) {
     const pose = an.species === 'JAGUAR' ? jaguarPose(an) : null;
     if(window.SpriteManager?.drawAnimal?.(g,sx,ay,an,time,pose)){
       if(an.trapped||an.nettedTimer>0){g.strokeStyle='#c2ac70';g.lineWidth=1;g.strokeRect(sx-9,ay-9,18,9);for(let i=-6;i<9;i+=4){g.beginPath();g.moveTo(sx+i,ay-9);g.lineTo(sx+i+6,ay);g.stroke();}}
-      if(an.trust>=2){g.fillStyle='#a8c984';g.fillRect(sx-1,ay+2,3,2);}
+      if(an.trust>=2){g.fillStyle=an.bonded?'#e8bf69':'#a8c984';g.fillRect(sx-1,ay+2,3,2);}
     }
   });
   for(const corpse of state.corpses)window.SpriteManager?.drawCorpse?.(g,toScreenX(corpse.x),GROUND_SURFACE_Y,corpse);
 
-  ROAD_GATES.forEach(gate => drawRoadGate(g,toScreenX(gate.x),GROUND_SURFACE_Y,gate.side,state.campaign.orders.some(o=>o.side===gate.side)));
+  for (const gate of COLONIAL_POSTS) {
+    const x = toScreenX(gate.x);
+    if (x < -120 || x > w + 120) continue;
+    const incoming = state.campaign.orders.some(order => orderPost(state.campaign, order, state.day).id === gate.id);
+    drawRoadGate(g, x, GROUND_SURFACE_Y, gate.side, incoming, gate.grade);
+  }
   state.units.forEach((u) => {
     const sx = toScreenX(position(u));
     if (sx < -50 || sx > w + 50) return;

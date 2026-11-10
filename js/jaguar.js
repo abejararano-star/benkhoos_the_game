@@ -1,9 +1,9 @@
-import { inStrikeRange, strikeEnemy } from './combat.js?v=c2813accfb42';
+import { inStrikeRange, strikeEnemy } from './combat.js?v=3d37a370ad47';
 
 const DURATION = { CROUCH: .28, POUNCE: .36, SWIPE: .4, RECOVER: .32 };
 
-function action(a, kind, targetId = null, speed = 0, prey = false) {
-  a.jaguarAction = { kind, targetId, speed, elapsed: 0, hit: false, prey };
+function action(a, kind, targetId = null, speed = 0, prey = false, ally = false) {
+  a.jaguarAction = { kind, targetId, speed, elapsed: 0, hit: false, prey, ally };
   a.state = kind;
   a.vx = 0;
 }
@@ -15,13 +15,13 @@ export function jaguarPose(a) {
   return { progress, lift: current?.kind === 'POUNCE' ? 64 * progress * (1 - progress) : 0 };
 }
 
-function advanceAttack(a, state, dt, damagePlayer, notice) {
+function advanceAttack(a, state, dt, damagePlayer, damageAlly, notice) {
   const current = a.jaguarAction;
   const { kind, targetId } = current;
   const target = targetId === 'player' ? state.benkos :
-    (current.prey ? state.wildlife : state.enemies).find(actor => actor.id === targetId);
+    (current.prey ? state.wildlife : current.ally ? state.units : state.enemies).find(actor => actor.id === targetId);
   const available = target && !target.waterFall && !(target.hp <= 0) && !(target.appearTimer > 0)
-    && (targetId !== 'player' || !a.trust);
+    && (targetId !== 'player' && !current.ally || !a.trust);
   const gap = available ? target.x - a.x : 0;
   const previous = current.elapsed;
   current.elapsed = Math.min(DURATION[kind], previous + dt);
@@ -30,7 +30,7 @@ function advanceAttack(a, state, dt, damagePlayer, notice) {
     else if (current.elapsed >= DURATION.CROUCH) {
       a.facing = Math.sign(gap) || a.facing;
       const lead = current.prey ? Math.max(0, Math.min(20, (target.vx ?? 0) * a.facing * .3)) : 0;
-      action(a, 'POUNCE', targetId, Math.max(65, (Math.abs(gap) + lead - 9) / DURATION.POUNCE), current.prey);
+      action(a, 'POUNCE', targetId, Math.max(65, (Math.abs(gap) + lead - 9) / DURATION.POUNCE), current.prey, current.ally);
     }
     return;
   }
@@ -43,6 +43,7 @@ function advanceAttack(a, state, dt, damagePlayer, notice) {
   if (available && contact && !current.hit && inStrikeRange(a, target, kind === 'SWIPE' ? 26 : 25)) {
     current.hit = true;
     if (targetId === 'player') damagePlayer(kind === 'POUNCE' ? 20 : 16, a.facing);
+    else if (current.ally) damageAlly(target, kind === 'POUNCE' ? 20 : 16, a.facing);
     else if (current.prey) {
       target.hp -= kind === 'POUNCE' ? 32 : 22;
       target.lastHp = target.hp;
@@ -71,15 +72,20 @@ function advanceAttack(a, state, dt, damagePlayer, notice) {
 }
 
 // Return false to use the usual following and wandering behaviors.
-export function updateJaguar(a, state, dt, speed, { damagePlayer, notice, torchLit, hurt, prey }) {
+export function updateJaguar(a, state, dt, speed, { damagePlayer, damageAlly, notice, torchLit, hurt, prey }) {
   const b = state.benkos;
   const dist = Math.abs(b.x - a.x);
   const enemies = state.enemies.filter(enemy =>
     enemy.hp > 0 && !(enemy.appearTimer > 0) && !enemy.waterFall && Math.abs(enemy.x - a.x) < 120);
   const enemy = enemies.reduce((closest, candidate) =>
     !closest || Math.abs(candidate.x - a.x) < Math.abs(closest.x - a.x) ? candidate : closest, null);
+  const ally = !a.trust && state.units.filter(unit => unit.hp > 0 && !unit.waterFall &&
+    ['GUERRERO', 'ESPADACHIN', 'ARQUERO', 'CABALLERO_ALIADO', 'CAZADOR', 'CAMPEON_REAL'].includes(unit.role) &&
+    Math.abs(unit.x - a.x) < (a.aggression > 0 ? 92 : 48)).reduce((closest, candidate) =>
+      !closest || Math.abs(candidate.x - a.x) < Math.abs(closest.x - a.x) ? candidate : closest, null);
   const playerNear = !a.trust && !b.waterFall && dist < (a.aggression > 0 ? 92 : 58);
-  const threat = playerNear && (!enemy || dist <= Math.abs(enemy.x - a.x)) ? b : enemy;
+  const threat = [enemy, ally, playerNear && b].filter(Boolean).reduce((closest, candidate) =>
+    !closest || Math.abs(candidate.x - a.x) < Math.abs(closest.x - a.x) ? candidate : closest, null);
   const wounded = a.hp <= a.maxHp * .36 || a.bornAt !== undefined;
   const outnumbered = enemies.length >= (a.trust >= 2 ? 4 : 3);
   const deterred = torchLit && !a.trust && !b.waterFall && dist < 47;
@@ -99,7 +105,7 @@ export function updateJaguar(a, state, dt, speed, { damagePlayer, notice, torchL
   }
   if (hurt && a.jaguarAction?.kind !== 'POUNCE') action(a, 'RECOVER');
   if (a.jaguarAction && DURATION[a.jaguarAction.kind]) {
-    advanceAttack(a, state, dt, damagePlayer, notice);
+    advanceAttack(a, state, dt, damagePlayer, damageAlly, notice);
     return true;
   }
   const target = threat ?? (!wounded ? prey : null);
@@ -111,8 +117,8 @@ export function updateJaguar(a, state, dt, speed, { damagePlayer, notice, torchL
   a.state = 'STALK';
   a.vx = Math.abs(gap) > 22 ? a.facing * speed * (hunting ? 1.1 : .67) : 0;
   if (a.attackCooldown <= 0) {
-    if (Math.abs(gap) <= 24) action(a, 'SWIPE', targetId, 0, hunting);
-    else if (Math.abs(gap) <= 70) action(a, 'CROUCH', targetId, 0, hunting);
+    if (Math.abs(gap) <= 24) action(a, 'SWIPE', targetId, 0, hunting, target === ally);
+    else if (Math.abs(gap) <= 70) action(a, 'CROUCH', targetId, 0, hunting, target === ally);
   }
   a.x += a.vx * dt;
   return true;

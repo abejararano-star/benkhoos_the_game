@@ -1,18 +1,18 @@
-import { needsCropCare } from './crops.js?v=c2813accfb42';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=c2813accfb42';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=c2813accfb42';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=c2813accfb42';
-import { describeTraits } from './daily-life.js?v=c2813accfb42';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=c2813accfb42';
-import { canMediate, relationshipsFor } from './community.js?v=c2813accfb42';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=c2813accfb42';
-import { ecologyHint } from './ecology.js?v=c2813accfb42';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=c2813accfb42';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=c2813accfb42';
-import { arrivalHint } from './campaign.js?v=c2813accfb42';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=c2813accfb42';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=c2813accfb42';
+import { needsCropCare } from './crops.js?v=3d37a370ad47';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=3d37a370ad47';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=3d37a370ad47';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=3d37a370ad47';
+import { describeTraits } from './daily-life.js?v=3d37a370ad47';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=3d37a370ad47';
+import { canMediate, relationshipsFor } from './community.js?v=3d37a370ad47';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=3d37a370ad47';
+import { ecologyHint } from './ecology.js?v=3d37a370ad47';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=3d37a370ad47';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3d37a370ad47';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort } from './people.js?v=3d37a370ad47';
+import { arrivalHint } from './campaign.js?v=3d37a370ad47';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=3d37a370ad47';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=3d37a370ad47';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -545,6 +545,8 @@ export function createUI({ state, session, settings, actions }) {
     for(const key of WORK_ROLES){const option=document.createElement('option');option.value=key;option.textContent=`${ROLE_NAMES[key]} · afinidad ${affinity(u,key).toFixed(1)}/5`;option.disabled=!roleAvailable(key,state.armyTier);role.append(option);}
     role.value=u.requestedRole??u.preferredRole;
     $('btnAssignProfession').disabled=['FUGITIVO','CAMPEON_REAL'].includes(u.role);
+    $('btnMountedEscort').classList.toggle('hidden', u.role !== 'CABALLERO_ALIADO');
+    text('btnMountedEscort', u.escortBenkos ? 'Volver a la defensa del palenque' : 'Asignar a la escolta de Benkos');
     $('btnPersonAuto').disabled=['FUGITIVO','CAMPEON_REAL'].includes(u.role);
     const portrait=$('personPortrait').getContext('2d');portrait.clearRect(0,0,128,160);portrait.save();portrait.scale(2.5,2.5);
     window.SpriteManager?.drawAlly?.(portrait,25,60,1,{...u,vx:0,hurtTimer:0,activity:'IDLE',animSeed:0,carryingSack:false},0);portrait.restore();
@@ -568,6 +570,12 @@ export function createUI({ state, session, settings, actions }) {
   }
   on('btnAssignProfession',()=>{const res=actions.assignRole(selectedPersonId,$('personNewRole').value);renderPerson();text('personFeedback',res.message);});
   on('btnPersonAuto',()=>{actions.autoRole(selectedPersonId);renderPerson();text('personFeedback','Elegirá su oficio preferido cuando haya herramientas y el camino sea seguro.');});
+  on('btnMountedEscort', () => {
+    const unit = state.units.find(person => person.id === selectedPersonId);
+    if (!unit) return;
+    text('personFeedback', toggleMountedEscort(unit, state));
+    renderPerson();
+  });
   return { update, banner, open, openStory, closeAll, resume, menu, result, togglePause, toggleMap, toggleArmory, applySettings, openPeople, openSettlement, renderWorldOverlay,
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),

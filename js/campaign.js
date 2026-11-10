@@ -1,5 +1,6 @@
-import { storyChapter } from './story.js?v=c2813accfb42';
-export const ROAD_GATES = Object.freeze([{side:-1,x:-2485,label:'Camino de Cartagena'},{side:1,x:2485,label:'Camino del Puerto de la Marea'}]);
+import { storyChapter } from './story.js?v=3d37a370ad47';
+import { advanceGarrisons, departurePost, orderPost, ROAD_GATES, strengthenPostGuard } from './frontier.js?v=3d37a370ad47';
+export { ROAD_GATES };
 export function ensureCampaign(state){
   state.messengers??=[];
   if (state.campaign?.version===1 && ['orders','letters','warnedDays','sentDays','bossAnnouncements','defeatedBosses'].every(key=>Array.isArray(state.campaign[key]))) return state.campaign;
@@ -23,7 +24,8 @@ export function dispatchRaid(state,mult=1){
   const primary=state.day%2?1:-1;
   for(let i=0;i<count;i++){
     const side=state.day<4?primary:(i%2?primary:-primary);
-    c.orders.push({id:`raid_${state.waveNumber}_${i}`,type:roster[i%roster.length],side,eta:3+i*3,kind:'raid'});
+    c.orders.push({id:`raid_${state.waveNumber}_${i}`,type:roster[i%roster.length],side,eta:3+i*3,kind:'raid',
+      postId: departurePost(side, 'raid', state.day).id});
   }
   c.lastRaidDay=state.day;
   return count;
@@ -41,7 +43,7 @@ export function dispatchReinforcement(state,type,side=1){
 }
 export function arrivalHint(state){
   const c=ensureCampaign(state),order=c.orders.slice().sort((a,b)=>a.eta-b.eta)[0];
-  if(order)return `${order.kind==='boss'?'Un jefe se aproxima':order.kind==='final'?'La ofensiva final está en marcha':order.kind==='raid'?'Una patrulla está en marcha':'Llegan refuerzos'} · camino ${order.side<0?'oeste':'este'} · ${Math.ceil(Math.max(0,order.eta))} s hasta el puesto de entrada`;
+  if(order)return `${order.kind==='boss'?'Un jefe se aproxima':order.kind==='final'?'La ofensiva final está en marcha':order.kind==='raid'?'Una patrulla está en marcha':'Llegan refuerzos'} · ${orderPost(c, order, state.day).label} · sale en ${Math.ceil(Math.max(0,order.eta))} s`;
   const marching = state.enemies.filter(enemy => !enemy.guardSite && enemy.hp > 0).length;
   if(marching)return `${marching===1?'Un enemigo avanza':marching+' enemigos avanzan'} por los caminos. Las murallas contienen su marcha.`;
   if(state.truceDays>0)return `Tregua: ${state.truceDays} noches protegidas.`;
@@ -89,6 +91,7 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
   }
   function update(dt){
     const c=ensureCampaign(state);
+    advanceGarrisons(state, dt, spawnEnemy);
     if(state.timeOfDay>=.48&&!c.warnedDays.includes(state.day)&&state.truceDays===0){
       c.warnedDays.push(state.day);sendMessenger('SCOUT',state.day%2?1:-1);
       showBanner('SEÑALES EN EL CAMINO',`Los vigías anuncian ${raidSize(state.day)} hombres para esta noche. Observa los estandartes de la frontera.`);
@@ -105,8 +108,9 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
       if (state.truceDays>0 || state.phase==='TRUCE_NIGHT') continue;
       const order=c.orders[i];order.eta-=dt;
       if(order.eta<=0){
-        const gate=ROAD_GATES.find(g=>g.side===order.side);
+        const gate = orderPost(c, order, state.day);
         const enemy=spawnEnemy(order.type,order.side,gate.x);
+        if (!enemy.isBoss) strengthenPostGuard(enemy, gate.grade);
         enemy.originSide=order.side;enemy.arrivalTimer=1.2;enemy.appearTimer=1.2;
         if (order.kind === 'final') enemy.finalRaid = true;
         if(order.kind==='boss')showBanner('UN ESTANDARTE CRUZA LA FRONTERA',order.type==='GOBERNADOR_GIRON'?'García Girón entra por el camino de Cartagena.':'El Heraldo ha llegado al puesto oriental.');

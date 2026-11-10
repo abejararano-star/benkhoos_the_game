@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
-import { updateJaguar } from './jaguar.js?v=c2813accfb42';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3d37a370ad47';
+import { updateJaguar } from './jaguar.js?v=3d37a370ad47';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -102,6 +102,9 @@ export function ecologyHint(state){
   }
   const a=item.target,name=SPECIES[a.species].name;
   if (a.species === 'SNAKE') return 'Culebra · Deja espacio al cruzar';
+  if (a.species === 'JAGUAR' && !a.bonded && a.trust && state.benkos.jaguarTimer > 0 && a.jaguarAction?.kind !== 'POUNCE') {
+    return 'E · Crear un vínculo con el Espíritu del Jaguar';
+  }
   if (a.jaguarAction?.kind === 'POUNCE') return 'Jaguar · Esquiva el salto';
   return a.trapped?`E · Liberar ${name.toLowerCase()} de la trampa`:a.species==='MACAW'&&a.trust?`E · Escuchar a la guacamaya`:`E · Alimentar ${name.toLowerCase()} · ${a.species==='JAGUAR'?2:1} alimento`;
 }
@@ -124,6 +127,19 @@ export function interactEcology(state,{fish=false}={}){
   const a=item.target,spec=SPECIES[a.species];
   if (a.species === 'SNAKE') return { handled: true, message: 'Dale espacio a la culebra. Con la antorcha se aparta.' };
   if (a.jaguarAction?.kind === 'POUNCE') return { handled: true, message: 'Esquiva el salto antes de acercarte.' };
+  if (a.species === 'JAGUAR' && !a.bonded && a.trust > 0 && b.jaguarTimer > 0 && state.skills.some(skill => skill.id === 'jaguar' && skill.unlocked)) {
+    if (state.wildlife.some(animal => animal.bonded && animal.hp > 0)) return { handled: true, message: 'El espíritu mantiene un vínculo con un solo jaguar.' };
+    if (a.nettedTimer > 0 || a.trapped || a.bornAt !== undefined || a.waterFall) return { handled: true, message: 'Acércate a un jaguar adulto que pueda moverse libremente.' };
+    a.bonded = true;
+    a.trust = 5;
+    a.jaguarAction = null;
+    a.fleeTime = 0;
+    a.eatTimer = 0;
+    a.aggression = 0;
+    a.fear = 0;
+    a.state = 'FOLLOW';
+    return { handled: true, message: 'El jaguar reconoce tu espíritu. Te seguirá y defenderá.' };
+  }
   if(a.trapped){a.trapped=false;a.rescued=true;a.trust=1;state.score+=25;state.morale=Math.min(125,state.morale+2);return {handled:true,message:`${spec.name} libre · +25 puntos`};}
   if(a.species==='MACAW'&&a.trust>0){const order=state.campaign?.orders?.[0];const enemy=state.enemies[0];return {handled:true,message:order?`La guacamaya mira al ${order.side<0?'occidente':'oriente'}: una expedición está en camino.`:enemy?`La guacamaya avisa de movimiento al ${enemy.x<0?'occidente':'oriente'}.`:'La guacamaya no distingue enemigos por los senderos.'};}
   if(a.feedCooldown>0)return {handled:true,message:`${spec.name} ya ha comido. Acércate con calma.`};
@@ -135,7 +151,7 @@ export function interactEcology(state,{fish=false}={}){
   return {handled:true,message:coins?'El mono te entrega una moneda que encontró.':a.trust>=2?`${spec.name} confía en ti. Te acompañará si avanzas con calma.`:`${spec.name} acepta el alimento. Su confianza aumenta.`};
 }
 
-export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCoin=()=>{},collectHunt=()=>false,torchLit=false,nextId}={}){
+export function updateEcology(state,dt,{damagePlayer=()=>{},damageAlly=()=>{},notice=()=>{},dropCoin=()=>{},collectHunt=()=>false,torchLit=false,nextId}={}){
   const e=state.ecology,b=state.benkos;e.time+=dt;
   if (Math.floor(e.time - dt) < Math.floor(e.time)) breedWildlife(state, nextId);
   for(const creek of e.streams){
@@ -153,7 +169,7 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
     if(a.waterFall && a.hp > 0) continue;
     if(a.hp<=0){
       const food = a.bornAt === undefined ? spec.food : Math.max(1, Math.floor(spec.food / 2));
-      if(!a.predatorKill && !a.waterFall && spec.huntable && !collectHunt(a,food)){state.resources.food+=food;dropCoin(a.x);notice(a.x,`+${food} alimento · caza`);}
+      if(!a.predatorKill && !a.combatDeath && !a.waterFall && spec.huntable && !collectHunt(a,food)){state.resources.food+=food;dropCoin(a.x);notice(a.x,`+${food} alimento · caza`);}
       state.wildlife.splice(i,1);continue;
     }
     if (a.bornAt !== undefined && e.time - a.bornAt >= ANIMAL_MATURITY) {
@@ -169,7 +185,7 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
     if(a.eatTimer>0){a.eatTimer-=dt;a.vx=0;a.state='EAT';continue;}
     const prey = a.species === 'JAGUAR' && !a.trust && a.bornAt === undefined && e.time - (a.lastMeal ?? 0) > 28
       ? state.wildlife.find(animal => isHuntable(animal) && !animal.waterFall && Math.abs(animal.x - a.x) < 100) : null;
-    if (a.species === 'JAGUAR' && updateJaguar(a, state, dt, spec.speed, { damagePlayer, notice, torchLit, hurt, prey })) {
+    if (a.species === 'JAGUAR' && updateJaguar(a, state, dt, spec.speed, { damagePlayer, damageAlly, notice, torchLit, hurt, prey })) {
       a.x = clamp(a.x, WORLD_MIN_X + 50, WORLD_MAX_X - 50);
       continue;
     }
@@ -203,8 +219,10 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
       a.state='CHARGE';a.vx=Math.sign(dx)*spec.speed*1.35;a.facing=Math.sign(dx)||1;
       if(dist<24&&a.attackCooldown<=0){a.attackCooldown=1.8;damagePlayer(10,a.facing);}
     }else if(threatened&&a.trust<2||a.species!=='JAGUAR'&&a.fear>30){a.state='FLEE';a.vx=-(Math.sign(dx)||1)*spec.speed*1.5;a.facing=Math.sign(a.vx);a.fear=Math.max(0,a.fear-dt*25);}
-    else if(a.trust>=2&&dist<350){
-      const target=b.x-b.facing*(48+(Number(a.id)%3)*22);a.vx=Math.abs(target-a.x)>22?Math.sign(target-a.x)*spec.speed*1.3:0;a.state=a.vx?'FOLLOW':'IDLE';if(a.vx)a.facing=Math.sign(a.vx);
+    else if(a.bonded||a.trust>=2&&dist<350){
+      const target=b.x-b.facing*(48+(Number(a.id)%3)*22);
+      const speed = a.bonded ? Math.max(spec.speed * 1.6, Math.abs(b.vx) + (dist > 120 ? 32 : 0)) : spec.speed * 1.3;
+      a.vx=Math.abs(target-a.x)>22?Math.sign(target-a.x)*speed:0;a.state=a.vx?'FOLLOW':'IDLE';if(a.vx)a.facing=Math.sign(a.vx);
     }else{
       if (a.species === 'SNAKE') a.warningTime = 0;
       a.moveTimer-=dt;

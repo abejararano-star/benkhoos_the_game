@@ -5,6 +5,7 @@ import {ANIMAL_MATURITY,createAnimal,seedEcology,interactEcology,updateEcology,i
 import {makeSave,restoreSave} from '../js/save-system.js';
 import {seedFrontier} from '../js/exploration.js';
 import {jaguarPose} from '../js/jaguar.js';
+import {advanceAllyAction,strikeWildlife,threatensMilitia} from '../js/combat.js';
 function world(species){const s=createInitialState();s.benkos.x=0;if(species)s.wildlife=[createAnimal(1,species,10)];return s;}
 function step(state, frames, hooks) {
   for (let frame = 0; frame < frames; frame++) updateEcology(state, 1 / 60, hooks);
@@ -174,6 +175,39 @@ test('a wild pair can have a juvenile that persists and grows up', () => {
   updateEcology(saved, ANIMAL_MATURITY);
   assert.equal(restored.bornAt, undefined);
   assert.equal(restored.maxHp, SPECIES.DEER.hp);
+});
+test('the altar can bond one fed jaguar which follows Benkos beyond ordinary trust range', () => {
+  const state = world('JAGUAR');
+  const jaguar = state.wildlife[0];
+  interactEcology(state);
+  state.benkos.jaguarTimer = 10;
+  assert.equal(interactEcology(state).message.includes('seguirá'), false);
+  state.skills.find(skill => skill.id === 'jaguar').unlocked = true;
+  assert.match(interactEcology(state).message, /seguirá/);
+  assert.equal(jaguar.bonded, true);
+  const other = createAnimal(12, 'JAGUAR', 2, { trust: 1 });
+  state.wildlife.push(other);
+  assert.match(interactEcology(state).message, /un solo jaguar/);
+  state.benkos.x = 620;
+  state.benkos.vx = 180;
+  step(state, 10);
+  assert.equal(jaguar.state, 'FOLLOW');
+  assert.ok(jaguar.vx > state.benkos.vx);
+  assert.equal(threatensMilitia(jaguar), false);
+  assert.equal(threatensMilitia(jaguar, true), true);
+});
+test('allied melee, colonial damage and hunter nets work on a dangerous animal', () => {
+  const state = world('JAGUAR');
+  const jaguar = state.wildlife[0];
+  jaguar.state = 'SWIPE';
+  const ally = { x: 0, hp: 50, pendingStrike: { targetId: jaguar.id, wildlife: true, reach: 25, facing: 1, damage: 12, eta: .1 } };
+  advanceAllyAction(ally, state, .11);
+  assert.equal(jaguar.hp, 83);
+  assert.equal(strikeWildlife(jaguar, 13, { colonial: true }), true);
+  assert.equal(jaguar.hp, 70);
+  assert.equal(strikeWildlife(jaguar, 4, { net: true }), true);
+  assert.equal(jaguar.nettedTimer, 4);
+  assert.equal(threatensMilitia(jaguar, true), false);
 });
 test('animals, trust, food and water stocks survive saves; old attacks do not deal damage twice on migration',()=>{
   const s=world('TURTLE');s.ecology.seeded=true;s.wildlife[0].trust=2;s.ecology.streams[0].fishStock=1;

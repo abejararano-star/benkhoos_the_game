@@ -6,6 +6,8 @@ import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaign
 import { conquerHacienda, gateRequirement, updateHaciendas } from '../js/haciendas.js';
 import { ensurePerson } from '../js/people.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
+import { advanceGarrisons, COLONIAL_POSTS, departurePost } from '../js/frontier.js';
+import { ENEMY_CATALOG } from '../js/config.js';
 function harness(){const s=createInitialState(),arrivals=[],banners=[];let id=1,treaties=0;
   const campaign=createCampaign({state:s,nextId:()=>id++,spawnEnemy:(type,side,x)=>{const enemy={type,side,x};arrivals.push(enemy);return enemy;},showBanner:(...v)=>banners.push(v),onTreaty:()=>treaties++});
   return {s,campaign,arrivals,banners,treaties:()=>treaties};}
@@ -124,4 +126,33 @@ test('city rescues unlock an optional accord and losses change the combat epilog
   establishOutpost(s, OUTPOSTS[1]);
   assert.equal(canNegotiateFinale(s), true);
   assert.equal(s.story.treaty, '');
+});
+test('colonial posts scale by region and replace defeated guards only after the player leaves', () => {
+  const state = createInitialState();
+  const rural = departurePost(-1, 'raid', 5);
+  const city = departurePost(-1, 'raid', 8);
+  assert.ok(Math.abs(city.x) - Math.abs(rural.x) > 2000);
+  const spawn = (type, side, x) => {
+    const config = ENEMY_CATALOG[type];
+    const enemy = { type, side, x, hp: config.hp, maxHp: config.hp, dmg: config.dmg };
+    state.enemies.push(enemy);
+    return enemy;
+  };
+  for (const post of [rural, city]) {
+    state.benkos.x = post.x;
+    advanceGarrisons(state, 1, spawn);
+  }
+  assert.equal(COLONIAL_POSTS.length, 6);
+  const ruralGuard = state.enemies.find(enemy => enemy.guardSite === rural.id && enemy.type === 'PIQUERO');
+  const cityGuard = state.enemies.find(enemy => enemy.guardSite === city.id && enemy.type === 'PIQUERO');
+  assert.ok(cityGuard.maxHp > ruralGuard.maxHp);
+  assert.ok(cityGuard.dmg > ruralGuard.dmg);
+  state.enemies = state.enemies.filter(enemy => enemy.guardSite !== city.id);
+  advanceGarrisons(state, 200, spawn);
+  assert.ok(!state.enemies.some(enemy => enemy.guardSite === city.id));
+  state.benkos.x = 0;
+  advanceGarrisons(state, 91, spawn);
+  state.benkos.x = city.x;
+  advanceGarrisons(state, 1, spawn);
+  assert.ok(state.enemies.some(enemy => enemy.guardSite === city.id && enemy.appearTimer > 0));
 });

@@ -1,5 +1,6 @@
-import { CAMP_EDGE } from './config.js?v=c2813accfb42';
-import { INFANTRY } from './equipment.js?v=c2813accfb42';
+import { CAMP_EDGE } from './config.js?v=3d37a370ad47';
+import { INFANTRY } from './equipment.js?v=3d37a370ad47';
+import { COLONIAL_POSTS } from './frontier.js?v=3d37a370ad47';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,
@@ -8,18 +9,18 @@ export const ESTATES = [
     roster: ['PIQUERO', 'SOLDADO_ESPANOL', 'ARQUERO_COLONIAL', 'ARCABUCERO'] }
 ];
 export const CITIES = [
-  { id: 'cartagena', name: 'Cartagena de Indias', x: -5515, cityX: -5960, side: -1, maxHp: 650, prisoners: 6,
+  { id: 'cartagena', name: 'Cartagena de Indias', x: -10420, cityX: -11220, side: -1, maxHp: 650, prisoners: 6,
     sprite: 'city_cartagena', gateOffset: 26, envoy: 'Escribano de Cartagena',
     context: 'Las carretas de las haciendas pasan por aquí. El gobernador Girón ordenó retener a quienes venían del camino de Jegua.',
     roster: ['PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'CABALLERO'] },
-  { id: 'puerto_marea', name: 'Puerto de la Marea', x: 5515, cityX: 5960, side: 1, maxHp: 600, prisoners: 6,
+  { id: 'puerto_marea', name: 'Puerto de la Marea', x: 10280, cityX: 11090, side: 1, maxHp: 600, prisoners: 6,
     sprite: 'city_marea', gateOffset: 9, envoy: 'Portera del cabildo',
     context: 'El gobernador del puerto cerró el paso por el estero. Desde entonces, las familias cautivas esperan en el patio exterior.',
     roster: ['ARQUERO_COLONIAL', 'PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL'] }
 ];
 export const OUTPOSTS = [
-  { id: 'avanzada_jegua', name: 'Avanzada de la Loma', x: -4130, side: -1 },
-  { id: 'avanzada_estero', name: 'Avanzada del Estero', x: 4190, side: 1 }
+  { id: 'avanzada_jegua', name: 'Avanzada de la Loma', x: -7960, side: -1 },
+  { id: 'avanzada_estero', name: 'Avanzada del Estero', x: 8170, side: 1 }
 ];
 const SITES = [...ESTATES, ...CITIES];
 const COMPANIONS = [...INFANTRY, 'CAZADOR', 'CAMPEON_REAL', 'CABALLERO_ALIADO'];
@@ -97,7 +98,9 @@ export function frontierHint(state) {
   const post = OUTPOSTS.find(outpost => Math.abs(outpost.x - x) < 42);
   if (post) return state.story.outposts.includes(post.id) ? `E · ${post.name} · Refugio activo` : `E · ${post.name} · 4 madera y 3 alimento`;
   const city = CITIES.find(place => Math.abs(place.cityX - x) < 65);
-  return city ? `E · ${city.name} · Entrada de la ciudad` : '';
+  if (city) return `E · ${city.name} · Entrada de la ciudad`;
+  const colonial = COLONIAL_POSTS.find(place => Math.abs(place.x - x) < 100);
+  return colonial ? `${colonial.label} · Guarnición colonial` : '';
 }
 
 export function canNegotiateFinale(state) {

@@ -1,5 +1,6 @@
-import { BALANCE } from './config.js?v=c2813accfb42';
-import { estateById, hasOutpost } from './story.js?v=c2813accfb42';
+import { BALANCE } from './config.js?v=3d37a370ad47';
+import { estateById, hasOutpost } from './story.js?v=3d37a370ad47';
+import { strengthenPostGuard } from './frontier.js?v=3d37a370ad47';
 
 const PRISONERS = [-23, 0, 23];
 const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];
@@ -63,6 +64,7 @@ export function updateHaciendas(state, spawnCaptive, distanceFromView = 440, spa
     for (const [index, type] of roster.entries()) {
       const post = hacienda.x + hacienda.side * (-95 + index * 38);
       const guard = spawnGuard(type, hacienda.side, post);
+      if (estate?.cityX) strengthenPostGuard(guard, estate.id === 'cartagena' ? 3 : 2);
       guard.guardSite = hacienda.id;
       guard.guardX = post;
     }

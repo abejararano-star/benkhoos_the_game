@@ -1,8 +1,9 @@
-import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
-import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=c2813accfb42';
-import { haciendaActive } from './haciendas.js?v=c2813accfb42';
-import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=c2813accfb42';
-import { CROSSINGS } from './crossings.js?v=c2813accfb42';
+import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3d37a370ad47';
+import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=3d37a370ad47';
+import { haciendaActive } from './haciendas.js?v=3d37a370ad47';
+import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=3d37a370ad47';
+import { CROSSINGS } from './crossings.js?v=3d37a370ad47';
+import { COLONIAL_POSTS } from './frontier.js?v=3d37a370ad47';
 
 export const mapX = x => 7 + 86 * Math.max(0, Math.min(1, (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X)));
 
@@ -27,6 +28,8 @@ export function mapLocations(state) {
           'Los pilotes sostienen un paso seguro a pie o a caballo.' });
   }
   const chapter = storyChapter(state);
+  for (const post of COLONIAL_POSTS) sites.push({ ...post, name: post.label, label: ['Posta', 'Reducto', 'Guardia mayor'][post.grade - 1],
+    row: 'lower', kind: 'estate', detail: 'Avanzada colonial con guarnición propia. Las patrullas salen desde este puesto.' });
   for (const post of OUTPOSTS) {
     const active = state.story.outposts.includes(post.id);
     sites.push({ ...post, label: 'Avanzada', row: 'upper', kind: active ? 'secured' : 'sanctuary',

@@ -1,10 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ensurePerson, affinity, proficiency, reactToDamage, requestProfession, completeProfession, updatePerson } from '../js/people.js';
+import { ensurePerson, affinity, proficiency, reactToDamage, requestProfession, completeProfession, updatePerson, toggleMountedEscort, mountedEscortPosts } from '../js/people.js';
 import { chooseToolRack } from '../js/ai.js';
 import { createInitialState } from '../js/world-state.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
 function person(id=4,role='AGRICULTOR',x=0){return ensurePerson({id,role,tier:1,x,y:268,vx:0,assignedSide:1,hp:80,maxHp:80,animSeed:0});}
+test('two riders can escort Benkos in formation, and keep the assignment across a save', () => {
+  const state = createInitialState();
+  state.benkos.x = 6700;
+  state.benkos.facing = -1;
+  state.units = [1, 2, 3].map(id => person(id, 'CABALLERO_ALIADO'));
+  assert.match(toggleMountedEscort(state.units[0], state), /cabalgará/);
+  assert.match(toggleMountedEscort(state.units[1], state), /cabalgará/);
+  assert.match(toggleMountedEscort(state.units[2], state), /dos jinetes/);
+  const {state: loaded} = restoreSave(makeSave(state, 20), createInitialState());
+  assert.deepEqual([...mountedEscortPosts(loaded)], [[1, 6772], [2, 6637]]);
+  assert.match(toggleMountedEscort(loaded.units[0], loaded), /vuelve/);
+  assert.deepEqual([...mountedEscortPosts(loaded).keys()], [2]);
+});
 test('identity, gift and personality are stable, with a genuine effect on efficacy',()=>{
   const a=person(4),b=person(4);assert.deepEqual(a,b);
   a.attributes={strength:5,endurance:5,perception:1,dexterity:1,cultivation:1};

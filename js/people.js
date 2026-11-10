@@ -1,6 +1,6 @@
-import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=c2813accfb42';
-import { ensureTraits, griefEffect } from './daily-life.js?v=c2813accfb42';
+import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3d37a370ad47';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=3d37a370ad47';
+import { ensureTraits, griefEffect } from './daily-life.js?v=3d37a370ad47';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
@@ -21,6 +21,7 @@ export function affinity(unit,role){
   return Object.values(ATTRIBUTES).reduce((sum,_,i)=>sum+a[Object.keys(ATTRIBUTES)[i]]*weights[i],0);
 }
 export function ensurePerson(unit){
+  if (unit.role !== 'CABALLERO_ALIADO' || unit.escortBenkos !== true) delete unit.escortBenkos;
   const index = Math.abs(Number(unit.id) || 1) % names.length;
   if (unit.sex !== 'F' && unit.sex !== 'M') {
     const givenName = unit.name?.split(' ')[0];
@@ -47,6 +48,27 @@ export function ensurePerson(unit){
   ensureTraits(unit, random(Number(unit.id) * 431 + 271));
   ensureEquipment(unit);
   return unit;
+}
+
+export function toggleMountedEscort(unit, state) {
+  if (unit.role !== 'CABALLERO_ALIADO' || unit.hp <= 0 || unit.requestedRole) return 'Solo un jinete disponible puede escoltar a Benkos.';
+  if (unit.escortBenkos) {
+    delete unit.escortBenkos;
+    return `${unit.name} vuelve a defender el palenque.`;
+  }
+  if (state.units.filter(person => person.escortBenkos && person.role === 'CABALLERO_ALIADO' && person.hp > 0).length >= 2) {
+    return 'La escolta personal ya tiene dos jinetes.';
+  }
+  unit.escortBenkos = true;
+  return `${unit.name} cabalgará junto a Benkos.`;
+}
+
+export function mountedEscortPosts(state) {
+  const { x, facing } = state.benkos;
+  const riders = state.units.filter(unit => unit.escortBenkos && unit.role === 'CABALLERO_ALIADO' && unit.hp > 0 &&
+    !unit.requestedRole && !unit.escortHome && !unit.waterFall).slice(0, 2);
+  return new Map(riders.map((unit, index) => [unit.id,
+    clamp(x + facing * (index === 0 ? -72 : 63), WORLD_MIN_X + 40, WORLD_MAX_X - 40)]));
 }
 export function personMaxHp(unit,role=unit.role,tier=unit.tier??1){
   const armorRank = INFANTRY.includes(role) ? unit.equipment?.armor ?? tier : tier;

@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=c2813accfb42';
-import { landscapeSeed } from './sky.js?v=c2813accfb42';
-import { CAMP_EDGE } from './config.js?v=c2813accfb42';
-import { TOWER_HEIGHT } from './settlement.js?v=c2813accfb42';
-import { CROSSINGS, deckOffset } from './crossings.js?v=c2813accfb42';
+import { blend, color, mix, smooth } from './daylight.js?v=3d37a370ad47';
+import { landscapeSeed } from './sky.js?v=3d37a370ad47';
+import { CAMP_EDGE } from './config.js?v=3d37a370ad47';
+import { TOWER_HEIGHT } from './settlement.js?v=3d37a370ad47';
+import { CROSSINGS, deckOffset } from './crossings.js?v=3d37a370ad47';
 
 let regionCanvas;
 
@@ -169,12 +169,17 @@ export function drawCaptiveGate(g, x, ground, hacienda, captives) {
 }
 
 const OUTER_SCENERY = [
+  [-10860, 'trail_stones', 40], [-10060, 'forest_hardwood', 152], [-9140, 'trail_arch', 84],
+  [-8700, 'forest_ceiba', 158], [-7560, 'trail_terrace', 63], [-7160, 'forest_hardwood', 135],
+  [-6250, 'trail_stones', 49], [-5930, 'forest_ceiba', 150],
   [-4270, 'forest_ceiba', 147], [-3970, 'trail_terrace', 65], [-3750, 'forest_hardwood', 118],
   [-3630, 'trail_stones', 31], [-3355, 'trail_arch', 83], [-3145, 'forest_ceiba', 161],
   [-2920, 'trail_fern', 42], [-2740, 'trail_sign', 38],
   [2720, 'trail_sign', 36], [2910, 'forest_mangrove', 139], [3130, 'trail_reeds', 43],
   [3295, 'forest_palm', 150], [3535, 'trail_terrace', 49], [3895, 'forest_mangrove', 155],
-  [4060, 'trail_reeds', 43], [4320, 'forest_palm', 123]
+  [4060, 'trail_reeds', 43], [4320, 'forest_palm', 123], [5920, 'forest_mangrove', 150],
+  [6320, 'trail_reeds', 49], [7490, 'trail_arch', 82], [8620, 'forest_mangrove', 150],
+  [9070, 'trail_terrace', 57], [9920, 'forest_palm', 150], [10670, 'trail_stones', 46]
 ];
 
 export function drawEstateScenery(g, project, ground, width, time) {
@@ -294,29 +299,58 @@ export function drawConstructionSites(g, toScreen, ground, width, state) {
 }
 
 export function drawToolStand(g,x,ground,rack,tier){
-  if(window.SpriteManager?.has('station_'+rack.role)){
-    g.fillStyle='#0c1f1755';g.beginPath();g.ellipse(x,ground+1,25,3,0,0,Math.PI*2);g.fill();
-    window.SpriteManager.draw(g,'station_'+rack.role,['idle'],x,ground,1,54,0);
-    if(tier>1){g.fillStyle=tier===3?'#d3b76c':'#67885b';g.fillRect(x+18,ground-40,4,13);}
-    return;
+  const width = 20 + rack.maxStock * 14;
+  const left = x - Math.round(width / 2), top = ground - 49;
+  const sprites = window.SpriteManager;
+  if (sprites?.has('stock_rack_frame')) {
+    const { sheet, anims } = sprites.atlas.stock_rack_frame;
+    const frame = anims.idle[0];
+    g.imageSmoothingEnabled = false;
+    g.drawImage(sprites.sheets[sheet], frame.x, frame.y, frame.w, frame.h, left - 3, top - 4, width + 6, 54);
+  } else {
+    g.fillStyle = '#261f1a'; g.fillRect(left, top + 5, width, 40);
+    woodFace(g, left + 3, top + 8, width - 6, 33, '#604530', x);
+    for (const post of [left + 1, left + width - 6]) woodFace(g, post, top + 2, 5, 47, '#9b7145', post);
+    woodFace(g, left - 3, top, width + 6, 6, '#a2794b', x);
+    woodFace(g, left, ground - 9, width, 5, '#a2794b', x + 17);
   }
-  g.fillStyle='#8b603c';g.fillRect(x-17,ground-32,3,32);g.fillRect(x+14,ground-32,3,32);g.fillRect(x-19,ground-31,38,4);
-  g.fillStyle='#c09b67';g.fillRect(x-17,ground-31,1,29);g.fillRect(x-19,ground-31,38,1);
-  g.fillStyle='#423829';g.fillRect(x-19,ground-6,38,3);g.fillStyle='#a98e5d';g.fillRect(x-19,ground-8,38,2);
-  const metal=tier===3?'#d9ba67':tier===2?'#c5c9b7':'#9dafa7';
-  for(let i=0;i<Math.min(4,rack.stock);i++){
-    const tx=x-12+i*8;g.fillStyle='#c3a170';g.fillRect(tx,ground-25,2,24);g.fillStyle=metal;
-    if(['LENADOR','CONSTRUCTOR','MINERO','AGRICULTOR'].includes(rack.role)){
-      if(rack.role==='LENADOR'){g.fillRect(tx-4,ground-26,6,7);g.fillRect(tx-5,ground-24,2,4);}
-      else if(rack.role==='CONSTRUCTOR'){g.fillRect(tx-4,ground-26,9,4);g.fillStyle='#6e7164';g.fillRect(tx-4,ground-26,2,4);}
-      else if(rack.role==='MINERO'){g.fillRect(tx-5,ground-26,12,2);g.fillRect(tx-6,ground-25,2,3);g.fillRect(tx+5,ground-25,2,3);}
-      else{g.fillRect(tx-4,ground-27,5,2);g.fillRect(tx-4,ground-27,2,5);}
-    }else if(['ARQUERO','CAZADOR'].includes(rack.role)){
-      g.strokeStyle='#d1b278';g.lineWidth=1;g.beginPath();g.moveTo(tx,ground-28);g.quadraticCurveTo(tx+10,ground-15,tx,ground-3);g.stroke();g.strokeStyle='#d1c9a0';g.beginPath();g.moveTo(tx,ground-28);g.lineTo(tx,ground-3);g.stroke();
-    }else{g.beginPath();g.moveTo(tx-2,ground-25);g.lineTo(tx+1,ground-32);g.lineTo(tx+4,ground-25);g.fill();if(rack.role==='ESPADACHIN')g.fillRect(tx-2,ground-17,7,2);}
+  const metal = tier === 3 ? '#efd089' : tier === 2 ? '#d7e1d7' : '#b9c7bb';
+  for (let slot = 0; slot < rack.maxStock; slot++) {
+    const tx = left + 17 + slot * 14;
+    g.fillStyle = '#bc9967'; g.fillRect(tx, top + 10, 2, 4);
+    if (slot >= rack.stock) continue;
+    const y = top + 16;
+    g.fillStyle = '#221c19a0';
+    g.fillRect(tx + 1, y + 3, 3, 24);
+    if (rack.role === 'CABALLERO_ALIADO') {
+      g.fillStyle = '#38251f'; g.fillRect(tx - 6, y + 4, 13, 13);
+      g.fillStyle = '#a87346'; g.fillRect(tx - 5, y + 2, 11, 6);
+      g.fillStyle = '#d1a16b'; g.fillRect(tx - 3, y + 1, 7, 2);
+      g.fillStyle = '#c5b691'; g.fillRect(tx + 3, y + 11, 3, 5);
+    } else if (rack.role === 'ARQUERO') {
+      g.strokeStyle = '#d4a76b'; g.lineWidth = 2; g.beginPath(); g.moveTo(tx - 3, y);
+      g.quadraticCurveTo(tx + 13, y + 12, tx - 3, y + 25); g.stroke();
+      g.fillStyle = '#e1c6a0'; g.fillRect(tx - 3, y + 2, 1, 22);
+    } else {
+      const sword = rack.role === 'ESPADACHIN';
+      g.fillStyle = '#8f5f3e'; g.fillRect(tx, y + (sword ? 17 : 4), 3, sword ? 9 : 21);
+      g.fillStyle = '#d0a16e'; g.fillRect(tx, y + (sword ? 17 : 4), 1, sword ? 9 : 21);
+      g.fillStyle = metal;
+      if (sword) {
+        g.fillRect(tx + 1, y, 2, 16); g.fillRect(tx, y + 4, 2, 13);
+        g.fillStyle = '#a9874c'; g.fillRect(tx - 3, y + 17, 9, 3);
+        g.fillStyle = '#f5d48f'; g.fillRect(tx - 2, y + 17, 7, 1);
+      }
+      else if (rack.role === 'GUERRERO' || rack.role === 'CAZADOR') {
+        g.fillRect(tx - 1, y, 4, 8); g.fillRect(tx, y - 3, 2, 4);
+      } else if (rack.role === 'LENADOR') { g.fillRect(tx - 5, y + 1, 8, 5); g.fillRect(tx - 5, y + 5, 5, 4); }
+      else if (rack.role === 'CONSTRUCTOR') { g.fillRect(tx - 4, y + 1, 9, 4); g.fillRect(tx - 5, y + 3, 3, 4); }
+      else if (rack.role === 'MINERO') { g.fillRect(tx - 5, y + 1, 12, 2); g.fillRect(tx + 5, y + 3, 2, 3); }
+      else { g.fillRect(tx - 5, y + 1, 8, 2); g.fillRect(tx - 5, y + 3, 2, 5); }
+    }
   }
-  // An empty rack keeps its hooks, so depleted equipment remains legible.
-  if(!rack.stock){g.fillStyle='#a1a190';for(const dx of [-10,0,10])g.fillRect(x+dx,ground-29,1,4);}
+  g.fillStyle = tier > 1 ? metal : '#806549';
+  g.fillRect(x - 3, top - 2, 6, 4);
 }
 
 function stoneFace(g, x, y, width, height, tint, seed) {
@@ -595,9 +629,16 @@ export function drawMarker(g, x, ground, entity, enemy = false) {
   }
 }
 
-export function drawRoadGate(g,x,ground,side,active=false){
-  if(window.SpriteManager?.draw?.(g,'landmark_gate',['idle'],x,ground,1,89,0)){
-    if(active){g.fillStyle='#d6b877';g.fillRect(x-2,ground-98,4,6);g.fillRect(x-2,ground-89,4,2);}return;
+export function drawRoadGate(g,x,ground,side,active=false,grade=1){
+  const sm = window.SpriteManager;
+  const height = [0, 62, 78, 96][grade];
+  const wing = grade === 1 ? 37 : 51;
+  for (const offset of [-wing, wing]) {
+    sm?.draw?.(g, grade === 3 ? 'enclosure_stone' : 'enclosure_wood', ['idle'], x + offset, ground, side, 23 + grade * 2, 0);
+  }
+  if (grade > 1) drawWatchtower(g, x + side * (wing + 27), ground, { level: grade - 1 });
+  if(sm?.draw?.(g,'landmark_gate',['idle'],x,ground,1,height,0)){
+    if(active){g.fillStyle='#d6b877';g.fillRect(x-2,ground-height-9,4,6);g.fillRect(x-2,ground-height,4,2);}return;
   }
   g.fillStyle='#6d5b43';g.fillRect(x-28,ground-64,10,64);g.fillRect(x+18,ground-64,10,64);
   g.fillStyle='#a28d61';g.fillRect(x-31,ground-68,62,9);

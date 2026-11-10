@@ -6,6 +6,7 @@ from shutil import copyfile
 def import_camp_detail(output):
     source = Path(__file__).resolve().parents[1] / 'assets' / 'atlas'
     entries = {
+        'stock_rack_v19': {'stock_rack_frame': (24, 45, 1555, 910, 910)},
         'city_cartagena_v18': {'city_cartagena': (0, 43, 1983, 703, 695)},
         'city_marea_v18': {'city_marea': (2, 120, 1770, 651, 645)},
         'camp_detail_v13': {

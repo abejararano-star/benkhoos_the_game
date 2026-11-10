@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../js/world-state.js';
 import { ensurePerson } from '../js/people.js';
-import { requestBuilding, advanceConstruction, workConstruction, upgradeInfo, homeRecovery } from '../js/settlement.js';
+import { requestBuilding, advanceConstruction, workConstruction, upgradeInfo, homeRecovery, queueConstruction } from '../js/settlement.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
 
 function world() {
@@ -10,6 +10,23 @@ function world() {
   state.units = [ensurePerson({ id: 1, role: 'CONSTRUCTOR', tier: 1, hp: 90, maxHp: 90, x: 100 })];
   return state;
 }
+
+test('an empty hammer rack can be forged by a villager without letting them build other upgrades', () => {
+  const state = createInitialState();
+  const rack = state.toolRacks.find(tool => tool.id === 'rack_hammer');
+  rack.stock = 0;
+  const villager = ensurePerson({ id: 1, role: 'ALDEANO', hp: 80, maxHp: 80, x: rack.x });
+  state.units = [villager];
+  advanceConstruction(state, 4);
+  assert.equal(rack.stock, 0);
+  const work = queueConstruction(state, 'rack', rack, null, 3);
+  const wall = state.walls[0];
+  const wallWork = queueConstruction(state, 'wall', wall, 2, 3);
+  assert.equal(workConstruction(villager, state, 1, new Set(), work), work);
+  advanceConstruction(state, 3);
+  assert.equal(rack.stock, 1);
+  assert.equal(wallWork.progress, 0);
+});
 
 function fund(state, kind, id) {
   const { coins } = upgradeInfo(state, kind, id);

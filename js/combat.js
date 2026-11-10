@@ -44,6 +44,32 @@ export function strikeEnemy(enemy,damage,direction=1){
   enemy.attackCooldown=Math.max(enemy.attackCooldown??0,enemy.isBoss?.2:.35);return true;
 }
 
+export function threatensMilitia(animal, colonial = false) {
+  if (animal.hp <= 0 || animal.waterFall || animal.trapped || animal.nettedTimer > 0) return false;
+  if (animal.species === 'JAGUAR') {
+    if (animal.bonded || animal.trust > 0) return colonial;
+    const attack = animal.jaguarAction;
+    return !attack?.prey && (['STALK', 'CROUCH', 'POUNCE', 'SWIPE'].includes(animal.state) || animal.aggression > 0);
+  }
+  if (animal.trust) return false;
+  return animal.species === 'BOAR' && (animal.state === 'CHARGE' || animal.aggression > 0) ||
+    animal.species === 'SNAKE' && animal.state === 'WARN';
+}
+
+export function strikeWildlife(animal, damage, { colonial = false, hunterId = null, net = false } = {}) {
+  if (!animal || animal.hp <= 0 || animal.waterFall || animal.trapped) return false;
+  animal.lastHp = animal.hp;
+  animal.hp -= damage;
+  animal.lastHunterId = hunterId;
+  if (colonial && animal.hp <= 0) animal.combatDeath = true;
+  if (net && animal.hp > 0) {
+    animal.nettedTimer = 4;
+    animal.jaguarAction = null;
+    animal.vx = 0;
+  }
+  return true;
+}
+
 // An ally commits to a target during anticipation; moving away can make the blow miss.
 export function advanceAllyAction(unit,state,dt,onHit){
   if(unit.hurtTimer>0||unit.hp<=0||['FLEE','RECOVER'].includes(unit.activity)){unit.pendingStrike=null;unit.pendingShot=null;return;}
@@ -52,8 +78,12 @@ export function advanceAllyAction(unit,state,dt,onHit){
     strike.eta-=dt;
     if(strike.eta<=0){
       unit.pendingStrike=null;
-      const enemy=state.enemies.find(e=>e.id===strike.targetId);
-      if(enemy&&inStrikeRange(unit,enemy,strike.reach,strike.facing)&&strikeEnemy(enemy,strike.damage,strike.facing))onHit?.(enemy,strike.damage);
+      const target = (strike.wildlife ? state.wildlife : state.enemies).find(actor => actor.id === strike.targetId);
+      if (target && inStrikeRange(unit, target, strike.reach, strike.facing)) {
+        const hit = strike.wildlife ? threatensMilitia(target) && strikeWildlife(target, strike.damage) :
+          strikeEnemy(target, strike.damage, strike.facing);
+        if (hit) onHit?.(target, strike.damage);
+      }
     }
   }
   const shot=unit.pendingShot;
