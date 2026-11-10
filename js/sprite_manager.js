@@ -1,3 +1,8 @@
+const ALLY_SILHOUETTES = {
+  SLENDER: [.82, .86], BALANCED: [1, 1], ROBUST: [1.22, 1.13], CURVED: [1.02, 1.27]
+};
+const ALLY_STATURE = [.90, 1, 1.10];
+
 class BenkosSpriteManager {
   constructor() {
     this.atlas = null;
@@ -74,7 +79,27 @@ class BenkosSpriteManager {
     if (pose?.torch) this.drawHeldTorch(ctx, x, y, facing, pose);
     const dx = Math.round(-f.ax * s);
     const dy = Math.round(-f.ay * s);
-    if (pose?.bend) {
+    const figure = cls.startsWith('actor_') && this.allyFigure;
+    if (figure && (figure.shoulders !== 1 || figure.hips !== 1 || figure.stature !== 1)) {
+      const bands = Math.min(f.h, 14);
+      const pivot = figure.mounted ? targetH * .61 : 0;
+      const figureY = row => {
+        const raised = (f.ay - row) * s;
+        return Math.round(-raised - Math.max(0, raised - pivot) * (figure.stature - 1));
+      };
+      for (let band = 0; band < bands; band++) {
+        const from = Math.round(f.h * band / bands);
+        const to = Math.round(f.h * (band + 1) / bands);
+        const top = figureY(from), bottom = figureY(to);
+        if (bottom <= top) continue;
+        const height = ((f.ay - (from + to) / 2) * s - pivot) / (targetH - pivot);
+        const shoulders = Math.max(0, 1 - Math.abs(height - .71) / .27);
+        const hips = Math.max(0, 1 - Math.abs(height - .42) / .37);
+        const breadth = 1 + (figure.shoulders - 1) * shoulders + (figure.hips - 1) * hips;
+        ctx.drawImage(this.sheets[sp.sheet], f.x, f.y + from, f.w, to - from,
+          Math.round(-f.ax * s * breadth), top, Math.round(dw * breadth), bottom - top);
+      }
+    } else if (pose?.bend) {
       const bands = 8;
       for (let band = 0; band < bands; band++) {
         const from = Math.round(f.h * band / bands);
@@ -398,13 +423,21 @@ class BenkosSpriteManager {
   }
 
   drawAlly(ctx, x, y, facing, unit, time) {
-    if (!unit.grief) return this.drawAllyPose(ctx, x, y, facing, unit, time);
-    ctx.save();
-    const intensity = unit.grief.remaining / unit.grief.duration;
-    ctx.filter = `saturate(${1 - intensity * .74}) brightness(${1 - intensity * .16})`;
-    const drawn = this.drawAllyPose(ctx, x, y, facing, unit, time);
-    ctx.restore();
-    return drawn;
+    const previous = this.allyFigure;
+    const body = ALLY_SILHOUETTES[unit.physique?.build];
+    this.allyFigure = body && { shoulders: body[0], hips: body[1],
+      stature: ALLY_STATURE[unit.physique.stature] ?? 1, mounted: unit.role === 'CABALLERO_ALIADO' };
+    if (unit.grief) {
+      ctx.save();
+      const intensity = unit.grief.remaining / unit.grief.duration;
+      ctx.filter = `saturate(${1 - intensity * .74}) brightness(${1 - intensity * .16})`;
+    }
+    try {
+      return this.drawAllyPose(ctx, x, y, facing, unit, time);
+    } finally {
+      this.allyFigure = previous;
+      if (unit.grief) ctx.restore();
+    }
   }
 
   drawAllyPose(ctx, x, y, facing, unit, time) {

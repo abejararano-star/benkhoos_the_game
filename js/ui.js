@@ -1,18 +1,18 @@
-import { needsCropCare } from './crops.js?v=3d37a370ad47';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=3d37a370ad47';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=3d37a370ad47';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=3d37a370ad47';
-import { describeTraits } from './daily-life.js?v=3d37a370ad47';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=3d37a370ad47';
-import { canMediate, relationshipsFor } from './community.js?v=3d37a370ad47';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=3d37a370ad47';
-import { ecologyHint } from './ecology.js?v=3d37a370ad47';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=3d37a370ad47';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3d37a370ad47';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort } from './people.js?v=3d37a370ad47';
-import { arrivalHint } from './campaign.js?v=3d37a370ad47';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=3d37a370ad47';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=3d37a370ad47';
+import { needsCropCare } from './crops.js?v=48baf0700084';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=48baf0700084';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=48baf0700084';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=48baf0700084';
+import { describeTraits } from './daily-life.js?v=48baf0700084';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=48baf0700084';
+import { canMediate, relationshipsFor } from './community.js?v=48baf0700084';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=48baf0700084';
+import { ecologyHint } from './ecology.js?v=48baf0700084';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=48baf0700084';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=48baf0700084';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=48baf0700084';
+import { arrivalHint } from './campaign.js?v=48baf0700084';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=48baf0700084';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=48baf0700084';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -411,12 +411,27 @@ export function createUI({ state, session, settings, actions }) {
     notices.forEach((ft,i)=>{const line=ft.text.replace(/\s+/g,' ').replace('Cosecha Entregada','cosecha').replace('Plata de Mina','plata').trim();label('notice:'+i,'resource-label',layout.x(ft),layout.y(ft)-22+layout.ground-246,line,Math.max(100,Math.min(230,line.length*6+20)),true);});
     for(const [key,el]of worldLabels)if(!active.has(key))el.style.display='none';
   }
+  function towerBenefits(level) {
+    const { range, damage, cooldown } = TOWER_TIERS[level];
+    return `${range} pasos de alcance · +${Math.round((damage - 1) * 100)}% daño · ${Math.round((1 - cooldown) * 100)}% menos espera entre tiros`;
+  }
   function previewBuilding(){
-    const level=Number($('previewLevel').value)||1,kind=$('previewKind').value||'hq',g=$('buildingPreview').getContext('2d');
+    const kind = $('previewKind').value || 'hq';
+    const picker = $('previewLevel');
+    const level = Math.min(Number(picker.value) || 1, kind === 'tower' ? 3 : 5);
+    picker.value = String(level);
+    for (const [index, option] of Array.from(picker.options ?? []).entries()) {
+      option.disabled = kind === 'tower' && index > 2;
+      option.textContent = kind === 'tower' && index < 3 ? TOWER_TIERS[index + 1].name : MATERIALS[index];
+    }
+    const g = $('buildingPreview').getContext('2d');
     g.clearRect(0,0,560,240);const sky=g.createLinearGradient(0,0,0,240);sky.addColorStop(0,'#253f39');sky.addColorStop(1,'#677758');g.fillStyle=sky;g.fillRect(0,0,560,240);
     g.fillStyle='#192f23';g.fillRect(0,216,560,24);g.fillStyle='#8c8461';g.fillRect(20,216,520,2);
-    window.SpriteManager?.draw?.(g, kind === 'altar' ? altarSprite(level) : `building_${kind}_${level}`,['idle'],280,218,1,kind==='hq'?228:210,0);
-    text('previewCaption', kind === 'altar' ? `Altar de nivel ${level} · ${state.skills[level - 1].name}` : `Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
+    const sprite = kind === 'altar' ? altarSprite(level) : kind === 'tower' ? `watchtower_level_${level}` : `building_${kind}_${level}`;
+    window.SpriteManager?.draw?.(g, sprite, ['idle'], 280, 218, 1,
+      kind === 'hq' ? 228 : kind === 'tower' ? TOWER_TIERS[level].height * 1.3 : 210, 0);
+    text('previewCaption', kind === 'tower' ? `${TOWER_TIERS[level].name} · ${towerBenefits(level)}` :
+      kind === 'altar' ? `Altar de nivel ${level} · ${state.skills[level - 1].name}` : `Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
     text('evolutionPath', `Casa del Cuartel ${state.settlement.level} → Tótem ${state.armyTier} · Santuario ${state.altarTier}: poderes`);
   }
   function renderBuildings(focusId){
@@ -427,10 +442,14 @@ export function createUI({ state, session, settings, actions }) {
       ...state.settlement.towers.map(tower => ['tower', tower.id, `Torre ${tower.side < 0 ? 'oeste' : 'este'}`])];
     for(const [kind,id,label] of entries){
       const info=upgradeInfo(state,kind,id),card=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p'),btn=document.createElement('button');
-      const towerMaterials = ['Puesto para un arquero', 'Madera y bejuco', 'Ceiba reforzada', 'Base de piedra'];
-      const materials = kind === 'tower' ? towerMaterials.slice(1) : MATERIALS;
+      const materials = kind === 'tower' ? TOWER_TIERS.slice(1).map(tower => tower.name) : MATERIALS;
       h.textContent=`${label} · ${info.target.level}/${materials.length}`;
-      p.textContent=materials[info.target.level-1] ?? towerMaterials[0];card.append(h);card.append(p);
+      p.textContent=materials[info.target.level-1] ?? TOWER_TIERS[0].name;card.append(h);card.append(p);
+      if (kind === 'tower' && (info.target.level || info.next)) {
+        const bonus = document.createElement('small');
+        bonus.textContent = `${info.next ? `Nivel ${info.next} · ` : ''}${towerBenefits(info.next ?? info.target.level)}`;
+        card.append(bonus);
+      }
       const job=info.job;
       const cost=document.createElement('p');cost.className='muted';cost.textContent=job?`${constructionStatus(state, job)} · ${Math.ceil((1-job.progress)*job.duration)} s de labor`:(info.next?kind==='hq'?`${info.coins} reales · ${info.duration} s de obra`:`${info.coins} reales · ${info.wood} madera · ${info.stone} piedra · ${info.duration} s de obra`:info.reason);card.append(cost);
       if (info.next && !job) {
@@ -521,7 +540,7 @@ export function createUI({ state, session, settings, actions }) {
       const label = link.partner ? 'Pareja' : link.score >= 3 ? 'Amistad' : link.score <= -2 ? 'Rivalidad' : 'Conoce a';
       return `${label} · ${link.name}`;
     }).join('  /  ') : 'Aún no tiene vínculos en el palenque.');
-    text('personTraits', describeTraits(u));
+    text('personTraits', `${describePhysique(u)} · ${describeTraits(u)}`);
     text('personGrief', u.grief ? `De luto por ${u.grief.name} · ${Math.ceil(u.grief.remaining)} s` : '');
     const kit = $('personEquipment');
     kit.classList.toggle('hidden', !u.equipment);

@@ -7,6 +7,7 @@ import { createAnimal } from '../js/ecology.js';
 import { ALTAR_X } from '../js/exploration.js';
 import { ESTATES } from '../js/story.js';
 import { CROSSINGS } from '../js/crossings.js';
+import { TOWER_TIERS } from '../js/settlement.js';
 
 // Run the real game modules against a small browser shell. No logic is copied.
 class Element {
@@ -215,6 +216,46 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   // A completed campaign can award victory only once.
   await loadState(s=>{s.status='playing';s.benkos.invulnTimer=0;s.coins=16;s.haciendas.forEach(h=>h.destroyed=true);s.story.completed=ESTATES.map(site=>site.id);s.story.finale='witnesses';s.bossesDefeated=1;s.enemies=[{...enemy(),type:'GOBERNADOR_GIRON',isBoss:true,phase:2,hp:0}];});
   advance(.02);assert.equal(inspect().mode,'victory');assert.equal(elements.get('storyTitle').textContent,'Quienes dieron testimonio');const count=records.length;advance(1);assert.equal(records.length,count);
+});
+
+test('tower levels improve the real sentry attack and keep the archer at deck height', async () => {
+  let previousDamage = 0;
+  for (const [level, gap] of [[1, 240], [2, 280], [3, 320], [1, 320], [3, 44]]) {
+    await loadState(s => {
+      s.status = 'playing';
+      s.benkos.x = 0;
+      s.hitStopTimer = 0;
+      s.timeOfDay = .25;
+      s.phase = 'DAY_EXPLORE';
+      s.story.finale = '';
+      s.story.finalWon = false;
+      s.story.expedition = null;
+      s.projectiles = [];
+      s.campaign.orders = [];
+      const tower = s.settlement.towers[1];
+      tower.level = level;
+      s.units = [{ id: 45, x: tower.x, y: 268, role: 'ARQUERO', tier: 1, hp: 80, maxHp: 80, assignedSide: 1, attackCooldown: 0 }];
+      s.enemies = [{
+        ...ENEMY_CATALOG.SOLDADO_ESPANOL, id: 50, type: 'SOLDADO_ESPANOL', x: tower.x + gap, y: 268,
+        hp: 75, maxHp: 75, vx: 0, facing: -1, speed: 0, appearTimer: 0, attackCooldown: 9, guardSite: 'test', guardX: tower.x + gap
+      }];
+    });
+    advance(.1);
+    const {state} = inspect();
+    const archer = state.units.find(unit => unit.id === 45);
+    const tier = TOWER_TIERS[level];
+    assert.equal(archer.x, state.settlement.towers[1].x);
+    assert.equal(archer.towerHeight, tier.height);
+    if (gap >= tier.range) assert.equal(archer.pendingShot, undefined);
+    else {
+      assert.equal(archer.pendingShot.y, 268 - 19 - tier.height);
+      assert.ok(Math.abs(archer.attackCooldown - 1.1 * tier.cooldown) < .12);
+      if (gap >= 240) {
+        assert.ok(archer.pendingShot.dmg > previousDamage);
+        previousDamage = archer.pendingShot.dmg;
+      }
+    }
+  }
 });
 
 test('the hanging bridge can be cut and repaired at a post and the river ends the run', async () => {

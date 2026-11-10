@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=3d37a370ad47';
-import { landscapeSeed } from './sky.js?v=3d37a370ad47';
-import { CAMP_EDGE } from './config.js?v=3d37a370ad47';
-import { TOWER_HEIGHT } from './settlement.js?v=3d37a370ad47';
-import { CROSSINGS, deckOffset } from './crossings.js?v=3d37a370ad47';
+import { blend, color, mix, smooth } from './daylight.js?v=48baf0700084';
+import { landscapeSeed } from './sky.js?v=48baf0700084';
+import { CAMP_EDGE } from './config.js?v=48baf0700084';
+import { TOWER_HEIGHT } from './settlement.js?v=48baf0700084';
+import { CROSSINGS, deckOffset } from './crossings.js?v=48baf0700084';
 
 let regionCanvas;
 
@@ -302,8 +302,10 @@ export function drawToolStand(g,x,ground,rack,tier){
   const width = 20 + rack.maxStock * 14;
   const left = x - Math.round(width / 2), top = ground - 49;
   const sprites = window.SpriteManager;
-  if (sprites?.has('stock_rack_frame')) {
-    const { sheet, anims } = sprites.atlas.stock_rack_frame;
+  const armory = ['ARQUERO', 'GUERRERO', 'ESPADACHIN', 'CAZADOR', 'CABALLERO_ALIADO'].includes(rack.role);
+  const openStand = armory ? 'stock_rack_armory' : 'stock_rack_workshop';
+  if (sprites?.has(openStand) || sprites?.has('stock_rack_frame')) {
+    const { sheet, anims } = sprites.atlas[sprites.has(openStand) ? openStand : 'stock_rack_frame'];
     const frame = anims.idle[0];
     g.imageSmoothingEnabled = false;
     g.drawImage(sprites.sheets[sheet], frame.x, frame.y, frame.w, frame.h, left - 3, top - 4, width + 6, 54);
@@ -314,12 +316,16 @@ export function drawToolStand(g,x,ground,rack,tier){
     woodFace(g, left - 3, top, width + 6, 6, '#a2794b', x);
     woodFace(g, left, ground - 9, width, 5, '#a2794b', x + 17);
   }
+  if (sprites?.has(openStand)) {
+    woodFace(g, left + 9, top + (armory ? 18 : 22), width - 18, 4, '#775039', x + 32);
+    woodFace(g, left + 9, ground - 12, width - 18, 4, '#987047', x + 13);
+  }
   const metal = tier === 3 ? '#efd089' : tier === 2 ? '#d7e1d7' : '#b9c7bb';
   for (let slot = 0; slot < rack.maxStock; slot++) {
     const tx = left + 17 + slot * 14;
-    g.fillStyle = '#bc9967'; g.fillRect(tx, top + 10, 2, 4);
+    g.fillStyle = '#bc9967'; g.fillRect(tx, top + (armory ? 18 : 22), 2, 3);
     if (slot >= rack.stock) continue;
-    const y = top + 16;
+    const y = top + (armory ? 19 : 22);
     g.fillStyle = '#221c19a0';
     g.fillRect(tx + 1, y + 3, 3, 24);
     if (rack.role === 'CABALLERO_ALIADO') {
@@ -482,14 +488,7 @@ export function drawWatchtower(g, x, ground, tower) {
     return;
   }
   const deck = ground - TOWER_HEIGHT[tower.level];
-  if (window.SpriteManager?.draw?.(g, 'watchtower_detail', ['idle'], x, ground, 1, TOWER_HEIGHT[tower.level], 0)) {
-    if (tower.level >= 2) {
-      g.fillStyle = '#7c5a37'; g.fillRect(x + 20, deck - 29, 2, 22);
-      g.fillStyle = '#294d42'; g.fillRect(x + 22, deck - 29, 12, 9);
-      g.fillStyle = '#c6a670'; g.fillRect(x + 24, deck - 27, 4, 4);
-    }
-    return;
-  }
+  if (window.SpriteManager?.draw?.(g, `watchtower_level_${tower.level}`, ['idle'], x, ground, 1, TOWER_HEIGHT[tower.level], 0)) return;
   g.strokeStyle = '#4d3326';
   g.lineWidth = 5;
   g.beginPath();

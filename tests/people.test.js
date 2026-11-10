@@ -24,6 +24,21 @@ test('identity, gift and personality are stable, with a genuine effect on effica
   assert.ok(affinity(a,'GUERRERO')>affinity(a,'CAZADOR'));
   a.experience.GUERRERO=1200;assert.ok(proficiency(a,'GUERRERO')>1.3);
 });
+test('physique is varied and stays with the person through retraining and save/load', () => {
+  const state = createInitialState();
+  state.units = Array.from({ length: 24 }, (_, index) => person(index + 1, 'ALDEANO'));
+  for (const [sex, expected] of [['M', 'ROBUST'], ['F', 'CURVED']]) {
+    const people = state.units.filter(unit => unit.sex === sex);
+    assert.ok(people.some(unit => unit.physique.build === expected));
+    assert.ok(new Set(people.map(unit => unit.physique.stature)).size > 1);
+  }
+  const unit = state.units.find(person => person.physique.build === 'CURVED');
+  const identity = [unit.name, unit.sex, unit.temperament, unit.physique];
+  assert.equal(completeProfession(unit, state.toolRacks.find(rack => rack.role === 'AGRICULTOR'), state), true);
+  const {state: loaded} = restoreSave(makeSave(state, 40), createInitialState());
+  const saved = loaded.units.find(person => person.id === unit.id);
+  assert.deepEqual([saved.name, saved.sex, saved.temperament, saved.physique], identity);
+});
 test('a wounded farmer retreats and a healthy spearman holds his ground',()=>{
   const state=createInitialState();state.enemies=[{x:60,hp:80,appearTimer:0}];
   const farmer=person(4,'AGRICULTOR'),soldier=person(5,'GUERRERO');state.units=[farmer,soldier];

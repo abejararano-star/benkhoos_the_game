@@ -6,6 +6,15 @@ from shutil import copyfile
 def import_camp_detail(output):
     source = Path(__file__).resolve().parents[1] / 'assets' / 'atlas'
     entries = {
+        'open_shops_v20': {
+            'stock_rack_workshop': (54, 114, 936, 508, 508),
+            'stock_rack_armory': (1177, 132, 952, 492, 492),
+        },
+        'watchtowers_v20': {
+            'watchtower_level_1': (153, 262, 333, 424, 323),
+            'watchtower_level_2': (788, 24, 503, 662, 350),
+            'watchtower_level_3': (1493, 67, 641, 619, 346),
+        },
         'stock_rack_v19': {'stock_rack_frame': (24, 45, 1555, 910, 910)},
         'city_cartagena_v18': {'city_cartagena': (0, 43, 1983, 703, 695)},
         'city_marea_v18': {'city_marea': (2, 120, 1770, 651, 645)},
@@ -41,6 +50,11 @@ def import_camp_detail(output):
             'ravine_pool_grounded': (1060, 0, 1112, 724, 724),
         },
     }
+    tower_anchors = {
+        'watchtower_level_1': (310, 679),
+        'watchtower_level_2': (1045, 678),
+        'watchtower_level_3': (1768, 679),
+    }
     sprites = {}
     for sheet, items in entries.items():
         filename = sheet + '.png'
@@ -50,6 +64,9 @@ def import_camp_detail(output):
             frame = dict(i=0, x=x, y=y, w=width, h=height, ax=width / 2, ay=height - 3)
             if name == 'camp_creek_grounded':
                 frame.update(ax=572, ay=376)
+            if name in tower_anchors:
+                foot_x, ground_y = tower_anchors[name]
+                frame.update(ax=foot_x - x, ay=ground_y - y)
             sprites[name] = dict(sheet=sheet, ref=scale, anims={'idle': [frame]})
     # Bounds are measured on the opaque silhouette, leaving a transparent gutter
     # around each pose. Axes share a ground line within each source row.

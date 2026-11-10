@@ -3,7 +3,8 @@ const FEMININE_NAMES = new Set(['Amara', 'Juana', 'Nala', 'Inés', 'Amina', 'Sir
 const TRAITS = ['intelligence', 'dedication', 'impulse', 'courage', 'curiosity', 'charm', 'appearance'];
 
 export function ensureTraits(unit, random) {
-  unit.gender ??= FEMININE_NAMES.has(unit.name?.split(' ')[0]) ? 'woman' : 'man';
+  if (unit.sex === 'F' || unit.sex === 'M') unit.gender = unit.sex === 'F' ? 'woman' : 'man';
+  else unit.gender ??= FEMININE_NAMES.has(unit.name?.split(' ')[0]) ? 'woman' : 'man';
   if (unit.traits && TRAITS.every(key => Number.isInteger(unit.traits[key]) && unit.traits[key] >= 1 && unit.traits[key] <= 5)) return;
   unit.traits = Object.fromEntries(TRAITS.map(key => [key, 1 + Math.floor(random() * 5)]));
 }

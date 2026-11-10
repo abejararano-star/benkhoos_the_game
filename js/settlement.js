@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=3d37a370ad47';
-import { CAMP_EDGE } from './config.js?v=3d37a370ad47';
+import { ALTAR_X } from './exploration.js?v=48baf0700084';
+import { CAMP_EDGE } from './config.js?v=48baf0700084';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -7,7 +7,13 @@ export const HQ_NAMES = ['Refugio de la Matuna', 'Casa del consejo', 'Casa de ba
 export const ALTAR_HEIGHT = [0, 53, 57, 65, 73, 83];
 export const altarSprite = level => level === 1 ? 'landmark_altar' : `altar_${level}`;
 export const HQ_X = 0;
-export const TOWER_HEIGHT = [0, 62, 74, 87];
+export const TOWER_TIERS = Object.freeze([
+  { name: 'Puesto sin construir', height: 0, range: 200, damage: 1, cooldown: 1 },
+  { name: 'Atalaya de madera', height: 51, range: 250, damage: 1.10, cooldown: .96 },
+  { name: 'Torre de piedra y madera', height: 66, range: 290, damage: 1.27, cooldown: .87 },
+  { name: 'Torre almenada', height: 82, range: 330, damage: 1.48, cooldown: .76 }
+]);
+export const TOWER_HEIGHT = TOWER_TIERS.map(tower => tower.height);
 const WORK_REACH = 18;
 
 export function initialSettlement() {

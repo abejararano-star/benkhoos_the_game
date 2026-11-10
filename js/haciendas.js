@@ -1,6 +1,6 @@
-import { BALANCE } from './config.js?v=3d37a370ad47';
-import { estateById, hasOutpost } from './story.js?v=3d37a370ad47';
-import { strengthenPostGuard } from './frontier.js?v=3d37a370ad47';
+import { BALANCE } from './config.js?v=48baf0700084';
+import { estateById, hasOutpost } from './story.js?v=48baf0700084';
+import { strengthenPostGuard } from './frontier.js?v=48baf0700084';
 
 const PRISONERS = [-23, 0, 23];
 const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];
