@@ -92,7 +92,14 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().state.coins, 18);
   assert.equal(inspect().state.settlement.projects[0].targetLevel, 2);
   advance(5.1);assert.equal(inspect().state.settlement.level,2);
-  await loadState(s=>{s.benkos.x=s.walls[0].x;s.enemies=[];s.units.find(u => u.role === 'CONSTRUCTOR').x=s.benkos.x;});
+  await loadState(s => {
+    s.benkos.x = s.walls[0].x;
+    s.enemies = [];
+    s.droppedCoins = [];
+    Object.assign(s.units.find(unit => unit.role === 'CONSTRUCTOR'), {
+      x: s.benkos.x, leisure: null, nextLeisure: 10000, recoveredCoins: 0
+    });
+  });
   key('KeyS');advance(1.2);key('KeyS',true);
   assert.equal(inspect().state.walls[0].level,1);
   assert.equal(inspect().state.settlement.projects[0].kind,'wall');
