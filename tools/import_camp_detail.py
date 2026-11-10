@@ -6,6 +6,8 @@ from shutil import copyfile
 def import_camp_detail(output):
     source = Path(__file__).resolve().parents[1] / 'assets' / 'atlas'
     entries = {
+        'city_cartagena_v18': {'city_cartagena': (0, 43, 1983, 703, 695)},
+        'city_marea_v18': {'city_marea': (2, 120, 1770, 651, 645)},
         'camp_detail_v13': {
             'crop_bed': (42, 353, 698, 62, 62),
             'crop_young': (42, 226, 698, 189, 189),
@@ -130,4 +132,58 @@ def import_camp_detail(output):
                                ax=axes[index]-x, ay=ground_lines[index]-y))
         sprites[name] = dict(sheet=sheet, ref=172,
                              anims={name: [frames[i] for i in indices] for name, indices in animations.items()})
+    identities = 'captive_identity_v18'
+    if output.resolve() != source:
+        copyfile(source / (identities + '.png'), output / (identities + '.png'))
+    for sex, ground, axes, bounds in [
+        ('f', 430, [227, 652, 1080, 1507],
+         [(154,12,288,429), (591,11,718,429), (966,11,1208,429), (1395,14,1629,429)]),
+        ('m', 875, [221, 647, 1077, 1494],
+         [(166,460,282,874), (587,454,698,874), (949,457,1193,874), (1368,458,1617,874)]),
+    ]:
+        frames = []
+        for index, (left, top, right, bottom) in enumerate(bounds):
+            x, y = left - 4, top - 4
+            frames.append(dict(i=index, x=x, y=y, w=right-x+5, h=bottom-y+5, ax=axes[index]-x, ay=ground-y))
+        captive, idle, *walk = frames
+        sprites['actor_identity_' + sex] = dict(sheet=identities, ref=420, anims={
+            'captive': [captive], 'idle': [idle], 'walk': [walk[0], idle, walk[1], idle],
+            'release': [captive, idle], 'hurt': [captive], 'rest': [idle],
+        })
+    professions = 'identity_professions_v18'
+    if output.resolve() != source:
+        copyfile(source / (professions + '.png'), output / (professions + '.png'))
+    bounds = [(174,12,309,430), (533,13,796,430), (950,48,1269,430), (1383,88,1667,430),
+              (158,446,297,873), (472,496,872,872), (962,447,1240,873), (1339,452,1720,873)]
+    axes = [239, 659, 1060, 1511, 219, 635, 1053, 1518]
+    frames = []
+    for index, (left, top, right, bottom) in enumerate(bounds):
+        x, y = left - 4, top - 4
+        frames.append(dict(i=index, x=x, y=y, w=right-x+5, h=bottom-y+5, ax=axes[index]-x,
+                           ay=(431 if index < 4 else 874)-y))
+    idle, walk, farm, build, guard, thrust, bow, rider = frames
+    for name, animations in {
+        'work': {'idle': [idle], 'walk': [idle, walk], 'farm': [farm], 'build': [build]},
+        'guard': {'idle': [guard], 'walk': [guard, walk], 'action': [guard, thrust, guard], 'bow': [bow]},
+        'rider': {'idle': [rider], 'action': [rider]},
+    }.items():
+        sprites['actor_identity_f_' + name] = dict(sheet=professions, ref=420, anims=animations)
+    combat = 'identity_combat_v18'
+    if output.resolve() != source:
+        copyfile(source / (combat + '.png'), output / (combat + '.png'))
+    axes = [210, 643, 1062, 1505, 221, 657, 1088, 1521]
+    bounds = [(141,13,284,426), (490,9,795,426), (913,44,1302,426), (1410,11,1632,426),
+              (31,455,422,872), (467,454,853,870), (894,455,1287,871), (1333,454,1731,873)]
+    frames = []
+    for index, (left, top, right, bottom) in enumerate(bounds):
+        x, y = left - 4, top - 4
+        frames.append(dict(i=index, x=x, y=y, w=right-x+5, h=bottom-y+5, ax=axes[index]-x,
+                           ay=(427 if index < 4 else 874)-y))
+    ready, windup, slash, bow_ready, *trot = frames
+    for name, animations in {
+        'sword': {'idle': [ready], 'action': [windup, slash, ready]},
+        'archer': {'idle': [bow_ready], 'action': [bow_ready]},
+        'trot': {'idle': [trot[0]], 'walk': trot, 'run': trot},
+    }.items():
+        sprites['actor_identity_f_' + name] = dict(sheet=combat, ref=420, anims=animations)
     return sprites

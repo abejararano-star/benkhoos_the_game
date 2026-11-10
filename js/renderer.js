@@ -1,20 +1,21 @@
-import { crossingFeet } from './crossings.js?v=3daf42021c75';
-import { animalInStream } from './ecology.js?v=3daf42021c75';
-import { jaguarPose } from './jaguar.js?v=3daf42021c75';
-import { torchIsLit } from './exploration.js?v=3daf42021c75';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=3daf42021c75';
-import { blend, color, daylightAt } from './daylight.js?v=3daf42021c75';
-import { drawSky } from './sky.js?v=3daf42021c75';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=3daf42021c75';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=3daf42021c75';
-import { createLighting } from './lighting.js?v=3daf42021c75';
-import { RenderInterpolation } from './visual-motion.js?v=3daf42021c75';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=3daf42021c75';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=3daf42021c75';
-import { drawParticle } from './effects.js?v=3daf42021c75';
-import { haciendaActive } from './haciendas.js?v=3daf42021c75';
-import { ROAD_GATES } from './campaign.js?v=3daf42021c75';
-import { WATER_LINE_Y } from './config.js?v=3daf42021c75';
+import { crossingFeet } from './crossings.js?v=c2813accfb42';
+import { animalInStream } from './ecology.js?v=c2813accfb42';
+import { jaguarPose } from './jaguar.js?v=c2813accfb42';
+import { torchIsLit } from './exploration.js?v=c2813accfb42';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=c2813accfb42';
+import { blend, color, daylightAt } from './daylight.js?v=c2813accfb42';
+import { drawSky } from './sky.js?v=c2813accfb42';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=c2813accfb42';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=c2813accfb42';
+import { createLighting } from './lighting.js?v=c2813accfb42';
+import { RenderInterpolation } from './visual-motion.js?v=c2813accfb42';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=c2813accfb42';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=c2813accfb42';
+import { drawParticle } from './effects.js?v=c2813accfb42';
+import { haciendaActive } from './haciendas.js?v=c2813accfb42';
+import { ROAD_GATES } from './campaign.js?v=c2813accfb42';
+import { CITIES, OUTPOSTS } from './story.js?v=c2813accfb42';
+import { WATER_LINE_Y } from './config.js?v=c2813accfb42';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -99,6 +100,22 @@ function renderWorldAboveWater(g, time, air) {
   drawRiverbank(g, w, GROUND_SURFACE_Y, camX);
   drawTrailScenery(g, toScreenX, GROUND_SURFACE_Y, w, TRAIL_SIGNS, ALTAR_X, time);
   drawEstateScenery(g, toScreenX, GROUND_SURFACE_Y, w, time);
+  const sprites = window.SpriteManager;
+  for (const city of CITIES) {
+    const x = toScreenX(city.cityX);
+    if (x < -240 || x > w + 240) continue;
+    sprites?.draw?.(g, city.sprite, ['idle'], x, GROUND_SURFACE_Y + 1, 1, 151, 0);
+    const envoy = city.side < 0 ? 'actor_messenger' : 'actor_identity_f';
+    sprites?.draw?.(g, envoy, ['idle'], x + city.gateOffset + 18, GROUND_SURFACE_Y, -city.side, 43, 0);
+  }
+  for (const post of OUTPOSTS) {
+    const x = toScreenX(post.x);
+    if (x < -80 || x > w + 80) continue;
+    if (state.story.outposts.includes(post.id)) {
+      sprites?.draw?.(g, 'building_home_1', ['idle'], x - post.side * 28, GROUND_SURFACE_Y, 1, 47, 0);
+      drawWatchtower(g, x + post.side * 28, GROUND_SURFACE_Y, { level: 2 });
+    } else sprites?.draw?.(g, 'trail_sign', ['idle'], x, GROUND_SURFACE_Y, post.side, 31, 0);
+  }
   drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion,w);
   drawCrossings(g, toScreenX, w, GROUND_SURFACE_Y, state, wind);
   drawVines(g, toScreenX, GROUND_SURFACE_Y, w, settings.reduce_motion ? 0 : time);

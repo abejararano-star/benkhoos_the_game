@@ -1,6 +1,6 @@
-import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3daf42021c75';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=3daf42021c75';
-import { ensureTraits, griefEffect } from './daily-life.js?v=3daf42021c75';
+import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=c2813accfb42';
+import { ensureTraits, griefEffect } from './daily-life.js?v=c2813accfb42';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
@@ -9,6 +9,8 @@ export const TEMPERAMENTS = Object.freeze({ BRAVE:'Valiente', CAUTIOUS:'Prudente
 export const WORK_ROLES = ['LENADOR','AGRICULTOR','MINERO','CAZADOR','ARQUERO','GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CONSTRUCTOR'];
 export const MILITARY = ['GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CAMPEON_REAL'];
 const names=['Amara','Badu','Juana','Mateo','Nala','Kofi','Inés','Domingo','Amina','Manuel','Sira','Tomás','Adama','María','Lemba','Lucía','Samba','Ana','Binta','Gaspar','Dalia','Antonio','Zuri','Baltasar'];
+const femaleNames = new Set(['Amara', 'Juana', 'Nala', 'Inés', 'Amina', 'Sira', 'Adama', 'María', 'Lucía', 'Ana', 'Binta', 'Dalia', 'Zuri']);
+const nameSex = name => femaleNames.has(name) ? 'F' : 'M';
 const surnames=['del Monte','de la Ceiba','del Río','de la Matuna','del Sendero','del Manglar'];
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 function random(seed){let n=(seed|0)||1;return ()=>{n=Math.imul(n^n>>>15,1|n);n^=n+Math.imul(n^n>>>7,61|n);return ((n^n>>>14)>>>0)/4294967296;};}
@@ -19,11 +21,18 @@ export function affinity(unit,role){
   return Object.values(ATTRIBUTES).reduce((sum,_,i)=>sum+a[Object.keys(ATTRIBUTES)[i]]*weights[i],0);
 }
 export function ensurePerson(unit){
+  const index = Math.abs(Number(unit.id) || 1) % names.length;
+  if (unit.sex !== 'F' && unit.sex !== 'M') {
+    const givenName = unit.name?.split(' ')[0];
+    unit.sex = nameSex(names.includes(givenName) ? givenName : names[index]);
+  }
   if(!unit.personVersion){
     const healthRatio=(unit.hp??unit.maxHp??80)/(unit.maxHp??80);
     const rand=random(Number(unit.id)*193+311);
     const keys=Object.keys(ATTRIBUTES);
-    unit.name=unit.name??`${names[Math.abs(Number(unit.id)||1)%names.length]} ${surnames[Math.floor(rand()*surnames.length)]}`;
+    const pool = names.filter(name => nameSex(name) === unit.sex);
+    const given = nameSex(names[index]) === unit.sex ? names[index] : pool[index % pool.length];
+    unit.name=unit.name??`${given} ${surnames[Math.floor(rand()*surnames.length)]}`;
     unit.attributes=Object.fromEntries(keys.map(k=>[k,1+Math.floor(rand()*4)]));
     unit.gift=keys[Math.floor(rand()*keys.length)];unit.attributes[unit.gift]=5;
     unit.temperament=Object.keys(TEMPERAMENTS)[Math.floor(rand()*5)];

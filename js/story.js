@@ -1,5 +1,5 @@
-import { CAMP_EDGE } from './config.js?v=3daf42021c75';
-import { INFANTRY } from './equipment.js?v=3daf42021c75';
+import { CAMP_EDGE } from './config.js?v=c2813accfb42';
+import { INFANTRY } from './equipment.js?v=c2813accfb42';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,
@@ -7,15 +7,31 @@ export const ESTATES = [
   { id: 'hacienda_marea', name: 'Hacienda de la Boca de Marea', x: 3720, side: 1, maxHp: 530, prisoners: 6,
     roster: ['PIQUERO', 'SOLDADO_ESPANOL', 'ARQUERO_COLONIAL', 'ARCABUCERO'] }
 ];
+export const CITIES = [
+  { id: 'cartagena', name: 'Cartagena de Indias', x: -5515, cityX: -5960, side: -1, maxHp: 650, prisoners: 6,
+    sprite: 'city_cartagena', gateOffset: 26, envoy: 'Escribano de Cartagena',
+    context: 'Las carretas de las haciendas pasan por aquí. El gobernador Girón ordenó retener a quienes venían del camino de Jegua.',
+    roster: ['PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'CABALLERO'] },
+  { id: 'puerto_marea', name: 'Puerto de la Marea', x: 5515, cityX: 5960, side: 1, maxHp: 600, prisoners: 6,
+    sprite: 'city_marea', gateOffset: 9, envoy: 'Portera del cabildo',
+    context: 'El gobernador del puerto cerró el paso por el estero. Desde entonces, las familias cautivas esperan en el patio exterior.',
+    roster: ['ARQUERO_COLONIAL', 'PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL'] }
+];
+export const OUTPOSTS = [
+  { id: 'avanzada_jegua', name: 'Avanzada de la Loma', x: -4130, side: -1 },
+  { id: 'avanzada_estero', name: 'Avanzada del Estero', x: 4190, side: 1 }
+];
+const SITES = [...ESTATES, ...CITIES];
 const COMPANIONS = [...INFANTRY, 'CAZADOR', 'CAMPEON_REAL', 'CABALLERO_ALIADO'];
 export const localHaciendas = state => state.haciendas.filter(h => !h.major);
-export const estateById = id => ESTATES.find(site => site.id === id);
+export const estateById = id => SITES.find(site => site.id === id);
 export function majorHaciendas() {
-  return ESTATES.map(({ id, name, x, side, maxHp, prisoners }) => ({ id, name, x, side, hp: maxHp, maxHp, prisoners, major: true, destroyed: false }));
+  return SITES.map(({ id, name, x, side, maxHp, prisoners }) => ({ id, name, x, side, hp: maxHp, maxHp, prisoners, major: true, destroyed: false }));
 }
 
 export function initialStory() {
-  return { plan: '', treaty: '', finale: '', completed: [], expedition: null, finalWon: false };
+  return { plan: '', treaty: '', finale: '', completed: [], outposts: [], rescuedTotal: 0, lostTotal: 0,
+    expedition: null, finalWon: false };
 }
 
 export function restoreStory(state, legacy) {
@@ -23,8 +39,10 @@ export function restoreStory(state, legacy) {
   const story = initialStory();
   story.plan = ['guides', 'assault'].includes(value.plan) ? value.plan : '';
   story.treaty = ['signed', 'refused'].includes(value.treaty) ? value.treaty : state.truceDays > 0 ? 'signed' : '';
-  story.completed = ESTATES.filter(site => Array.isArray(value.completed) && value.completed.includes(site.id)).map(site => site.id);
-  story.finale = story.completed.length === ESTATES.length && ['witnesses', 'network'].includes(value.finale) ? value.finale : '';
+  story.completed = SITES.filter(site => Array.isArray(value.completed) && value.completed.includes(site.id)).map(site => site.id);
+  story.outposts = OUTPOSTS.filter(post => Array.isArray(value.outposts) && value.outposts.includes(post.id)).map(post => post.id);
+  for (const key of ['rescuedTotal', 'lostTotal']) if (Number.isSafeInteger(value[key]) && value[key] >= 0) story[key] = value[key];
+  story.finale = ESTATES.every(site => story.completed.includes(site.id)) && ['witnesses', 'network', 'accord'].includes(value.finale) ? value.finale : '';
   story.finalWon = !!story.finale && value.finalWon === true;
   const mission = value.expedition;
   if (story.plan && mission && estateById(mission.site) && !story.completed.includes(mission.site) &&
@@ -34,7 +52,19 @@ export function restoreStory(state, legacy) {
       rescued: [...new Set(mission.rescued.filter(id => Number.isSafeInteger(id)))].slice(0, 6) };
   }
   state.story = story;
-  for (const site of majorHaciendas()) if (!state.haciendas.some(h => h.id === site.id)) state.haciendas.push(site);
+  for (const site of majorHaciendas()) {
+    const saved = state.haciendas.find(h => h.id === site.id);
+    if (!saved) state.haciendas.push(site);
+    else if (saved.x !== site.x && CITIES.some(city => city.id === site.id)) {
+      const offset = site.x - saved.x;
+      saved.x = site.x;
+      for (const unit of state.units) if (unit.captiveHacienda === site.id) unit.x += offset;
+      for (const guard of state.enemies) if (guard.guardSite === site.id && Number.isFinite(guard.guardX)) {
+        guard.x += offset;
+        guard.guardX += offset;
+      }
+    }
+  }
   if (legacy && state.status === 'victory') {
     state.status = 'playing';
     state.campaign.governorDefeated = true;
@@ -43,14 +73,49 @@ export function restoreStory(state, legacy) {
 }
 
 export function storyChapter(state) {
-  if (state.story.completed.length === ESTATES.length) return 3;
+  if (ESTATES.every(site => state.story.completed.includes(site.id))) return 3;
   return localHaciendas(state).length >= 2 && localHaciendas(state).every(h => h.destroyed) ? 2 : 1;
 }
 
+export function hasOutpost(state, side) {
+  return OUTPOSTS.some(post => post.side === side && state.story.outposts.includes(post.id));
+}
+
+export function establishOutpost(state, post) {
+  if (storyChapter(state) < 2) return 'El consejo habilitará esta avanzada tras liberar las haciendas cercanas.';
+  if (state.story.outposts.includes(post.id)) return 'Avanzada activa. Sirve de refugio a las escoltas y facilita el rescate en la ciudad.';
+  if (state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - post.x) < 130)) return 'Despeja el camino antes de levantar el refugio.';
+  if (state.resources.wood < 4 || state.resources.food < 3) return 'El refugio requiere 4 de madera y 3 de alimento.';
+  state.resources.wood -= 4;
+  state.resources.food -= 3;
+  state.story.outposts.push(post.id);
+  return 'Avanzada establecida. Los vigías encontrarán un camino con menos guardias hacia la ciudad.';
+}
+
+export function frontierHint(state) {
+  const x = state.benkos.x;
+  const post = OUTPOSTS.find(outpost => Math.abs(outpost.x - x) < 42);
+  if (post) return state.story.outposts.includes(post.id) ? `E · ${post.name} · Refugio activo` : `E · ${post.name} · 4 madera y 3 alimento`;
+  const city = CITIES.find(place => Math.abs(place.cityX - x) < 65);
+  return city ? `E · ${city.name} · Entrada de la ciudad` : '';
+}
+
+export function canNegotiateFinale(state) {
+  return storyChapter(state) === 3 && !state.story.expedition &&
+    CITIES.every(city => state.story.completed.includes(city.id)) && state.story.outposts.length > 0;
+}
+
+export function campaignOutcome(state, status) {
+  if (status === 'defeat') return 'fallen';
+  if (state.story.finale === 'accord') return 'accord';
+  if (state.story.lostTotal >= 3 && state.story.lostTotal * 2 > state.story.rescuedTotal) return 'fragile';
+  return state.story.finale;
+}
+
 export function beginExpedition(state, id) {
-  if (storyChapter(state) !== 2 || !state.story.plan || state.story.expedition || state.story.completed.includes(id) || !estateById(id)) return false;
+  if (storyChapter(state) < 2 || !state.story.plan || state.story.finale || state.story.expedition || state.story.completed.includes(id) || !estateById(id)) return false;
   const site = state.haciendas.find(h => h.id === id);
-  if (site.destroyed && !site.reoccupied) return false;
+  if (!site || site.destroyed && !site.reoccupied) return false;
   const available = state.units.filter(u => COMPANIONS.includes(u.role) && u.hp >= u.maxHp * .55 && !u.requestedRole && !u.kitOrder && Math.abs(u.x) < CAMP_EDGE + 300);
   const party = available.sort((a, b) => (b.role === 'ARQUERO') - (a.role === 'ARQUERO') || b.hp / b.maxHp - a.hp / a.maxHp).slice(0, 3).map(u => u.id);
   state.story.expedition = { site: id, stage: 'march', party, rescued: [] };
@@ -99,6 +164,8 @@ export function advanceExpedition(state) {
   const people = state.units.filter(u => u.hp > 0 && mission.rescued.includes(u.id));
   if (people.some(u => u.escortHome)) return '';
   if (people.length && Math.abs(state.benkos.x) > 300) return '';
+  state.story.rescuedTotal += people.length;
+  state.story.lostTotal += mission.rescued.length - people.length;
   if (people.length) {
     state.story.completed.push(site.id);
     state.treasuryCoins += 8;
@@ -123,7 +190,7 @@ export function expeditionObjective(state) {
 
 export function finalObjective(state) {
   const story = state.story;
-  if (!story.finale) return 'Reúne al consejo frente a la casa central con E.';
+  if (!story.finale) return expeditionObjective(state) || 'Reúne al consejo con E. Puedes explorar las ciudades antes de decidir el desenlace.';
   if (state.enemies.some(enemy => enemy.finalRaid && enemy.hp > 0) || state.campaign.orders.some(order => order.kind === 'final')) {
     return story.finale === 'witnesses' ? 'Defiende a los testigos de la última expedición colonial.' : 'Defiende los caminos de la Matuna del ataque en dos frentes.';
   }

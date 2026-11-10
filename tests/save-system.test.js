@@ -5,7 +5,7 @@ import { makeSave, restoreSave } from '../js/save-system.js';
 import { ensurePerson } from '../js/people.js';
 import { seedFrontier } from '../js/exploration.js';
 import { conquerHacienda } from '../js/haciendas.js';
-import { ESTATES, storyChapter } from '../js/story.js';
+import { CITIES, ESTATES, storyChapter } from '../js/story.js';
 
 test('v3 restores the complete world, including zero values, tier 3, damage and unlocks', () => {
   const s = createInitialState();
@@ -18,7 +18,7 @@ test('v3 restores the complete world, including zero values, tier 3, damage and 
   let id = 80;
   seedFrontier(s, () => id++);
   const loaded = restoreSave(JSON.parse(JSON.stringify(makeSave(s, 93))), createInitialState());
-  assert.equal(loaded.nextEntityId, 93);
+  assert.equal(loaded.nextEntityId, Math.max(93, id));
   for (const key of ['day','armyTier','coins','treasuryCoins','timeOfDay','armorUnlocked','bossesDefeated','politicalEventSeen','walls','farms','haciendas','trees','skills','units','horses']) assert.deepEqual(loaded.state[key], s[key], key);
   assert.equal(loaded.state.benkos.spirit, 0); assert.equal(loaded.state.benkos.x, 0); assert.equal(loaded.state.benkos.mounted, true);
 });
@@ -31,7 +31,7 @@ test('a pre-expansion victory continues from the council with both local rescues
   assert.equal(state.status, 'playing');
   assert.equal(storyChapter(state), 2);
   assert.equal(state.campaign.governorDefeated, true);
-  assert.deepEqual(state.haciendas.filter(site=>site.major).map(site=>site.id), ESTATES.map(site=>site.id));
+  assert.deepEqual(state.haciendas.filter(site=>site.major).map(site=>site.id), [...ESTATES, ...CITIES].map(site=>site.id));
 });
 test('legacy save migration preserves zero, empty armies and damaged walls', () => {
   const loaded = restoreSave({dia_actual:2, tiempo_dia:0, monedas_bolsa:0, monedas_cofre:0, salud_benkos:0, posicion_benkos_x:0, tropas:[], construcciones:[{tipo_nodo:'MURALLA', posicion_x:-355, nivel:2, salud_actual:12}]}, createInitialState()).state;

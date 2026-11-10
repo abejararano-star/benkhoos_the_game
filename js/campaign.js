@@ -1,5 +1,5 @@
-import { storyChapter } from './story.js?v=3daf42021c75';
-export const ROAD_GATES = Object.freeze([{side:-1,x:-2485,label:'Camino de Cartagena'},{side:1,x:2485,label:'Camino de la hacienda oriental'}]);
+import { storyChapter } from './story.js?v=c2813accfb42';
+export const ROAD_GATES = Object.freeze([{side:-1,x:-2485,label:'Camino de Cartagena'},{side:1,x:2485,label:'Camino del Puerto de la Marea'}]);
 export function ensureCampaign(state){
   state.messengers??=[];
   if (state.campaign?.version===1 && ['orders','letters','warnedDays','sentDays','bossAnnouncements','defeatedBosses'].every(key=>Array.isArray(state.campaign[key]))) return state.campaign;

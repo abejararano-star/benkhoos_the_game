@@ -1,5 +1,5 @@
-import { BALANCE } from './config.js?v=3daf42021c75';
-import { estateById } from './story.js?v=3daf42021c75';
+import { BALANCE } from './config.js?v=c2813accfb42';
+import { estateById, hasOutpost } from './story.js?v=c2813accfb42';
 
 const PRISONERS = [-23, 0, 23];
 const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];
@@ -34,6 +34,8 @@ export function updateHaciendas(state, spawnCaptive, distanceFromView = 440, spa
   for (const hacienda of state.haciendas) {
     if (hacienda.major && (state.story.completed.includes(hacienda.id) || state.story.expedition?.site !== hacienda.id && !hacienda.destroyed)) continue;
     if (state.story.expedition?.site === hacienda.id && state.story.expedition.stage === 'return') continue;
+    const estate = estateById(hacienda.id);
+    if (estate?.cityX && Math.abs(state.benkos.x - hacienda.x) > 525 && haciendaActive(hacienda)) continue;
     const offScreen = Math.min(Math.abs(state.cameraX - hacienda.x), Math.abs(state.benkos.x - hacienda.x)) > distanceFromView;
     if (!haciendaActive(hacienda) && campaignTime(state) >= hacienda.rebuildAt && offScreen) {
       hacienda.reoccupied = true;
@@ -45,16 +47,19 @@ export function updateHaciendas(state, spawnCaptive, distanceFromView = 440, spa
     if (!hacienda.captivesPlaced) {
       const positions = hacienda.major ? LARGE_PRISON.slice(0, hacienda.prisoners) : PRISONERS;
       const existing = state.units.filter(unit => unit.captiveHacienda === hacienda.id && unit.role === 'FUGITIVO').length;
-      for (const offset of positions.slice(existing)) {
-        const unit = spawnCaptive(hacienda.x + offset);
+      for (const [index, offset] of positions.entries()) {
+        if (index < existing) continue;
+        const sex = (index + Number(hacienda.side > 0)) % 2 === 0 ? 'F' : 'M';
+        const unit = spawnCaptive(hacienda.x + offset, sex);
         unit.captiveHacienda = hacienda.id;
       }
       hacienda.captivesPlaced = true;
     }
     if (!spawnGuard || hacienda.garrisonPlaced) continue;
-    const estate = estateById(hacienda.id);
     const roster = estate ? [...estate.roster] : hacienda.id === 'hac_east' ? ['SOLDADO_ESPANOL'] : [];
-    if (estate && state.story.plan === 'assault') roster.push('SOLDADO_ESPANOL', 'PIQUERO');
+    const guided = estate?.cityX && hasOutpost(state, hacienda.side);
+    if (guided) roster.pop();
+    else if (estate && state.story.plan === 'assault') roster.push('SOLDADO_ESPANOL', 'PIQUERO');
     for (const [index, type] of roster.entries()) {
       const post = hacienda.x + hacienda.side * (-95 + index * 38);
       const guard = spawnGuard(type, hacienda.side, post);

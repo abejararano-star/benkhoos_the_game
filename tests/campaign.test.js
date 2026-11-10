@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../js/world-state.js';
 import { createCampaign, dispatchRaid, announceBoss, raidSize, raidRoster, dispatchReinforcement, ROAD_GATES, startFinale, finaleWon } from '../js/campaign.js';
-import { ESTATES, expeditionFormation } from '../js/story.js';
+import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, establishOutpost, expeditionFormation, onEstateLiberated } from '../js/story.js';
+import { conquerHacienda, gateRequirement, updateHaciendas } from '../js/haciendas.js';
+import { ensurePerson } from '../js/people.js';
+import { makeSave, restoreSave } from '../js/save-system.js';
 function harness(){const s=createInitialState(),arrivals=[],banners=[];let id=1,treaties=0;
   const campaign=createCampaign({state:s,nextId:()=>id++,spawnEnemy:(type,side,x)=>{const enemy={type,side,x};arrivals.push(enemy);return enemy;},showBanner:(...v)=>banners.push(v),onTreaty:()=>treaties++});
   return {s,campaign,arrivals,banners,treaties:()=>treaties};}
@@ -65,4 +68,60 @@ test('a signed truce freezes all pending attacks, including the final protected 
   const {s,campaign,arrivals}=harness();announceBoss(s,'HERALDO_ALADO',1,5);s.truceDays=1;campaign.update(6);assert.equal(arrivals.length,0);
   s.truceDays=0;s.phase='TRUCE_NIGHT';campaign.update(6);assert.equal(arrivals.length,0);
   s.phase='DAY_EXPLORE';campaign.update(6);assert.equal(arrivals.length,1);
+});
+test('city expeditions use frontier refuges and preserve the identity of rescued people', () => {
+  const {s} = harness();
+  s.story.plan = 'assault';
+  s.story.completed = ESTATES.map(site => site.id);
+  const city = CITIES[0];
+  const outpost = OUTPOSTS[0];
+  assert.match(establishOutpost(s, outpost), /establecida/);
+  assert.match(establishOutpost(s, outpost), /activa/);
+  assert.deepEqual(s.resources, { wood: 4, stone: 4, food: 2 });
+  assert.equal(beginExpedition(s, city.id), true);
+  s.benkos.x = city.x + 180;
+  assert.equal(advanceExpedition(s), 'approach');
+  let id = 20;
+  updateHaciendas(s, (x, sex) => {
+    const unit = ensurePerson({ id: id++, role: 'FUGITIVO', x, sex, hp: 50, maxHp: 50 });
+    s.units.push(unit);
+    return unit;
+  }, 440, (type, side, x) => {
+    const guard = { id: id++, type, x, side, hp: 80, maxHp: 80 };
+    s.enemies.push(guard);
+    return guard;
+  });
+  const site = s.haciendas.find(hacienda => hacienda.id === city.id);
+  const captives = s.units.filter(unit => unit.captiveHacienda === city.id);
+  const identity = captives.map(unit => [unit.id, unit.name, unit.sex]);
+  assert.equal(captives.length, 6);
+  assert.equal(captives.filter(unit => unit.sex === 'F').length, 3);
+  assert.equal(s.enemies.filter(guard => guard.guardSite === city.id).length, city.roster.length - 1);
+  assert.match(gateRequirement(s, site), /guarnición/);
+  s.enemies = [];
+  onEstateLiberated(s, site, conquerHacienda(s, site).captives);
+  s.benkos.x = 0;
+  for (const unit of captives) { unit.x = 150; delete unit.escortHome; }
+  const {state: loaded} = restoreSave(makeSave(s, id), createInitialState());
+  assert.deepEqual(loaded.units.filter(unit => identity.some(([id]) => unit.id === id))
+    .map(unit => [unit.id, unit.name, unit.sex]), identity);
+  assert.equal(advanceExpedition(loaded), 'returned');
+  assert.equal(loaded.story.rescuedTotal, 6);
+  assert.ok(loaded.story.completed.includes(city.id));
+});
+test('city rescues unlock an optional accord and losses change the combat epilogue', () => {
+  const {s} = harness();
+  s.story.completed = ESTATES.map(site => site.id);
+  s.story.finale = 'witnesses';
+  assert.equal(canNegotiateFinale(s), false);
+  assert.equal(campaignOutcome(s, 'victory'), 'witnesses');
+  s.story.rescuedTotal = 6;
+  s.story.lostTotal = 4;
+  assert.equal(campaignOutcome(s, 'victory'), 'fragile');
+  assert.equal(campaignOutcome(s, 'defeat'), 'fallen');
+  s.story.finale = '';
+  s.story.completed.push(...CITIES.map(city => city.id));
+  establishOutpost(s, OUTPOSTS[1]);
+  assert.equal(canNegotiateFinale(s), true);
+  assert.equal(s.story.treaty, '');
 });

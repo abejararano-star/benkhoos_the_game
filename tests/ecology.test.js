@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createInitialState} from '../js/world-state.js';
-import {createAnimal,seedEcology,interactEcology,updateEcology,isHuntable,SPECIES} from '../js/ecology.js';
+import {ANIMAL_MATURITY,createAnimal,seedEcology,interactEcology,updateEcology,isHuntable,SPECIES} from '../js/ecology.js';
 import {makeSave,restoreSave} from '../js/save-system.js';
 import {seedFrontier} from '../js/exploration.js';
 import {jaguarPose} from '../js/jaguar.js';
@@ -141,6 +141,39 @@ test('saving a jaguar mid-pounce preserves whether it already landed its hit', (
   step(restored, 12, hooks);
   assert.equal(restored.wildlife[0].state, 'RECOVER');
   assert.equal(hits, 1);
+});
+test('a wild jaguar eats prey without paying a hunting reward to the player', () => {
+  const state = world('JAGUAR');
+  state.benkos.x = 1000;
+  state.ecology.time = 32;
+  state.wildlife.push(createAnimal(20, 'CAPYBARA', 20, { hp: 15 }));
+  let drops = 0;
+  step(state, 43, { dropCoin: () => drops++ });
+  const jaguar = state.wildlife[0];
+  assert.equal(jaguar.state, 'EAT');
+  assert.ok(jaguar.lastMeal > 32);
+  assert.equal(state.wildlife.length, 1);
+  assert.equal(state.resources.food, 5);
+  assert.equal(drops, 0);
+});
+test('a wild pair can have a juvenile that persists and grows up', () => {
+  const state = world();
+  state.benkos.x = 1000;
+  state.ecology.time = 32.9;
+  state.wildlife = [createAnimal(7, 'DEER', -550, { sex: 'F' }), createAnimal(8, 'DEER', -532, { sex: 'M' })];
+  let id = 100;
+  step(state, 30, { nextId: () => id++ });
+  assert.equal(state.wildlife.length, 3);
+  const fawn = state.wildlife[2];
+  assert.equal(fawn.motherId, 7);
+  assert.ok(fawn.maxHp < SPECIES.DEER.hp);
+  const {state: saved} = restoreSave(makeSave(state, id), createInitialState());
+  const restored = saved.wildlife.find(animal => animal.id === fawn.id);
+  assert.equal(restored.bornAt, fawn.bornAt);
+  assert.equal(restored.sex, fawn.sex);
+  updateEcology(saved, ANIMAL_MATURITY);
+  assert.equal(restored.bornAt, undefined);
+  assert.equal(restored.maxHp, SPECIES.DEER.hp);
 });
 test('animals, trust, food and water stocks survive saves; old attacks do not deal damage twice on migration',()=>{
   const s=world('TURTLE');s.ecology.seeded=true;s.wildlife[0].trust=2;s.ecology.streams[0].fishStock=1;

@@ -1,4 +1,4 @@
-import { createAnimal } from './ecology.js?v=3daf42021c75';
+import { createAnimal } from './ecology.js?v=c2813accfb42';
 
 export const ALTAR_X = -1880;
 export const TRAIL_SIGNS = [-1565, -1815, -4360];
@@ -17,7 +17,7 @@ export const TRAIL_CACHES = [
 ];
 
 export function initialExploration() {
-  return { altarFound: false, frontierSeeded: false, trailSnakesSeeded: false, estateWildlifeSeeded: false, waypoint: '', opened: [], revealed: [] };
+  return { altarFound: false, frontierSeeded: false, trailSnakesSeeded: false, estateWildlifeSeeded: false, wildlifePairsSeeded: false, waypoint: '', opened: [], revealed: [] };
 }
 
 export function ensureExploration(state) {
@@ -27,6 +27,7 @@ export function ensureExploration(state) {
     frontierSeeded: old?.frontierSeeded === true,
     trailSnakesSeeded: old?.trailSnakesSeeded === true,
     estateWildlifeSeeded: old?.estateWildlifeSeeded === true,
+    wildlifePairsSeeded: old?.wildlifePairsSeeded === true,
     waypoint: typeof old?.waypoint === 'string' && /^[a-z_]{1,30}$/.test(old.waypoint) ? old.waypoint : '',
     opened: TRAIL_CACHES.filter(cache => Array.isArray(old?.opened) && old.opened.includes(cache.id)).map(cache => cache.id),
     revealed: TRAIL_CACHES.filter(cache => Array.isArray(old?.revealed) && old.revealed.includes(cache.id)).map(cache => cache.id)
@@ -45,6 +46,14 @@ export function seedFrontier(state, nextId) {
   if (!state.exploration.trailSnakesSeeded) {
     for (const x of [-1130, -2220, 1940, 2400]) state.wildlife.push(createAnimal(nextId(), 'SNAKE', x));
     state.exploration.trailSnakesSeeded = true;
+  }
+  if (!state.exploration.wildlifePairsSeeded) {
+    for (const [species, x] of [['CAPYBARA', 560], ['DEER', -3170], ['BOAR', -3620], ['JAGUAR', 3080]]) {
+      const resident = state.wildlife.find(animal => animal.species === species && Math.abs(animal.homeX - x) < 120);
+      if (!resident) state.wildlife.push(createAnimal(nextId(), species, x, { sex: 'F' }));
+      state.wildlife.push(createAnimal(nextId(), species, x + 74, { sex: resident?.sex === 'M' ? 'F' : 'M' }));
+    }
+    state.exploration.wildlifePairsSeeded = true;
   }
   if (state.exploration.frontierSeeded) return;
   for (const [species, x] of [['DEER', -2270], ['MACAW', -2040], ['MONKEY', -2205], ['TURTLE', 1995], ['CAPYBARA', 2080], ['BOAR', 2350]]) {

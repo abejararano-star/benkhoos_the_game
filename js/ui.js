@@ -1,18 +1,18 @@
-import { needsCropCare } from './crops.js?v=3daf42021c75';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=3daf42021c75';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=3daf42021c75';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=3daf42021c75';
-import { describeTraits } from './daily-life.js?v=3daf42021c75';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=3daf42021c75';
-import { canMediate, relationshipsFor } from './community.js?v=3daf42021c75';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=3daf42021c75';
-import { ecologyHint } from './ecology.js?v=3daf42021c75';
-import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=3daf42021c75';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3daf42021c75';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=3daf42021c75';
-import { arrivalHint } from './campaign.js?v=3daf42021c75';
-import { ESTATES, expeditionObjective, finalObjective, localHaciendas, storyChapter } from './story.js?v=3daf42021c75';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=3daf42021c75';
+import { needsCropCare } from './crops.js?v=c2813accfb42';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=c2813accfb42';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=c2813accfb42';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=c2813accfb42';
+import { describeTraits } from './daily-life.js?v=c2813accfb42';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=c2813accfb42';
+import { canMediate, relationshipsFor } from './community.js?v=c2813accfb42';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=c2813accfb42';
+import { ecologyHint } from './ecology.js?v=c2813accfb42';
+import { MATERIALS, HQ_NAMES, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=c2813accfb42';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable } from './people.js?v=c2813accfb42';
+import { arrivalHint } from './campaign.js?v=c2813accfb42';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=c2813accfb42';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=c2813accfb42';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -143,14 +143,14 @@ export function createUI({ state, session, settings, actions }) {
     clearTimeout(bannerTimer);
     bannerTimer = setTimeout(() => $('loreBanner').classList.remove('visible'), 4500);
   }
-  function result(status) {
+  function result(status, show = true) {
     session.mode = status;
     text('resultTitle', status === 'victory' ? 'La Matuna permanece libre' : 'La resistencia necesita un nuevo comienzo');
     text('resultDescription', status === 'defeat' && state.benkos.waterFall ? 'Benkos cayó al río y la corriente lo arrastró.' : status === 'victory'
       ? state.story.finale === 'witnesses' ? 'Los testimonios de las personas liberadas ya viajan por los caminos.' : 'La Matuna y sus aliados mantienen abiertos los caminos de refugio.'
       : `Benkos cayó sin plata en la bolsa y el cofre no tenía los ${BALANCE.rescueCost} reales necesarios para rescatarlo.`);
     text('resultStats', `Día ${state.day} · ${state.fugitivesFreed} personas liberadas · ${state.enemiesDefeated} enemigos derrotados · ${state.score} puntos${state.sandbox ? ' · Campaña de prueba' : ''}`);
-    open('resultDialog');
+    if (show) open('resultDialog');
   }
   function update() {
     if (session.mode === 'playing') prices = actions.worldPrices?.() ?? [];
@@ -239,7 +239,8 @@ export function createUI({ state, session, settings, actions }) {
       text('objectiveTitle', 'III · La palabra y el hierro');
       text('objectiveText', finalObjective(state));
     }
-    $('objectiveProgress').style.width = `${(destroyed + state.story.completed.length + Number(!!state.story.finale) + Number(state.story.finalWon)) / 6 * 100}%`;
+    const ruralRescues = ESTATES.filter(site => state.story.completed.includes(site.id)).length;
+    $('objectiveProgress').style.width = `${(destroyed + ruralRescues + Number(!!state.story.finale) + Number(state.story.finalWon)) / 6 * 100}%`;
     const armor = $('btnToggleRoyalArmor');
     armor.disabled = !state.armorUnlocked && state.armyTier < 3;
     armor.title = state.armorUnlocked ? 'Alternar armadura · C' : state.armyTier >= 3 ? `Comprar por ${ROYAL_ARMOR_COST} reales · C` : 'Requiere rango Real';
@@ -271,7 +272,7 @@ export function createUI({ state, session, settings, actions }) {
     const context = Math.abs(state.benkos.x) < 23 && chapter > 1 ? 'E · Convocar al consejo · B · Obras' :
       hacienda ? gateRequirement(state, hacienda) || 'Espacio · Romper el portón para liberar a los cautivos' : '';
     const bridge = bridgePost(state.benkos.x) ?? crossingAt(state.benkos.x);
-    text('contextHint', state.benkos.waterFall ? 'La corriente arrastra a Benkos' : bridge ? bridgeHint(state, bridge) : messenger?'E · Escuchar al mensajero de Cartagena':canMediate(state)?'E · Mediar en la discusión':context||social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar');
+    text('contextHint', state.benkos.waterFall ? 'La corriente arrastra a Benkos' : bridge ? bridgeHint(state, bridge) : messenger?'E · Escuchar al mensajero de Cartagena':frontierHint(state)|| (canMediate(state)?'E · Mediar en la discusión':context||social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar'));
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   on('btnStoryNext', () => { if (++storyPage < cinematic.lines.length) renderStory(); else closeStory(); });
@@ -320,6 +321,7 @@ export function createUI({ state, session, settings, actions }) {
   });
   $('reduceMotion').addEventListener('change', e => actions.settings({ reduce_motion: e.target.checked }));
   on('btnChoiceAccept', () => actions.politics(true)); on('btnChoiceReject', () => actions.politics(false));
+  on('btnChoiceLater', () => resume());
   on('btnOpenLeaderboard', async () => {
     returnDialog = 'pauseDialog'; open('modalLeaderboard');
     const tbody = $('leaderboardTbody'); tbody.replaceChildren();
@@ -508,7 +510,7 @@ export function createUI({ state, session, settings, actions }) {
   function renderPerson(){
     const u=state.units.find(n=>n.id===selectedPersonId);if(!u)return;
     ensurePerson(u);
-    text('personName',u.name);text('personRole',`${ROLE_NAMES[u.role]} · Rango ${u.tier}`);
+    text('personName',u.name);text('personRole',`${ROLE_NAMES[u.role]} · ${u.sex === 'F' ? 'Mujer' : 'Hombre'} · Rango ${u.tier}`);
     text('personTemperament',`${TEMPERAMENTS[u.temperament]} · ${u.mood}`);
     text('personGift',GIFT_NAMES[u.gift]);
     text('personPreference',`Prefiere: ${ROLE_NAMES[u.preferredRole]} · Salud ${Math.ceil(u.hp)}/${u.maxHp}`);

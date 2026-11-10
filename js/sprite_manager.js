@@ -182,7 +182,9 @@ class BenkosSpriteManager {
   }
   drawAnimal(ctx,x,y,a,time,jaguarPose){
     if (a.species === 'SNAKE') return this.drawSnake(ctx, x, y, a);
-    const cls='animal_'+(a.species||'CAPYBARA'),height={CAPYBARA:19,DEER:31,BOAR:23,MONKEY:23,MACAW:23,TURTLE:12,JAGUAR:28}[a.species]||19;
+    const cls='animal_'+(a.species||'CAPYBARA');
+    const adultHeight={CAPYBARA:19,DEER:31,BOAR:23,MONKEY:23,MACAW:23,TURTLE:12,JAGUAR:28}[a.species]||19;
+    const height = a.bornAt === undefined ? adultHeight : adultHeight * (.62 + Math.min(.37, (a.animTime ?? 0) * .00475));
     if (a.waterFall) return this.drawDrowning(ctx, cls, x, y, a.facing, height, a.waterFall.time);
     const t=a.animTime??time,gait=this.motion?.sample(a,t,a.species==='JAGUAR' ? (a.state==='FLEE' ? 20 : 23) : undefined);
     if (jaguarPose && this.has('animal_jaguar_motion') && this.has('animal_jaguar_combat')) {
@@ -249,7 +251,7 @@ class BenkosSpriteManager {
     const frame = this.reduceMotion ? 0 : phase < .36 ? 0 : phase < .68 || phase > .86 ? .4 : .8;
     const breath = options || !this.reduceMotion ? { ...options, tilt: 0,
       stretch: this.reduceMotion ? 1 : 1 + Math.sin(phase * Math.PI * 4) * .012 } : null;
-    return this.draw(ctx, cls, [animation], x, y, facing, height, 0, 0, frame, breath);
+    return this.draw(ctx, cls, [animation, 'idle'], x, y, facing, height, 0, 0, frame, breath);
   }
 
   drawSocial(ctx, cls, x, y, facing, height, unit) {
@@ -406,36 +408,53 @@ class BenkosSpriteManager {
   }
 
   drawAllyPose(ctx, x, y, facing, unit, time) {
-    const cls = this.personClass(unit.role, unit.equipment?.armor ?? unit.tier, unit.equipment?.weapon);
+    const identity = 'actor_identity_' + (unit.sex === 'F' ? 'f' : 'm');
+    const personalSprite = ['FUGITIVO', 'ALDEANO'].includes(unit.role) && this.has(identity);
+    const workRole = { ARQUERO: 'archer', GUERRERO: 'guard', ESPADACHIN: 'sword', CAMPEON_REAL: 'sword',
+      CAZADOR: 'guard', CABALLERO_ALIADO: 'rider' }[unit.role] ?? 'work';
+    const profession = identity + '_' + workRole;
+    const womanAtWork = !personalSprite && unit.sex === 'F' && this.has(profession);
+    const cls = personalSprite ? identity : womanAtWork ? profession :
+      this.personClass(unit.role, unit.equipment?.armor ?? unit.tier, unit.equipment?.weapon);
     const height = unit.role === 'CABALLERO_ALIADO' ? 58 : unit.role === 'CAMPEON_REAL' ? 51 : 45;
     if (unit.waterFall) return this.drawDrowning(ctx, cls, x, y, facing, height, unit.waterFall.time);
     const t = unit.animSeed ?? time;
     const gait = this.motion?.sample(unit, t, unit.role === 'CABALLERO_ALIADO' ? 88 : undefined);
+    if (personalSprite && unit.role === 'FUGITIVO') return this.draw(ctx, cls, ['captive'], x, y, facing, height, 0);
     if (unit.hurtTimer > 0) {
-      return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0, 0, 1 - unit.hurtTimer / .4);
+      const pose = womanAtWork ? { tilt: -.1, stretch: .96 } : null;
+      return this.draw(ctx, cls, ['hurt', 'idle'], x, y, facing, height, 0, 0, 1 - unit.hurtTimer / .4, pose);
     }
     if (unit.socialPose && unit.activity === 'SOCIAL' && !unit.vx) {
       return this.drawSocial(ctx, cls, x, y, facing, height, unit);
     }
     if (unit.liberateAnimTimer > 0) {
+      if (personalSprite) return this.draw(ctx, cls, ['release'], x, y, facing, height, 0, 0, 1 - unit.liberateAnimTimer / 1.2);
       return this.draw(ctx, 'actor_captive', ['action'], x, y, facing, height, 0, 0, 1 - unit.liberateAnimTimer / 1.2);
     }
     if (unit.attackAnimTimer > 0) {
       const progress = this.attackProgress(unit, 3, 1, unit.role === 'ARQUERO' ? .18 : .17);
+      if (womanAtWork && workRole === 'archer' && progress >= 1 / 3 && progress < .87) {
+        return this.draw(ctx, 'actor_identity_f_guard', ['bow'], x, y, facing, height, 0);
+      }
       return this.draw(ctx, cls, ['action'], x, y, facing, height, 0, 0, progress);
     }
     if (gait?.moving ?? Math.abs(unit.vx || 0) > 8) {
       const run = unit.role === 'CABALLERO_ALIADO' && Math.abs(unit.vx) > 85;
-      const drawn = this.draw(ctx, cls, [run ? 'run' : 'walk'], x, y, facing, height, t, 8, gait?.phase);
+      const movingClass = womanAtWork && workRole === 'rider' ? 'actor_identity_f_trot'
+        : womanAtWork && ['archer', 'sword'].includes(workRole) ? identity : cls;
+      const drawn = this.draw(ctx, movingClass, [run ? 'run' : 'walk', 'walk', 'idle'], x, y, facing, height, t, 8, gait?.phase);
       if (drawn) this.drawCargo(ctx, x, y, facing, unit);
       return drawn;
     }
     if (['CHOP', 'BUILD', 'WORK'].includes(unit.activity)) {
-      return this.draw(ctx, cls, ['action'], x, y, facing, height, t, 4);
+      const pose = womanAtWork && !this.reduceMotion ? { tilt: Math.sin(t * 10) * .035, stretch: 1 } : null;
+      const work = unit.role === 'AGRICULTOR' ? 'farm' : 'build';
+      return this.draw(ctx, cls, ['action', work, 'idle'], x, y, facing, height, t, 4, null, pose);
     }
     if (['BATHE', 'PLAY', 'FETCH_WATER'].includes(unit.activity)) {
       const lean = this.reduceMotion ? null : { tilt: Math.sin(t * 4) * .045, stretch: 1 };
-      return this.draw(ctx, cls, ['rest'], x, y + (unit.activity === 'BATHE' ? 3 : 0), facing, height, t, 0, 0, lean);
+      return this.draw(ctx, cls, ['rest', 'idle'], x, y + (unit.activity === 'BATHE' ? 3 : 0), facing, height, t, 0, 0, lean);
     }
     const rest = ['REST', 'RECOVER', 'MOURN', 'LEAVE'].includes(unit.activity) && unit.role !== 'CABALLERO_ALIADO';
     return this.drawIdle(ctx, cls, x, y, facing, height, t, unit, rest ? 'rest' : 'idle');

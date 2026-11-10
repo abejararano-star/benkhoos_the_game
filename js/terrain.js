@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=3daf42021c75';
-import { landscapeSeed } from './sky.js?v=3daf42021c75';
-import { CAMP_EDGE } from './config.js?v=3daf42021c75';
-import { TOWER_HEIGHT } from './settlement.js?v=3daf42021c75';
-import { CROSSINGS, deckOffset } from './crossings.js?v=3daf42021c75';
+import { blend, color, mix, smooth } from './daylight.js?v=c2813accfb42';
+import { landscapeSeed } from './sky.js?v=c2813accfb42';
+import { CAMP_EDGE } from './config.js?v=c2813accfb42';
+import { TOWER_HEIGHT } from './settlement.js?v=c2813accfb42';
+import { CROSSINGS, deckOffset } from './crossings.js?v=c2813accfb42';
 
 let regionCanvas;
 
@@ -160,6 +160,7 @@ export function drawCaptiveGate(g, x, ground, hacienda, captives) {
   g.fillStyle = '#8e7959'; g.fillRect(x - half, y + 1, half * 2, 1); g.fillRect(x - half, y + 26, half * 2, 1);
   g.fillStyle = '#ba9562'; g.fillRect(x + 2, y + 14, 6, 6);
   g.fillStyle = '#4b3e31'; g.fillRect(x + 4, y + 16, 2, 3);
+  if (hacienda.major && !captives) return;
   const labelY = ground - (hacienda.major ? 132 : 107);
   g.fillStyle = '#0c1c18'; g.fillRect(x - 35, labelY, 70, 5);
   g.fillStyle = '#d08a62'; g.fillRect(x - 34, labelY + 1, 68 * Math.max(0, hacienda.hp / hacienda.maxHp), 3);
@@ -168,12 +169,12 @@ export function drawCaptiveGate(g, x, ground, hacienda, captives) {
 }
 
 const OUTER_SCENERY = [
-  [-4210, 'forest_ceiba', 147], [-3970, 'trail_terrace', 65], [-3750, 'forest_hardwood', 118],
+  [-4270, 'forest_ceiba', 147], [-3970, 'trail_terrace', 65], [-3750, 'forest_hardwood', 118],
   [-3630, 'trail_stones', 31], [-3355, 'trail_arch', 83], [-3145, 'forest_ceiba', 161],
   [-2920, 'trail_fern', 42], [-2740, 'trail_sign', 38],
   [2720, 'trail_sign', 36], [2910, 'forest_mangrove', 139], [3130, 'trail_reeds', 43],
   [3295, 'forest_palm', 150], [3535, 'trail_terrace', 49], [3895, 'forest_mangrove', 155],
-  [4060, 'trail_reeds', 43], [4180, 'forest_palm', 123]
+  [4060, 'trail_reeds', 43], [4320, 'forest_palm', 123]
 ];
 
 export function drawEstateScenery(g, project, ground, width, time) {
@@ -214,7 +215,6 @@ export function drawTrailScenery(g, toScreen, ground, width, signs, altarX, time
   ] : [
     ...signs.map(x => [x, 'trail_sign', 33, -1]),
     [altarX + 112, 'trail_arch', 102], [altarX - 97, 'trail_terrace', 47],
-    [-5590, 'trail_terrace', 53], [-5395, 'forest_hardwood', 120], [5400, 'forest_mangrove', 125], [5600, 'trail_reeds', 50],
     [-4810, 'trail_terrace', 49], [-4680, 'trail_stones', 49], [4650, 'forest_mangrove', 105], [4820, 'trail_reeds', 58],
     [-2360, 'trail_stones', 42], [-2200, 'trail_fern', 50], [1705, 'trail_fern', 57],
     [2130, 'trail_reeds', 42], [2300, 'trail_fern', 55], [2450, 'trail_stones', 41]

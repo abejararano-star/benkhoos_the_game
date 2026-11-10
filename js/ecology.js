@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3daf42021c75';
-import { updateJaguar } from './jaguar.js?v=3daf42021c75';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
+import { updateJaguar } from './jaguar.js?v=c2813accfb42';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -12,6 +12,8 @@ export const SPECIES=Object.freeze({
   SNAKE:{name:'Culebra',hp:12,speed:38,food:0}
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const BREEDING = { CAPYBARA: [75, 8], DEER: [95, 7], BOAR: [100, 5], JAGUAR: [145, 4] };
+export const ANIMAL_MATURITY = 80;
 export const shallowWaterAt = (streams, x) => streams.some(creek => !creek.bridge && creek.x <= 0 && Math.abs(creek.x - x) < 23);
 export const animalInStream = (animal, streams, x = animal.x) =>
   (animal.species === 'TURTLE' || animal.species === 'CAPYBARA') && shallowWaterAt(streams, x);
@@ -23,6 +25,7 @@ export function initialEcology() {
 }
 export function ensureAnimal(a){
   a.species??='CAPYBARA';const spec=SPECIES[a.species];if(!spec)throw Error('Especie desconocida en la partida.');
+  if (a.sex !== 'F' && a.sex !== 'M') a.sex = Math.abs(Number(a.id) || 0) % 2 ? 'F' : 'M';
   a.maxHp??=spec.hp;a.hp??=spec.hp;if(!Number.isFinite(a.hp)||!Number.isFinite(a.maxHp)||a.maxHp<=0)throw Error('Salud de animal inválida.');a.homeX??=a.x;a.facing??=1;a.vx??=0;
   a.fear??=0;a.trust??=0;a.feedCooldown??=0;a.aggression??=0;a.attackCooldown??=0;a.animTime??=0;
   a.moveTimer??=0;a.state??='IDLE';a.nettedTimer??=0;a.y??=WATER_LINE_Y;
@@ -51,6 +54,28 @@ function updateAnimalWater(animal, streams) {
   if (!SPECIES[animal.species].flying) animal.y = WATER_LINE_Y + (animal.inWater ? 3 : 0);
 }
 export function createAnimal(id,species,x,extra={}){return ensureAnimal({id,species,x,y:WATER_LINE_Y,...extra});}
+function breedWildlife(state, nextId) {
+  if (!nextId || state.wildlife.length >= 42) return;
+  const time = state.ecology.time;
+  const canBreed = animal => animal.hp > animal.maxHp * .65 && !animal.trust && !animal.trapped &&
+    !animal.nettedTimer && !animal.waterFall && !animal.jaguarAction && !animal.eatTimer &&
+    !['FLEE', 'STALK', 'CHARGE'].includes(animal.state) && time >= (animal.breedAt ?? 30);
+  for (const [species, [interval, limit]] of Object.entries(BREEDING)) {
+    const herd = state.wildlife.filter(animal => animal.species === species && animal.hp > 0);
+    if (herd.length >= limit) continue;
+    for (const female of herd.filter(animal => animal.sex === 'F' && canBreed(animal))) {
+      const mate = herd.find(animal => animal.sex === 'M' && canBreed(animal) && Math.abs(animal.x - female.x) <= 120);
+      if (!mate) continue;
+      const id = nextId();
+      female.breedAt = mate.breedAt = time + interval;
+      const hp = Math.round(SPECIES[species].hp * .56);
+      state.wildlife.push(createAnimal(id, species, female.x + female.facing * 12,
+        { hp, maxHp: hp, bornAt: time, motherId: female.id, breedAt: time + ANIMAL_MATURITY + interval * .5 }));
+      break;
+    }
+    if (state.wildlife.length >= 42) break;
+  }
+}
 export function seedEcology(state,nextId){
   ensureEcology(state);if(state.ecology.seeded)return;
   const seeds=[['CAPYBARA',-560],['CAPYBARA',560],['DEER',-1070],['DEER',1040],['BOAR',1140],['MONKEY',-690],['MACAW',640],['MACAW',-1140],['TURTLE',-870],['TURTLE',800],['JAGUAR',1310]];
@@ -110,8 +135,9 @@ export function interactEcology(state,{fish=false}={}){
   return {handled:true,message:coins?'El mono te entrega una moneda que encontró.':a.trust>=2?`${spec.name} confía en ti. Te acompañará si avanzas con calma.`:`${spec.name} acepta el alimento. Su confianza aumenta.`};
 }
 
-export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCoin=()=>{},collectHunt=()=>false,torchLit=false}={}){
+export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCoin=()=>{},collectHunt=()=>false,torchLit=false,nextId}={}){
   const e=state.ecology,b=state.benkos;e.time+=dt;
+  if (Math.floor(e.time - dt) < Math.floor(e.time)) breedWildlife(state, nextId);
   for(const creek of e.streams){
     creek.drinkCooldown=Math.max(0,(creek.drinkCooldown??0)-dt);
     if(creek.fishStock<3){creek.regrow+=dt;if(creek.regrow>=28){creek.regrow-=28;creek.fishStock++;}}
@@ -125,13 +151,25 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
     const a=ensureAnimal(state.wildlife[i]),spec=SPECIES[a.species];a.animTime+=dt;
     a.feedCooldown=Math.max(0,a.feedCooldown-dt);a.attackCooldown=Math.max(0,a.attackCooldown-dt);a.aggression=Math.max(0,a.aggression-dt);
     if(a.waterFall && a.hp > 0) continue;
-    if(a.hp<=0){if(!a.waterFall && spec.huntable&&!collectHunt(a,spec.food)){state.resources.food+=spec.food;dropCoin(a.x);notice(a.x,`+${spec.food} alimento · caza`);}state.wildlife.splice(i,1);continue;}
+    if(a.hp<=0){
+      const food = a.bornAt === undefined ? spec.food : Math.max(1, Math.floor(spec.food / 2));
+      if(!a.predatorKill && !a.waterFall && spec.huntable && !collectHunt(a,food)){state.resources.food+=food;dropCoin(a.x);notice(a.x,`+${food} alimento · caza`);}
+      state.wildlife.splice(i,1);continue;
+    }
+    if (a.bornAt !== undefined && e.time - a.bornAt >= ANIMAL_MATURITY) {
+      a.hp = Math.round(spec.hp * a.hp / a.maxHp);
+      a.maxHp = spec.hp;
+      delete a.bornAt;
+      delete a.motherId;
+    }
     const hurt = a.hp < (a.lastHp ?? a.hp);
     if(hurt){a.aggression=spec.predator?8:0;a.fear=90;a.hurtTimer=.3;}a.lastHp=a.hp;a.hurtTimer=Math.max(0,(a.hurtTimer??0)-dt);
     updateAnimalWater(a, e.streams);
     if(a.trapped||a.nettedTimer>0){a.nettedTimer=Math.max(0,a.nettedTimer-dt);a.vx=0;a.state='TRAPPED';continue;}
     if(a.eatTimer>0){a.eatTimer-=dt;a.vx=0;a.state='EAT';continue;}
-    if (a.species === 'JAGUAR' && updateJaguar(a, state, dt, spec.speed, { damagePlayer, notice, torchLit, hurt })) {
+    const prey = a.species === 'JAGUAR' && !a.trust && a.bornAt === undefined && e.time - (a.lastMeal ?? 0) > 28
+      ? state.wildlife.find(animal => isHuntable(animal) && !animal.waterFall && Math.abs(animal.x - a.x) < 100) : null;
+    if (a.species === 'JAGUAR' && updateJaguar(a, state, dt, spec.speed, { damagePlayer, notice, torchLit, hurt, prey })) {
       a.x = clamp(a.x, WORLD_MIN_X + 50, WORLD_MAX_X - 50);
       continue;
     }
@@ -143,7 +181,13 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
     const danger = !!enemy;
     const threatened=a.species!=='JAGUAR'&&(danger||dist<100&&(Math.abs(b.vx)>115||b.attackTimer>0));
     if(a.trust>0)a.aggression=0;
-    if (a.species === 'SNAKE' && (dist < 45 || danger)) {
+    const hunter = spec.huntable && state.wildlife.find(animal => animal.hp > 0 &&
+      animal.jaguarAction?.prey && animal.jaguarAction.targetId === a.id && Math.abs(animal.x - a.x) < 65);
+    if (hunter) {
+      a.state = 'FLEE';
+      a.facing = Math.sign(a.x - hunter.x) || a.facing;
+      a.vx = a.facing * spec.speed * 1.5;
+    } else if (a.species === 'SNAKE' && (dist < 45 || danger)) {
       const retreat = torchLit || danger || a.attackCooldown > 0;
       a.facing = Math.sign(dx) || a.facing;
       a.state = retreat ? 'FLEE' : 'WARN';
@@ -166,6 +210,8 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},notice=()=>{},dropCo
       a.moveTimer-=dt;
       if(a.moveTimer<=0){a.moveTimer=2+(Number(a.id)%4);const phase=Math.floor(e.time/3)+(Number(a.id)||1);a.vx=phase%3?((phase%2)?1:-1)*spec.speed*.45:0;}
       if(Math.abs(a.x-a.homeX)>150)a.vx=-Math.sign(a.x-a.homeX)*spec.speed*.6;
+      const mother = a.motherId !== undefined && state.wildlife.find(animal => animal.id === a.motherId && animal.hp > 0 && !animal.waterFall);
+      if (mother) a.vx = Math.abs(mother.x - a.x) > 22 ? Math.sign(mother.x - a.x) * spec.speed * 1.08 : 0;
       a.state=a.vx?'WALK':'IDLE';if(a.vx)a.facing=Math.sign(a.vx);
     }
     a.x = clamp(a.x + a.vx * dt, WORLD_MIN_X + 50, WORLD_MAX_X - 50);

@@ -1,8 +1,8 @@
-import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3daf42021c75';
-import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=3daf42021c75';
-import { haciendaActive } from './haciendas.js?v=3daf42021c75';
-import { ESTATES, storyChapter } from './story.js?v=3daf42021c75';
-import { CROSSINGS } from './crossings.js?v=3daf42021c75';
+import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
+import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=c2813accfb42';
+import { haciendaActive } from './haciendas.js?v=c2813accfb42';
+import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=c2813accfb42';
+import { CROSSINGS } from './crossings.js?v=c2813accfb42';
 
 export const mapX = x => 7 + 86 * Math.max(0, Math.min(1, (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X)));
 
@@ -27,10 +27,20 @@ export function mapLocations(state) {
           'Los pilotes sostienen un paso seguro a pie o a caballo.' });
   }
   const chapter = storyChapter(state);
+  for (const post of OUTPOSTS) {
+    const active = state.story.outposts.includes(post.id);
+    sites.push({ ...post, label: 'Avanzada', row: 'upper', kind: active ? 'secured' : 'sanctuary',
+      detail: active ? 'Refugio de la escolta. Los vigías han reconocido un acceso con menos guardias.' :
+        'Tras liberar las haciendas cercanas, puedes establecer un refugio con E, 4 de madera y 3 de alimento.' });
+  }
+  for (const city of CITIES) {
+    sites.push({ ...city, id: city.id + '_centro', x: city.cityX, label: city.side < 0 ? 'Cartagena' : 'Puerto de la Marea',
+      row: 'upper', kind: 'palenque', detail: 'Ciudad del gobernador. El puesto de cautivos se encuentra en el camino de entrada.' });
+  }
   for (const h of state.haciendas) {
     if (h.major && chapter < 2) continue;
-    const estate = ESTATES.find(site => site.id === h.id);
-    const label = estate ? (h.side < 0 ? 'Jegua' : 'Boca de Marea') : h.side < 0 ? 'Hacienda oeste' : 'Hacienda este';
+    const estate = estateById(h.id);
+    const label = estate?.cityX ? 'Puesto de cautivos' : estate ? (h.side < 0 ? 'Jegua' : 'Boca de Marea') : h.side < 0 ? 'Hacienda oeste' : 'Hacienda este';
     const secured = state.story.completed.includes(h.id) || !haciendaActive(h);
     const detail = secured ? 'Las personas de esta hacienda ya fueron liberadas.' : h.major ?
       'Convoca la expedición en La Matuna. Derrota a la guarnición, abre el portón y escolta a la gente de regreso.' :

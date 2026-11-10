@@ -1,20 +1,20 @@
-import { stepCrossings } from './crossings.js?v=3daf42021c75';
-import { NIGHT_START } from './daylight.js?v=3daf42021c75';
-import { recoverCoins } from './coins.js?v=3daf42021c75';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=3daf42021c75';
-import { collectEquipment } from './equipment.js?v=3daf42021c75';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=3daf42021c75';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=3daf42021c75';
-import { updateCommunity, joinEncounter } from './community.js?v=3daf42021c75';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=3daf42021c75';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=3daf42021c75';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=3daf42021c75';
-import { advanceParticle, emitEffect } from './effects.js?v=3daf42021c75';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=3daf42021c75';
-import { ensureCampaign, finaleWon } from './campaign.js?v=3daf42021c75';
-import { expeditionFormation } from './story.js?v=3daf42021c75';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=3daf42021c75';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=3daf42021c75';
+import { stepCrossings } from './crossings.js?v=c2813accfb42';
+import { NIGHT_START } from './daylight.js?v=c2813accfb42';
+import { recoverCoins } from './coins.js?v=c2813accfb42';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=c2813accfb42';
+import { collectEquipment } from './equipment.js?v=c2813accfb42';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=c2813accfb42';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=c2813accfb42';
+import { updateCommunity, joinEncounter } from './community.js?v=c2813accfb42';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=c2813accfb42';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy } from './combat.js?v=c2813accfb42';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_HEIGHT } from './settlement.js?v=c2813accfb42';
+import { advanceParticle, emitEffect } from './effects.js?v=c2813accfb42';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, personMaxHp } from './people.js?v=c2813accfb42';
+import { ensureCampaign, finaleWon } from './campaign.js?v=c2813accfb42';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=c2813accfb42';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=c2813accfb42';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=c2813accfb42';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -220,6 +220,7 @@ return function updateSimulation(dt) {
   }
 
   updateEcology(state, dt, {
+    nextId,
     torchLit: torchIsLit(state),
     damagePlayer: hitBenkosKingdomStyle,
     notice: (x, message) => {
@@ -265,6 +266,8 @@ return function updateSimulation(dt) {
     if (rack?.stock === 0) rack.stock = 1;
   }
   const coveringRescue = state.story.expedition?.stage === 'return';
+  const safeOutposts = coveringRescue ? OUTPOSTS.filter(post => state.story.outposts.includes(post.id) &&
+    !state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - post.x) < 150)) : [];
   for (let idx = state.units.length - 1; idx >= 0; idx--) {
     const u = state.units[idx];
     if (u.waterFall) continue;
@@ -286,6 +289,10 @@ return function updateSimulation(dt) {
       u.activity = 'CAPTIVE';
       u.mood = 'Cautivo en la hacienda';
       continue;
+    }
+
+    if ((u.escortHome || formation?.has(u.id)) && safeOutposts.some(post => Math.abs(u.x - post.x) < 100)) {
+      u.hp = Math.min(u.maxHp, u.hp + dt * 7);
     }
 
     if(updatePerson(u,state,dt,Math.abs(u.x)<600?homeRecovery(state):1))continue;
