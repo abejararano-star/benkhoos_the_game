@@ -4,16 +4,23 @@ Juego de estrategia y acción para **PC**. Organiza la Matuna, rescata a persona
 
 ## Jugar con XAMPP
 
-1. Inicia Apache y MySQL.
-2. La instalación local está en `C:\xampp\htdocs\benkhoos` y usa la base `benkhoos_the_game`.
-3. Para una instalación nueva, importa `schema_benkhoos.sql` en phpMyAdmin.
-4. Para una base existente, aplica únicamente la migración aditiva:
+1. Instala XAMPP e inicia **Apache** y **MySQL**.
+2. En PowerShell, clona el repositorio dentro de la carpeta pública de XAMPP:
+
+   ```powershell
+   Set-Location C:\xampp\htdocs
+   git clone https://github.com/abejararano-star/benkhoos_the_game.git benkhoos
+   Set-Location benkhoos
+   ```
+
+3. Para una instalación nueva, abre [phpMyAdmin](http://localhost/phpmyadmin/), selecciona **Importar** y elige [schema_benkhoos.sql](schema_benkhoos.sql) del repositorio clonado. El archivo crea la base `benkhoos_the_game`, las tablas y los catálogos iniciales. Cada colaborador tiene su propia base local y crea sus partidas al jugar.
+4. Si ya tienes una base de una versión anterior, aplica la [migración de guardado completo](migrations/002_complete_saves.sql) desde la raíz del repositorio para conservar tus partidas:
 
    ```powershell
    C:\xampp\php\php.exe tools\setup-db.php
    ```
 
-5. Abre [el juego local](http://localhost/benkhoos/). No lo abras con doble clic: los módulos y los atlas necesitan HTTP.
+5. Abre [el juego local](http://localhost/benkhoos/) para cargar los módulos, el arte y la API desde Apache.
 
 Los valores predeterminados de XAMPP son `127.0.0.1`, usuario `root`, contraseña vacía. Si tu instalación usa otros, copia `api/config.local.example.php` a `api/config.local.php`. Este archivo está excluido de Git. También se admiten `BENKHOOS_DB_HOST`, `BENKHOOS_DB_NAME`, `BENKHOOS_DB_USER` y `BENKHOOS_DB_PASSWORD`.
 
