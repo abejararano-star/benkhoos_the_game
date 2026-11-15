@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROLES, TOOL_COSTS } from '../js/config.js';
 import { GaitClock } from '../js/visual-motion.js';
+import { PROLOGUE } from '../js/chronicle.js';
 const root=fileURLToPath(new URL('../',import.meta.url));
 
 test('HTML, styles and every imported module use one client release',()=>{
@@ -40,6 +41,12 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
   for(let i=0;i<20&&!manager.ready;i++)await Promise.resolve();
   assert.equal(manager.ready,true);
   for (const role of Object.keys(TOOL_COSTS)) assert.ok(manager.has(`stock_item_${role}`), role);
+  for (const scene of new Set([...PROLOGUE.art, 'traicion', 'liberacion', 'asedio', 'consejo', 'conquista'])) {
+    assert.ok(manager.has(`scene_${scene}`), scene);
+  }
+  for (const action of ['idle', 'walk', 'strike', 'dodge', 'hurt', 'kneel']) {
+    assert.ok(manager.anim('actor_prologue_father', [action]).length);
+  }
   assert.ok(!Object.keys(atlas.sprites).some(name => /^(gait_|motion_|battle_|enemy_act_|retro_)/.test(name)));
   for (const name of ['hero','hero_royal','hero_mounted','hero_mounted_royal']) {
     const family = atlas.sprites['actor_' + name];

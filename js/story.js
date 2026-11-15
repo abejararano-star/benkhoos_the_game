@@ -1,6 +1,7 @@
-import { CAMP_EDGE } from './config.js?v=763cc8e52309';
-import { INFANTRY } from './equipment.js?v=763cc8e52309';
-import { COLONIAL_POSTS } from './frontier.js?v=763cc8e52309';
+import { CAMP_EDGE } from './config.js?v=83d9fc2da44e';
+import { INFANTRY } from './equipment.js?v=83d9fc2da44e';
+import { COLONIAL_POSTS } from './frontier.js?v=83d9fc2da44e';
+import { PROLOGUE } from './chronicle.js?v=83d9fc2da44e';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,
@@ -34,7 +35,7 @@ export function majorHaciendas() {
 
 export function initialStory() {
   return { plan: '', treaty: '', finale: '', completed: [], outposts: [], rescuedTotal: 0, lostTotal: 0,
-    expedition: null, finalWon: false };
+    expedition: null, finalWon: false, prologuePage: null, occupied: [] };
 }
 
 export function restoreStory(state, legacy) {
@@ -45,8 +46,14 @@ export function restoreStory(state, legacy) {
   story.completed = SITES.filter(site => Array.isArray(value.completed) && value.completed.includes(site.id)).map(site => site.id);
   story.outposts = OUTPOSTS.filter(post => Array.isArray(value.outposts) && value.outposts.includes(post.id)).map(post => post.id);
   for (const key of ['rescuedTotal', 'lostTotal']) if (Number.isSafeInteger(value[key]) && value[key] >= 0) story[key] = value[key];
-  story.finale = ESTATES.every(site => story.completed.includes(site.id)) && ['witnesses', 'network', 'accord'].includes(value.finale) ? value.finale : '';
+  story.occupied = CITIES.filter(city => story.completed.includes(city.id) && Array.isArray(value.occupied) &&
+    value.occupied.includes(city.id)).map(city => city.id);
+  story.finale = ESTATES.every(site => story.completed.includes(site.id)) &&
+    ['witnesses', 'network', 'accord', 'historical', 'conquest'].includes(value.finale) ? value.finale : '';
+  if (story.finale === 'conquest' && story.occupied.length !== CITIES.length) story.finale = '';
   story.finalWon = !!story.finale && value.finalWon === true;
+  if (state.status === 'playing' && Number.isInteger(value.prologuePage) &&
+    value.prologuePage >= 0 && value.prologuePage < PROLOGUE.lines.length) story.prologuePage = value.prologuePage;
   const mission = value.expedition;
   if (story.plan && mission && estateById(mission.site) && !story.completed.includes(mission.site) &&
       ['march', 'assault', 'return'].includes(mission.stage) && Array.isArray(mission.party) && Array.isArray(mission.rescued)) {
@@ -105,7 +112,7 @@ export function frontierHint(state) {
   const post = OUTPOSTS.find(outpost => Math.abs(outpost.x - x) < 42);
   if (post) return state.story.outposts.includes(post.id) ? `E · ${post.name} · Refugio activo` : `E · ${post.name} · 4 madera y 3 alimento`;
   const city = CITIES.find(place => Math.abs(place.cityX - x) < 65);
-  if (city) return `E · ${city.name} · Entrada de la ciudad`;
+  if (city) return `E · ${city.name} · ${canOccupyCity(state, city) ? 'Tomar el mando' : 'Entrada de la ciudad'}`;
   const colonial = COLONIAL_POSTS.find(place => Math.abs(place.x - x) < 100);
   return colonial ? `${colonial.label} · Guarnición colonial` : '';
 }
@@ -115,9 +122,21 @@ export function canNegotiateFinale(state) {
     CITIES.every(city => state.story.completed.includes(city.id)) && state.story.outposts.length > 0;
 }
 
+export function canOccupyCity(state, city) {
+  return !state.story.finale && !state.story.expedition && state.story.completed.includes(city.id) &&
+    !state.story.occupied.includes(city.id) && Math.abs(state.benkos.x - city.cityX) < 65 &&
+    !state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - city.cityX) < 160);
+}
+
+export function occupyCity(state, city) {
+  if (!canOccupyCity(state, city)) return false;
+  state.story.occupied.push(city.id);
+  return true;
+}
+
 export function campaignOutcome(state, status) {
   if (status === 'defeat') return 'fallen';
-  if (state.story.finale === 'accord') return 'accord';
+  if (['historical', 'conquest', 'accord'].includes(state.story.finale)) return state.story.finale;
   if (state.story.lostTotal >= 3 && state.story.lostTotal * 2 > state.story.rescuedTotal) return 'fragile';
   return state.story.finale;
 }
@@ -205,7 +224,11 @@ export function expeditionObjective(state) {
 
 export function finalObjective(state) {
   const story = state.story;
-  if (!story.finale) return expeditionObjective(state) || 'Reúne al consejo con E. Puedes explorar las ciudades antes de decidir el desenlace.';
+  if (!story.finale) return expeditionObjective(state) || (CITIES.every(city => story.completed.includes(city.id)) && story.occupied.length < CITIES.length
+    ? `Vuelve a las puertas de las ciudades y pulsa E para tomarlas (${story.occupied.length}/2), o elige otra ruta en el consejo.`
+    : 'Reúne al consejo con E. Puedes explorar las ciudades antes de decidir el desenlace.');
+  if (story.finale === 'historical') return 'Viaja a la puerta de Cartagena bajo la tregua y pulsa E.';
+  if (story.finale === 'conquest') return 'Las dos ciudades están bajo tu mando. Resiste la última ofensiva de Girón.';
   if (state.enemies.some(enemy => enemy.finalRaid && enemy.hp > 0) || state.campaign.orders.some(order => order.kind === 'final')) {
     return story.finale === 'witnesses' ? 'Defiende a los testigos de la última expedición colonial.' : 'Defiende los caminos de la Matuna del ataque en dos frentes.';
   }

@@ -1,6 +1,7 @@
-export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleArmor, togglePause, save, load, toggleArmy, toggleFullscreen, rest, torch, inspectNpc, openSettlement, toggleMap, toggleArmory }) {
+export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleArmor, togglePause, save, load, toggleArmy, toggleFullscreen, rest, torch, inspectNpc, openSettlement, toggleMap, toggleArmory, storyControl, clearStoryInput }) {
   const clear = () => { for (const key of Object.keys(keys)) delete keys[key]; };
   const down = e => {
+    if (storyControl?.(e, true)) return;
     const globalKeys = ['F5', 'F9', 'F11', 'Escape'];
     if (globalKeys.includes(e.code)) e.preventDefault();
     if (e.repeat && !['KeyA', 'KeyD', 'ArrowLeft', 'ArrowRight', 'KeyS', 'ArrowDown'].includes(e.code)) return;
@@ -24,10 +25,10 @@ export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleA
     if (e.code === 'KeyT') torch();
     if (/^Digit[1-4]$/.test(e.code)) useSkill(['dash', 'ceiba', 'roar', 'jaguar'][Number(e.code.slice(-1)) - 1]);
   };
-  const up = e => { delete keys[e.code]; };
+  const up = e => { delete keys[e.code]; storyControl?.(e, false); };
   window.addEventListener('keydown', down);
   window.addEventListener('keyup', up);
-  const blur = () => { clear(); if (isPlaying()) togglePause(); };
+  const blur = () => { clear(); clearStoryInput?.(); if (isPlaying()) togglePause(); };
   window.addEventListener('blur', blur);
   document.addEventListener('visibilitychange', () => { if (document.hidden) blur(); });
   return { clear };

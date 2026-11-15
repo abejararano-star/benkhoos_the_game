@@ -872,6 +872,17 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 .story-dialogue canvas{width:100%;height:auto;image-rendering:pixelated}
 .story-dialogue strong{color:#e6c485}
 .story-dialogue p{font:clamp(15px,2vw,20px)/1.55 Georgia,serif;max-width:46ch;margin:7px 0}
+.story-scene.illustrated{width:min(850px,94vw)}
+.story-scene.illustrated .story-scene-content{padding:clamp(14px,3vw,30px)}
+.story-scene.illustrated h2{font-size:clamp(23px,3vw,37px)}
+.story-stage{display:block;width:min(100%,76vh);height:auto;margin:0 auto;background:#152920;image-rendering:pixelated;border:1px solid #726046}
+.story-scene.illustrated .story-dialogue{display:block;min-height:0;padding:12px 0 4px}
+.story-scene.illustrated .story-dialogue canvas{display:none}
+.story-scene.illustrated .story-dialogue p{max-width:73ch;font-size:clamp(14px,1.65vw,18px)}
+.story-exercise{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 12px;color:#e6c485}
+.story-exercise p{margin:0;font-size:12px}
+.story-exercise button{padding:6px 10px;touch-action:none}
+.story-scene.illustrated footer{margin-top:10px;flex-wrap:wrap}
 .story-choices{display:grid;gap:8px}
 .story-choices button{text-align:left}
 .story-scene footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:16px}

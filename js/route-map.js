@@ -1,9 +1,9 @@
-import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=763cc8e52309';
-import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=763cc8e52309';
-import { haciendaActive } from './haciendas.js?v=763cc8e52309';
-import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=763cc8e52309';
-import { CROSSINGS } from './crossings.js?v=763cc8e52309';
-import { COLONIAL_POSTS } from './frontier.js?v=763cc8e52309';
+import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=83d9fc2da44e';
+import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=83d9fc2da44e';
+import { haciendaActive } from './haciendas.js?v=83d9fc2da44e';
+import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=83d9fc2da44e';
+import { CROSSINGS } from './crossings.js?v=83d9fc2da44e';
+import { COLONIAL_POSTS } from './frontier.js?v=83d9fc2da44e';
 
 export const mapX = x => 7 + 86 * Math.max(0, Math.min(1, (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X)));
 
@@ -38,8 +38,10 @@ export function mapLocations(state) {
         'Tras liberar las haciendas cercanas, puedes establecer un refugio con E, 4 de madera y 3 de alimento.' });
   }
   for (const city of CITIES) {
+    const occupied = state.story.occupied.includes(city.id);
     sites.push({ ...city, id: city.id + '_centro', x: city.cityX, label: city.side < 0 ? 'Cartagena' : 'Puerto de la Marea',
-      row: 'upper', kind: 'palenque', detail: 'Ciudad del gobernador. El puesto de cautivos se encuentra en el camino de entrada.' });
+      row: 'upper', kind: occupied ? 'secured' : 'palenque', detail: occupied ? 'La guardia de la Matuna controla el puerto.' :
+        'Ciudad del gobernador. El puesto de cautivos se encuentra en el camino de entrada.' });
   }
   for (const h of state.haciendas) {
     if (h.major && chapter < 2) continue;
@@ -56,6 +58,7 @@ export function mapLocations(state) {
 }
 
 export function missionDestination(state, sites) {
+  if (state.story.finale === 'historical' && !state.story.finalWon) return sites.find(site => site.id === 'cartagena_centro') ?? null;
   const mission = state.story.expedition;
   if (!mission) return null;
   return sites.find(site => site.id === (mission.stage === 'return' ? 'matuna' : mission.site)) ?? null;

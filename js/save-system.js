@@ -1,16 +1,16 @@
-import { ensureCrossings } from './crossings.js?v=763cc8e52309';
-import { NIGHT_START } from './daylight.js?v=763cc8e52309';
-import { restoreCommunity } from './community.js?v=763cc8e52309';
-import { ensureEcology, seedEcology } from './ecology.js?v=763cc8e52309';
-import { seedFrontier } from './exploration.js?v=763cc8e52309';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=763cc8e52309';
-import { ensurePerson } from './people.js?v=763cc8e52309';
-import { restoreAmara } from './amara.js?v=763cc8e52309';
-import { ensureSettlement } from './settlement.js?v=763cc8e52309';
-import { ensureCampaign } from './campaign.js?v=763cc8e52309';
-import { restoreHaciendas } from './haciendas.js?v=763cc8e52309';
-import { restoreColonialTowers } from './colonial-ai.js?v=763cc8e52309';
-import { restoreStory } from './story.js?v=763cc8e52309';
+import { ensureCrossings } from './crossings.js?v=83d9fc2da44e';
+import { NIGHT_START } from './daylight.js?v=83d9fc2da44e';
+import { restoreCommunity } from './community.js?v=83d9fc2da44e';
+import { ensureEcology, seedEcology } from './ecology.js?v=83d9fc2da44e';
+import { seedFrontier } from './exploration.js?v=83d9fc2da44e';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=83d9fc2da44e';
+import { ensurePerson } from './people.js?v=83d9fc2da44e';
+import { restoreAmara } from './amara.js?v=83d9fc2da44e';
+import { ensureSettlement } from './settlement.js?v=83d9fc2da44e';
+import { ensureCampaign } from './campaign.js?v=83d9fc2da44e';
+import { restoreHaciendas } from './haciendas.js?v=83d9fc2da44e';
+import { restoreColonialTowers } from './colonial-ai.js?v=83d9fc2da44e';
+import { restoreStory } from './story.js?v=83d9fc2da44e';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -178,6 +178,8 @@ export function restoreSave(save, defaults) {
   if(save.snapshot?.state?.benkos?.attackDuration===undefined){next.benkos.attackTimer=0;next.benkos.attackCooldown=0;next.benkos.attackHit=true;next.benkos.queuedAttack=false;}
   ensureCrossings(next);
   next.benkos.vx = 0; next.benkos.sprintHoldTime = 0;
+  next.hitStopTimer = 0;
+  next.screenShake = 0;
   next.touchHoldPay = false;
   next.cameraX = next.benkos.x;
   let maxId = Math.max(0, ...[...next.units, ...next.enemies, ...next.droppedCoins, ...next.wildlife, ...next.community.memorial].map(e => Number(e?.id) || 0));

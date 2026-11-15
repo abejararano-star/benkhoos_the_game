@@ -1,25 +1,25 @@
-import { stepCrossings } from './crossings.js?v=763cc8e52309';
-import { NIGHT_START } from './daylight.js?v=763cc8e52309';
-import { recoverCoins } from './coins.js?v=763cc8e52309';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=763cc8e52309';
-import { collectEquipment } from './equipment.js?v=763cc8e52309';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=763cc8e52309';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=763cc8e52309';
-import { updateCommunity, joinEncounter } from './community.js?v=763cc8e52309';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=763cc8e52309';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=763cc8e52309';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=763cc8e52309';
-import { advanceParticle, emitEffect } from './effects.js?v=763cc8e52309';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=763cc8e52309';
-import { ensureCampaign, finaleWon } from './campaign.js?v=763cc8e52309';
-import { OUTPOSTS, expeditionFormation } from './story.js?v=763cc8e52309';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=763cc8e52309';
-import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=763cc8e52309';
-import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=763cc8e52309';
-import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=763cc8e52309';
-import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=763cc8e52309';
-import { colonialShooter } from './frontier.js?v=763cc8e52309';
-import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=763cc8e52309';
+import { stepCrossings } from './crossings.js?v=83d9fc2da44e';
+import { NIGHT_START } from './daylight.js?v=83d9fc2da44e';
+import { recoverCoins } from './coins.js?v=83d9fc2da44e';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=83d9fc2da44e';
+import { collectEquipment } from './equipment.js?v=83d9fc2da44e';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=83d9fc2da44e';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=83d9fc2da44e';
+import { updateCommunity, joinEncounter } from './community.js?v=83d9fc2da44e';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=83d9fc2da44e';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=83d9fc2da44e';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=83d9fc2da44e';
+import { advanceParticle, emitEffect } from './effects.js?v=83d9fc2da44e';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=83d9fc2da44e';
+import { ensureCampaign, finaleWon } from './campaign.js?v=83d9fc2da44e';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=83d9fc2da44e';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=83d9fc2da44e';
+import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=83d9fc2da44e';
+import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=83d9fc2da44e';
+import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=83d9fc2da44e';
+import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=83d9fc2da44e';
+import { colonialShooter } from './frontier.js?v=83d9fc2da44e';
+import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=83d9fc2da44e';
 
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
@@ -79,7 +79,9 @@ return function updateSimulation(dt) {
   if (state.status !== 'playing') return;
   state.timeOfDay += dt / BALANCE.dayDuration;
   if (state.timeOfDay >= NIGHT_START && prevTime < NIGHT_START) {
-    if (state.truceDays > 0) {
+    if (state.story.finale === 'historical') {
+      state.phase = 'TRUCE_NIGHT';
+    } else if (state.truceDays > 0) {
       state.truceDays--;
       state.phase = 'TRUCE_NIGHT';
       showBanner('NOCHE DE TREGUA EN LA MATUNA', 'Los tambores descansan bajo el pacto real');
@@ -686,6 +688,11 @@ return function updateSimulation(dt) {
 
     if (en.appearTimer > 0) {
       en.appearTimer -= dt;
+      continue;
+    }
+    if (state.story.finale === 'historical' && en.hp > 0) {
+      en.vx = 0;
+      resetEnemyAim(en);
       continue;
     }
 

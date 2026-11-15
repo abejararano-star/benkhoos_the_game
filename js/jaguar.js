@@ -1,4 +1,4 @@
-import { inStrikeRange, strikeEnemy } from './combat.js?v=763cc8e52309';
+import { inStrikeRange, strikeEnemy } from './combat.js?v=83d9fc2da44e';
 
 const DURATION = { CROUCH: .28, POUNCE: .36, SWIPE: .4, RECOVER: .32 };
 

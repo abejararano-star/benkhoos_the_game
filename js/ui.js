@@ -1,20 +1,21 @@
-import { needsCropCare } from './crops.js?v=763cc8e52309';
-import { AMARA_NAME, amaraNearby } from './amara.js?v=763cc8e52309';
-import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=763cc8e52309';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=763cc8e52309';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=763cc8e52309';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=763cc8e52309';
-import { describeTraits } from './daily-life.js?v=763cc8e52309';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=763cc8e52309';
-import { canMediate, relationshipsFor } from './community.js?v=763cc8e52309';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=763cc8e52309';
-import { ecologyHint } from './ecology.js?v=763cc8e52309';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=763cc8e52309';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=763cc8e52309';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=763cc8e52309';
-import { arrivalHint } from './campaign.js?v=763cc8e52309';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=763cc8e52309';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=763cc8e52309';
+import { needsCropCare } from './crops.js?v=83d9fc2da44e';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=83d9fc2da44e';
+import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=83d9fc2da44e';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=83d9fc2da44e';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=83d9fc2da44e';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=83d9fc2da44e';
+import { describeTraits } from './daily-life.js?v=83d9fc2da44e';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=83d9fc2da44e';
+import { canMediate, relationshipsFor } from './community.js?v=83d9fc2da44e';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=83d9fc2da44e';
+import { ecologyHint } from './ecology.js?v=83d9fc2da44e';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=83d9fc2da44e';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=83d9fc2da44e';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=83d9fc2da44e';
+import { arrivalHint } from './campaign.js?v=83d9fc2da44e';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=83d9fc2da44e';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=83d9fc2da44e';
+import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=83d9fc2da44e';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -23,7 +24,8 @@ export function createUI({ state, session, settings, actions }) {
   let prices = [];
   const bagDots=[];for(let i=0;i<state.maxCoins;i++){const dot=document.createElement('i');$('hudBagSlots').append(dot);bagDots.push(dot);}
   let bannerTimer, returnDialog = 'pauseDialog';
-  let cinematic, storyPage = 0;
+  let cinematic, storyPage = 0, storyClock = 0, exercise = null;
+  let storyInput = {};
   let armoryFromWorks = false;
   let chartSites = [], selectedSite, mapFromPause = false;
   const chartMarkers = new Map();
@@ -106,7 +108,7 @@ export function createUI({ state, session, settings, actions }) {
 
   function openStory(scene) {
     cinematic = scene;
-    storyPage = 0;
+    storyPage = scene.startPage ?? 0;
     open('storyDialog');
     renderStory();
   }
@@ -117,6 +119,17 @@ export function createUI({ state, session, settings, actions }) {
     text('storySpeaker', speaker);
     text('storyLine', line);
     text('storyProgress', `${storyPage + 1} / ${cinematic.lines.length}`);
+    cinematic.onPage?.(storyPage);
+    storyClock = 0;
+    storyInput = {};
+    const night = cinematic.exercises?.[storyPage];
+    exercise = night ? createExercise(night) : null;
+    const illustrated = !!cinematic.art?.[storyPage];
+    $('storyDialog').classList.toggle('illustrated', illustrated);
+    $('storyStage').classList.toggle('hidden', !illustrated);
+    $('storyExercise').classList.toggle('hidden', !exercise);
+    $('btnStoryNext').disabled = !!exercise;
+    if (exercise) text('storyExerciseCue', exerciseCue(exercise));
     const g = $('storyPortrait').getContext('2d');
     g.clearRect(0, 0, 156, 164);
     const isAmara = speaker === 'Amara' || speaker === AMARA_NAME;
@@ -133,12 +146,66 @@ export function createUI({ state, session, settings, actions }) {
     }
     $('btnStoryNext').classList.toggle('hidden', last && !!cinematic.choices?.length);
     text('btnStoryNext', last ? 'Volver al juego' : 'Continuar');
-    text('btnStorySkip', cinematic.choices?.length ? 'Cerrar consejo' : 'Saltar escena');
+    text('btnStorySkip', cinematic.exercises ? 'Saltar prólogo' : cinematic.choices?.length ? 'Cerrar consejo' : 'Saltar escena');
+    updateStoryFrame(0);
   }
   function closeStory() {
     const done = cinematic?.onDone;
     cinematic = null;
+    exercise = null;
+    storyInput = {};
     if (done) done(); else resume();
+  }
+
+  function storyControl(event, down) {
+    if (!exercise || exercise.finished || !$('storyDialog').open) return false;
+    const input = { KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
+      Space: 'attack', KeyJ: 'attack', ShiftLeft: 'dodge', ShiftRight: 'dodge' }[event.code];
+    if (!input) return false;
+    const movement = input === 'left' || input === 'right';
+    if (movement) storyInput[input] = down;
+    else if (down && !event.repeat) storyInput[input] = true;
+    event.preventDefault();
+    return true;
+  }
+
+  function updateStoryFrame(dt) {
+    if (!$('storyDialog').open || !cinematic?.art?.[storyPage]) return;
+    storyClock += dt;
+    const g = $('storyStage').getContext('2d');
+    const shot = cinematic.art[storyPage];
+    const manager = window.SpriteManager;
+    const sprite = manager.atlas?.[`scene_${shot}`];
+    const frame = sprite?.anims.idle[0];
+    const sheet = sprite && manager.sheets?.[sprite.sheet];
+    const motion = !settings.reduce_motion;
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = '#152920'; g.fillRect(0, 0, PROLOGUE_WIDTH, PROLOGUE_HEIGHT);
+    if (frame && sheet) {
+      const inset = motion && !exercise ? Math.min(9, storyClock * 1.4) : 0;
+      const rock = motion && shot === 'travesia' ? Math.sin(storyClock * 1.6) * 2 : 0;
+      g.drawImage(sheet, frame.x, frame.y, frame.w, frame.h, -inset, -inset + rock,
+        PROLOGUE_WIDTH + inset * 2, PROLOGUE_HEIGHT + inset * 2);
+    }
+    if (exercise?.night === 3) {
+      g.fillStyle = `rgba(219,127,63,${Math.min(.23, exercise.clock / 16 * .19)})`;
+      g.fillRect(0, 0, PROLOGUE_WIDTH, PROLOGUE_HEIGHT);
+    }
+    if (exercise) {
+      const steps = Math.ceil(dt * 60);
+      for (let step = 0; step < steps; step++) {
+        stepExercise(exercise, dt / steps, storyInput, actions.storySound);
+        storyInput.attack = false;
+        storyInput.dodge = false;
+      }
+      drawExercise(g, exercise, manager, settings.reduce_motion);
+      text('storyExerciseCue', exerciseCue(exercise));
+      $('btnStoryNext').disabled = !exercise.finished;
+    }
+    if (motion && storyClock < .38) {
+      g.fillStyle = `rgba(11,19,17,${1 - storyClock / .38})`;
+      g.fillRect(0, 0, PROLOGUE_WIDTH, PROLOGUE_HEIGHT);
+    }
   }
   function banner(title, description = '') {
     text('loreBannerMain', title); text('loreBannerSub', description);
@@ -148,8 +215,10 @@ export function createUI({ state, session, settings, actions }) {
   }
   function result(status, show = true) {
     session.mode = status;
-    text('resultTitle', status === 'victory' ? 'La Matuna permanece libre' : 'La resistencia necesita un nuevo comienzo');
-    text('resultDescription', status === 'defeat' && state.benkos.waterFall ? 'Benkos cayó al río y la corriente lo arrastró.' : status === 'victory'
+    const historical = status === 'victory' && state.story.finale === 'historical';
+    text('resultTitle', historical ? 'La memoria de Benkos Biohó' : status === 'victory' ? 'La Matuna permanece libre' : 'La resistencia necesita un nuevo comienzo');
+    text('resultDescription', historical ? 'Cartagena · 16 de marzo de 1621. El palenque sobrevivió en la memoria y la resistencia.' :
+      status === 'defeat' && state.benkos.waterFall ? 'Benkos cayó al río y la corriente lo arrastró.' : status === 'victory'
       ? state.story.finale === 'witnesses' ? 'Los testimonios de las personas liberadas ya viajan por los caminos.' : 'La Matuna y sus aliados mantienen abiertos los caminos de refugio.'
       : `Benkos cayó sin plata en la bolsa y el cofre no tenía los ${BALANCE.rescueCost} reales necesarios para rescatarlo.`);
     text('resultStats', `Día ${state.day} · ${state.fugitivesFreed} personas liberadas · ${state.enemiesDefeated} enemigos derrotados · ${state.score} puntos${state.sandbox ? ' · Campaña de prueba' : ''}`);
@@ -279,8 +348,22 @@ export function createUI({ state, session, settings, actions }) {
     text('contextHint', state.benkos.waterFall ? 'La corriente arrastra a Benkos' : bridge ? bridgeHint(state, bridge) : messenger?'E · Escuchar al mensajero de Cartagena':amaraNearby(state)?'E · Hablar con Amara':frontierHint(state)|| (canMediate(state)?'E · Mediar en la discusión':context||social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar'));
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
-  on('btnStoryNext', () => { if (++storyPage < cinematic.lines.length) renderStory(); else closeStory(); });
+  on('btnStoryNext', () => {
+    if (!cinematic || exercise && !exercise.finished) return;
+    if (++storyPage < cinematic.lines.length) renderStory(); else closeStory();
+  });
   on('btnStorySkip', closeStory);
+  for (const [id, direction] of [['storyMoveLeft', 'left'], ['storyMoveRight', 'right']]) {
+    $(id).addEventListener('pointerdown', event => {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      storyInput[direction] = true;
+    });
+    for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+      $(id).addEventListener(event, () => { storyInput[direction] = false; });
+    }
+  }
+  on('storyAttack', () => { storyInput.attack = true; });
+  on('storyDodge', () => { storyInput.dodge = true; });
   on('btnWorldMap', openMap); on('btnMapPause', openMap); on('btnCloseMap', closeMap);
   on('btnMapWaypoint', () => {
     state.exploration.waypoint = state.exploration.waypoint === selectedSite.id ? '' : selectedSite.id;
@@ -629,6 +712,7 @@ export function createUI({ state, session, settings, actions }) {
     renderPerson();
   });
   return { update, banner, open, openStory, closeAll, resume, menu, result, togglePause, toggleMap, toggleArmory, applySettings, openPeople, openSettlement, renderWorldOverlay,
+    updateStoryFrame, storyControl, clearStoryInput: () => { storyInput = {}; },
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),
     connection: connected => { text('dbStatusLabel', connected ? 'Guardado en servidor' : 'Guardado local'); $('dbDot').classList.toggle('connected', connected); },

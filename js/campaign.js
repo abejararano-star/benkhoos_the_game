@@ -1,5 +1,5 @@
-import { storyChapter } from './story.js?v=763cc8e52309';
-import { advanceGarrisons, departurePost, orderPost, ROAD_GATES, strengthenPostGuard } from './frontier.js?v=763cc8e52309';
+import { CITIES, storyChapter } from './story.js?v=83d9fc2da44e';
+import { advanceGarrisons, departurePost, orderPost, ROAD_GATES, strengthenPostGuard } from './frontier.js?v=83d9fc2da44e';
 export { ROAD_GATES };
 export function ensureCampaign(state){
   state.messengers??=[];
@@ -7,7 +7,13 @@ export function ensureCampaign(state){
   state.campaign={version:1,orders:[],letters:[],warnedDays:[],sentDays:[],bossAnnouncements:[],defeatedBosses:[],lastRaidDay:0,heraldDefeated:false,governorDefeated:false,...state.campaign};
   return state.campaign;
 }
-export function raidSize(day){return Math.min(12,2+Math.floor(Math.max(0,day-1)*.8));}
+export function raidSize(day){return Math.min(16,2+Math.floor(Math.max(0,day-1)*.93));}
+export function raidPressure(enemy, day) {
+  if (enemy.isBoss || day < 3 || !Number.isFinite(enemy.maxHp) || !Number.isFinite(enemy.dmg)) return;
+  const rank = Math.min(12, day - 2);
+  enemy.hp = enemy.maxHp = Math.round(enemy.maxHp * (1 + rank * .032));
+  enemy.dmg = Math.round(enemy.dmg * (1 + rank * .024));
+}
 export function raidRoster(day){
   const roster=['CAMPESINO','SOLDADO_ESPANOL'];
   if(day>=3)roster.push('ARQUERO_COLONIAL');
@@ -24,7 +30,7 @@ export function dispatchRaid(state,mult=1){
   const primary=state.day%2?1:-1;
   for(let i=0;i<count;i++){
     const side=state.day<4?primary:(i%2?primary:-primary);
-    c.orders.push({id:`raid_${state.waveNumber}_${i}`,type:roster[i%roster.length],side,eta:3+i*3,kind:'raid',
+    c.orders.push({id:`raid_${state.waveNumber}_${i}`,type:roster[i%roster.length],side,eta:3+i*Math.max(1.8,3-(state.day-1)*.1),kind:'raid',
       postId: departurePost(side, 'raid', state.day).id});
   }
   c.lastRaidDay=state.day;
@@ -51,12 +57,15 @@ export function arrivalHint(state){
 }
 
 export function startFinale(state, choice) {
-  if (storyChapter(state) !== 3 || state.story.finale || !['witnesses', 'network'].includes(choice)) return false;
+  if (storyChapter(state) !== 3 || state.story.finale || state.story.expedition ||
+    !['witnesses', 'network', 'conquest'].includes(choice)) return false;
+  if (choice === 'conquest' && !CITIES.every(city => state.story.occupied.includes(city.id))) return false;
   state.story.finale = choice;
   state.truceDays = 0;
   if (state.phase === 'TRUCE_NIGHT') state.phase = 'NIGHT_DEFENSE';
   const western = choice === 'witnesses';
-  const roster = western ? ['SOLDADO_ESPANOL', 'PIQUERO', 'ARCABUCERO'] : ['PIQUERO', 'ARQUERO_COLONIAL', 'SOLDADO_ESPANOL', 'CABALLERO'];
+  const roster = choice === 'conquest' ? ['PIQUERO', 'ARQUERO_COLONIAL', 'CABALLERO', 'ARCABUCERO', 'SOLDADO_ESPANOL'] :
+    western ? ['SOLDADO_ESPANOL', 'PIQUERO', 'ARCABUCERO'] : ['PIQUERO', 'ARQUERO_COLONIAL', 'SOLDADO_ESPANOL', 'CABALLERO'];
   const c = ensureCampaign(state);
   roster.forEach((type, i) => c.orders.push({ id: `final_${i}`, type, side: western || i % 2 === 0 ? -1 : 1, eta: 8 + 5 * i, kind: 'final' }));
   if (!c.governorDefeated && !c.bossAnnouncements.includes('GOBERNADOR_GIRON') && !state.enemies.some(enemy => enemy.type === 'GOBERNADOR_GIRON')) {
@@ -70,7 +79,7 @@ export function startFinale(state, choice) {
 }
 
 export function finaleWon(state) {
-  return !!state.story.finale && state.campaign.governorDefeated &&
+  return ['witnesses', 'network', 'conquest'].includes(state.story.finale) && state.campaign.governorDefeated &&
     !state.campaign.orders.some(order => order.kind === 'final') && !state.enemies.some(enemy => enemy.finalRaid && enemy.hp > 0);
 }
 export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
@@ -91,6 +100,7 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
   }
   function update(dt){
     const c=ensureCampaign(state);
+    if (state.story.finale === 'historical') return;
     advanceGarrisons(state, dt, spawnEnemy);
     if(state.timeOfDay>=.48&&!c.warnedDays.includes(state.day)&&state.truceDays===0){
       c.warnedDays.push(state.day);sendMessenger('SCOUT',state.day%2?1:-1);
@@ -111,6 +121,7 @@ export function createCampaign({state,spawnEnemy,nextId,showBanner,onTreaty}){
         const gate = orderPost(c, order, state.day);
         const enemy=spawnEnemy(order.type,order.side,gate.x);
         if (!enemy.isBoss) strengthenPostGuard(enemy, gate.grade);
+        if (order.kind !== 'boss') raidPressure(enemy, order.kind === 'raid' ? c.lastRaidDay : state.day);
         enemy.originSide=order.side;enemy.arrivalTimer=1.2;enemy.appearTimer=1.2;
         if (order.kind === 'final') enemy.finalRaid = true;
         if(order.kind==='boss')showBanner('UN ESTANDARTE CRUZA LA FRONTERA',order.type==='GOBERNADOR_GIRON'?'García Girón entra por el camino de Cartagena.':'El Heraldo ha llegado al puesto oriental.');

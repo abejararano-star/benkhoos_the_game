@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../js/world-state.js';
-import { createCampaign, dispatchRaid, announceBoss, raidSize, raidRoster, dispatchReinforcement, ROAD_GATES, startFinale, finaleWon } from '../js/campaign.js';
-import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, establishOutpost, expeditionFormation, onEstateLiberated } from '../js/story.js';
+import { createCampaign, dispatchRaid, announceBoss, raidSize, raidRoster, raidPressure, dispatchReinforcement, ROAD_GATES, startFinale, finaleWon } from '../js/campaign.js';
+import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, establishOutpost, expeditionFormation, occupyCity, onEstateLiberated } from '../js/story.js';
 import { conquerHacienda, gateRequirement, updateHaciendas } from '../js/haciendas.js';
 import { ensurePerson } from '../js/people.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
@@ -14,6 +14,39 @@ function harness(){const s=createInitialState(),arrivals=[],banners=[];let id=1,
   return {s,campaign,arrivals,banners,treaties:()=>treaties};}
 test('early waves start small and do not include cavalry or muskets',()=>{
   assert.equal(raidSize(1),2);assert.ok(raidSize(6)>raidSize(1));assert.ok(!raidRoster(1).includes('CABALLERO'));assert.ok(!raidRoster(1).includes('ARCABUCERO'));
+});
+test('later campaigns send more men with more durability while preserving the boss phases', () => {
+  const recruit = { maxHp: 75, hp: 75, dmg: 14 };
+  const first = { ...recruit }, later = { ...recruit }, boss = { ...recruit, isBoss: true };
+  raidPressure(first, 1); raidPressure(later, 10); raidPressure(boss, 10);
+  assert.equal(first.hp, recruit.hp);
+  assert.ok(later.hp > first.hp && later.dmg > first.dmg);
+  assert.equal(boss.hp, recruit.hp);
+  assert.equal(raidSize(99), raidSize(199));
+});
+
+test('conquest needs both occupied cities and history never ends through a combat victory', () => {
+  const { s } = harness();
+  s.story.completed = [...ESTATES, ...CITIES].map(site => site.id);
+  assert.equal(startFinale(s, 'conquest'), false);
+  for (const city of CITIES) {
+    assert.equal(occupyCity(s, city), false);
+    s.benkos.x = city.cityX;
+    assert.equal(occupyCity(s, city), true);
+    assert.equal(occupyCity(s, city), false);
+  }
+  assert.equal(startFinale(s, 'conquest'), true);
+  const { state } = restoreSave(makeSave(s, 1), createInitialState());
+  assert.deepEqual(state.story.occupied, CITIES.map(city => city.id));
+  assert.equal(state.story.finale, 'conquest');
+  state.campaign.governorDefeated = true;
+  assert.equal(finaleWon(state), false);
+  state.campaign.orders = [];
+  assert.equal(finaleWon(state), true);
+  assert.equal(campaignOutcome(state, 'victory'), 'conquest');
+  state.story.finale = 'historical';
+  assert.equal(finaleWon(state), false);
+  assert.equal(campaignOutcome(state, 'victory'), 'historical');
 });
 test('returning guards cover both ends of the convoy even when Benkos is already home', () => {
   for (const site of ESTATES) {

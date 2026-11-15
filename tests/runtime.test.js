@@ -6,7 +6,7 @@ import { ENEMY_CATALOG, STATION_X } from '../js/config.js';
 import { ensurePerson } from '../js/people.js';
 import { createAnimal } from '../js/ecology.js';
 import { ALTAR_X } from '../js/exploration.js';
-import { ESTATES } from '../js/story.js';
+import { CITIES, ESTATES } from '../js/story.js';
 import { CROSSINGS } from '../js/crossings.js';
 import { TOWER_TIERS } from '../js/settlement.js';
 
@@ -180,6 +180,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   advance(8);assert.equal(inspect().state.units[0].equipment.weapon,3);
   window.BenkosDB.currentSaveId=77;
   elements.get('btnNewGame').click();assert.equal(window.BenkosDB.currentSaveId,null);
+  elements.get('btnStorySkip').click();
   await loadState(s=>{s.armyTier=3;s.armorUnlocked=true;});
   await window.gameApp.save(); const tier=inspect().state.armyTier;
   await window.gameApp.load();assert.equal(inspect().state.armyTier,tier);
@@ -396,6 +397,47 @@ test('Amara spends only the delegated reais, hires ordinary work and respects pl
   assert.ok(state.settlement.projects.some(job => job.kind === 'hq') || state.settlement.level === 2);
   await loadState(() => {});
   assert.equal(inspect().state.amara.budget, 1);
+});
+
+test('the prologue checkpoints and Cartagena plays the historical ending from the actual council choice', async () => {
+  elements.get('btnNewGame').click();
+  elements.get('btnStoryNext').click();
+  elements.get('btnStoryNext').click();
+  assert.equal(elements.get('storySpeaker').textContent, 'Primera noche');
+  assert.equal(elements.get('btnStoryNext').disabled, true);
+  key('KeyD'); advance(.55); key('KeyD', true);
+  for (let i = 0; i < 24 && elements.get('btnStoryNext').disabled; i++) {
+    key('Space'); key('Space', true); advance(.52);
+  }
+  assert.equal(elements.get('btnStoryNext').disabled, false);
+  elements.get('btnStoryNext').click();
+  assert.equal(inspect().state.story.prologuePage, 3);
+  await window.gameApp.save();
+  await window.gameApp.load();
+  assert.equal(elements.get('storySpeaker').textContent, 'Segunda noche');
+  assert.equal(elements.get('btnStoryNext').disabled, true);
+  elements.get('btnStorySkip').click();
+  assert.equal(inspect().state.story.prologuePage, null);
+  await loadState(s => {
+    s.story.plan = 'guides';
+    s.story.completed = ESTATES.map(estate => estate.id);
+    s.benkos.x = 0;
+    s.campaign.governorDefeated = false;
+    s.haciendas = s.haciendas.map(site => ({ ...site, destroyed: !site.major || s.story.completed.includes(site.id) }));
+  });
+  key('KeyE');
+  elements.get('btnStoryNext').click();
+  elements.get('storyChoices').children.find(button => /ruta histórica/.test(button.textContent)).click();
+  assert.equal(inspect().state.story.finale, 'historical');
+  elements.get('btnStorySkip').click();
+  await loadState(s => { s.benkos.x = CITIES[0].cityX; });
+  key('KeyE');
+  assert.equal(elements.get('storyTitle').textContent, 'La palabra quebrada');
+  elements.get('btnStoryNext').click();
+  assert.match(elements.get('storyLine').textContent, /ahorcado/);
+  elements.get('btnStorySkip').click();
+  assert.equal(elements.get('resultTitle').textContent, 'La memoria de Benkos Biohó');
+  assert.equal(inspect().state.story.finalWon, true);
 });
 
 test('the hanging bridge can be cut and repaired at a post and the river ends the run', async () => {

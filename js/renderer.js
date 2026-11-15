@@ -1,23 +1,23 @@
-import { crossingFeet } from './crossings.js?v=763cc8e52309';
-import { animalInStream } from './ecology.js?v=763cc8e52309';
-import { jaguarPose } from './jaguar.js?v=763cc8e52309';
-import { torchIsLit } from './exploration.js?v=763cc8e52309';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=763cc8e52309';
-import { blend, color, daylightAt } from './daylight.js?v=763cc8e52309';
-import { drawSky } from './sky.js?v=763cc8e52309';
-import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=763cc8e52309';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=763cc8e52309';
-import { createLighting } from './lighting.js?v=763cc8e52309';
-import { RenderInterpolation } from './visual-motion.js?v=763cc8e52309';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=763cc8e52309';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=763cc8e52309';
-import { drawParticle } from './effects.js?v=763cc8e52309';
-import { haciendaActive } from './haciendas.js?v=763cc8e52309';
-import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=763cc8e52309';
-import { COLONIAL_TOWERS } from './colonial-ai.js?v=763cc8e52309';
-import { CITIES, OUTPOSTS } from './story.js?v=763cc8e52309';
-import { WATER_LINE_Y } from './config.js?v=763cc8e52309';
-import { roleAvailable } from './people.js?v=763cc8e52309';
+import { crossingFeet } from './crossings.js?v=83d9fc2da44e';
+import { animalInStream } from './ecology.js?v=83d9fc2da44e';
+import { jaguarPose } from './jaguar.js?v=83d9fc2da44e';
+import { torchIsLit } from './exploration.js?v=83d9fc2da44e';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=83d9fc2da44e';
+import { blend, color, daylightAt } from './daylight.js?v=83d9fc2da44e';
+import { drawSky } from './sky.js?v=83d9fc2da44e';
+import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=83d9fc2da44e';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=83d9fc2da44e';
+import { createLighting } from './lighting.js?v=83d9fc2da44e';
+import { RenderInterpolation } from './visual-motion.js?v=83d9fc2da44e';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=83d9fc2da44e';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=83d9fc2da44e';
+import { drawParticle } from './effects.js?v=83d9fc2da44e';
+import { haciendaActive } from './haciendas.js?v=83d9fc2da44e';
+import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=83d9fc2da44e';
+import { COLONIAL_TOWERS } from './colonial-ai.js?v=83d9fc2da44e';
+import { CITIES, OUTPOSTS } from './story.js?v=83d9fc2da44e';
+import { WATER_LINE_Y } from './config.js?v=83d9fc2da44e';
+import { roleAvailable } from './people.js?v=83d9fc2da44e';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -109,6 +109,12 @@ function renderWorldAboveWater(g, time, air) {
     sprites?.draw?.(g, city.sprite, ['idle'], x, GROUND_SURFACE_Y + 1, 1, city.side < 0 ? 163 : 142, 0);
     const envoy = city.side < 0 ? 'actor_messenger' : 'actor_identity_f';
     sprites?.draw?.(g, envoy, ['idle'], x + city.gateOffset + 18, GROUND_SURFACE_Y, -city.side, 43, 0);
+    if (state.story.occupied.includes(city.id)) {
+      const flag = x + city.gateOffset - 27, y = GROUND_SURFACE_Y - 65;
+      g.fillStyle = '#523d2a'; g.fillRect(flag, y, 2, 60);
+      g.fillStyle = '#2d5e46'; g.fillRect(flag + 2, y + 2, 19, 12);
+      g.fillStyle = '#c5a96d'; g.fillRect(flag + 3, y + 4, 16, 2);
+    }
   }
   for (const post of OUTPOSTS) {
     const x = toScreenX(post.x);

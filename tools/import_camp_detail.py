@@ -6,6 +6,24 @@ from shutil import copyfile
 def import_camp_detail(output):
     source = Path(__file__).resolve().parents[1] / 'assets' / 'atlas'
     entries = {
+        'prologue_origins_v25': {
+            'scene_africa': (51, 3, 784, 441, 441),
+            'scene_captura': (938, 3, 784, 441, 441),
+            'scene_travesia': (51, 446, 784, 441, 441),
+            'scene_puerto': (938, 446, 784, 441, 441),
+        },
+        'prologue_chronicle_v25': {
+            'scene_infancia': (1, 1, 834, 469, 469),
+            'scene_fuga': (837, 1, 834, 469, 469),
+            'scene_matuna': (1, 472, 834, 469, 469),
+            'scene_traicion': (837, 472, 834, 469, 469),
+        },
+        'prologue_events_v25': {
+            'scene_liberacion': (1, 1, 834, 469, 469),
+            'scene_consejo': (837, 1, 834, 469, 469),
+            'scene_asedio': (1, 472, 834, 469, 469),
+            'scene_conquista': (837, 472, 834, 469, 469),
+        },
         'rack_care_v24': {
             'stock_item_CURANDERO': (68, 172, 742, 580, 1050),
             'stock_item_BRUJO': (996, 172, 710, 593, 1010),
@@ -83,6 +101,26 @@ def import_camp_detail(output):
                 foot_x, ground_y = tower_anchors[name]
                 frame.update(ax=foot_x - x, ay=ground_y - y)
             sprites[name] = dict(sheet=sheet, ref=scale, anims={'idle': [frame]})
+    father_sheet = 'prologue_father_v25'
+    if output.resolve() != source:
+        copyfile(source / (father_sheet + '.png'), output / (father_sheet + '.png'))
+    # Ink bounds and planted foot anchors, including the blade in the strike pose.
+    father_frames = [
+        (108, 22, 273, 344, 183), (466, 18, 633, 344, 542),
+        (801, 27, 1006, 344, 900), (1161, 29, 1373, 344, 1255),
+        (56, 375, 292, 710, 176), (381, 418, 754, 710, 544),
+        (754, 422, 1072, 710, 885), (1134, 414, 1352, 710, 1244),
+        (56, 828, 278, 1060, 173), (396, 827, 689, 1060, 533),
+        (784, 763, 1016, 1060, 900), (1127, 829, 1385, 1060, 1250),
+    ]
+    frames = [
+        dict(i=i, x=x, y=y, w=right-x, h=bottom-y, ax=axis-x, ay=bottom-y-4)
+        for i, (x, y, right, bottom, axis) in enumerate(father_frames)
+    ]
+    poses = {'idle': [0, 1], 'walk': [2, 0, 3, 1], 'strike': [4, 5, 6, 7],
+             'dodge': [8, 9, 8], 'hurt': [10], 'kneel': [11]}
+    sprites['actor_prologue_father'] = dict(sheet=father_sheet, ref=313,
+        anims={name: [frames[i] for i in sequence] for name, sequence in poses.items()})
     # Bounds are measured on the opaque silhouette, leaving a transparent gutter
     # around each pose. Axes share a ground line within each source row.
     sequences = [
