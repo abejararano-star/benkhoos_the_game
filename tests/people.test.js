@@ -4,7 +4,48 @@ import { ensurePerson, affinity, proficiency, reactToDamage, requestProfession, 
 import { chooseToolRack } from '../js/ai.js';
 import { createInitialState } from '../js/world-state.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
+import { amaraCrew, amaraSupport, chooseAmara, updateAmara } from '../js/amara.js';
+import { conquerHacienda, updateHaciendas } from '../js/haciendas.js';
 function person(id=4,role='AGRICULTOR',x=0){return ensurePerson({id,role,tier:1,x,y:268,vx:0,assignedSide:1,hp:80,maxHp:80,animSeed:0});}
+test('Amara joins one rescue, leads without marriage, and keeps her identity and bond in the save', () => {
+  const state = createInitialState();
+  let id = 20;
+  const spawn = (x, sex) => {
+    const unit = ensurePerson({ id: id++, role: 'FUGITIVO', sex, x, hp: 80, maxHp: 80 });
+    state.units.push(unit);
+    return unit;
+  };
+  updateHaciendas(state, spawn);
+  updateHaciendas(state, spawn);
+  assert.equal(state.units.filter(unit => unit.namedAmara).length, 1);
+  const amara = state.units.find(unit => unit.namedAmara);
+  const site = state.haciendas.find(entry => entry.id === amara.captiveHacienda);
+  assert.ok(conquerHacienda(state, site).captives.includes(amara));
+  delete amara.escortHome;
+  amara.liberateAnimTimer = -.01;
+  chooseAmara(state, 'lead');
+  assert.equal(state.amara.leads, true);
+  assert.equal(state.amara.bond, 'friends');
+  const farm = state.farms[0];
+  farm.stage = 'PLANT';
+  const farmer = person(120, 'AGRICULTOR', farm.x);
+  farmer.sex = 'F';
+  state.units.push(farmer);
+  amara.x = farm.x + 31;
+  const assignment = amaraCrew(state);
+  assert.equal(assignment.crew, farmer);
+  updateAmara(assignment, state, 1 / 60);
+  assert.equal(amaraSupport(assignment, 'AGRICULTOR', farm.x), 1.2);
+  assert.equal(amaraSupport(assignment, 'AGRICULTOR', farm.x + 100), 1);
+  chooseAmara(state, 'court');
+  chooseAmara(state, 'marry');
+  assert.equal(state.amara.bond, 'courtship');
+  state.day++;
+  chooseAmara(state, 'marry');
+  const saved = restoreSave(makeSave(state, 121), createInitialState()).state;
+  assert.equal(saved.amara.bond, 'partners');
+  assert.equal(saved.units.find(unit => unit.id === saved.amara.id).name, 'Amara de la Ceiba');
+});
 test('two riders can escort Benkos in formation, and keep the assignment across a save', () => {
   const state = createInitialState();
   state.benkos.x = 6700;

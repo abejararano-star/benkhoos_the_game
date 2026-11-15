@@ -1,18 +1,19 @@
-import { needsCropCare } from './crops.js?v=48baf0700084';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=48baf0700084';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=48baf0700084';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=48baf0700084';
-import { describeTraits } from './daily-life.js?v=48baf0700084';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=48baf0700084';
-import { canMediate, relationshipsFor } from './community.js?v=48baf0700084';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=48baf0700084';
-import { ecologyHint } from './ecology.js?v=48baf0700084';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=48baf0700084';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=48baf0700084';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=48baf0700084';
-import { arrivalHint } from './campaign.js?v=48baf0700084';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=48baf0700084';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=48baf0700084';
+import { needsCropCare } from './crops.js?v=1804341f1e90';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=1804341f1e90';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=1804341f1e90';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=1804341f1e90';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=1804341f1e90';
+import { describeTraits } from './daily-life.js?v=1804341f1e90';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=1804341f1e90';
+import { canMediate, relationshipsFor } from './community.js?v=1804341f1e90';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=1804341f1e90';
+import { ecologyHint } from './ecology.js?v=1804341f1e90';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=1804341f1e90';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=1804341f1e90';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=1804341f1e90';
+import { arrivalHint } from './campaign.js?v=1804341f1e90';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=1804341f1e90';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=1804341f1e90';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -117,8 +118,9 @@ export function createUI({ state, session, settings, actions }) {
     text('storyProgress', `${storyPage + 1} / ${cinematic.lines.length}`);
     const g = $('storyPortrait').getContext('2d');
     g.clearRect(0, 0, 156, 164);
-    const cls = { Benkos: 'actor_hero', Wiwa: 'actor_civil', Vigía: 'actor_archer', 'Cautiva liberada': 'actor_captive' }[speaker];
-    if (cls) window.SpriteManager?.draw?.(g, cls, ['idle'], 78, 158, 1, 134, 0);
+    const isAmara = speaker === 'Amara' || speaker === AMARA_NAME;
+    const cls = isAmara ? 'actor_amara' : { Benkos: 'actor_hero', Wiwa: 'actor_civil', Vigía: 'actor_archer', 'Cautiva liberada': 'actor_captive' }[speaker];
+    if (cls) window.SpriteManager?.draw?.(g, cls, isAmara ? ['talk', 'idle'] : ['idle'], 78, 158, 1, 134, 0);
     const last = storyPage === cinematic.lines.length - 1;
     const choices = $('storyChoices');
     choices.replaceChildren();
@@ -272,7 +274,7 @@ export function createUI({ state, session, settings, actions }) {
     const context = Math.abs(state.benkos.x) < 23 && chapter > 1 ? 'E · Convocar al consejo · B · Obras' :
       hacienda ? gateRequirement(state, hacienda) || 'Espacio · Romper el portón para liberar a los cautivos' : '';
     const bridge = bridgePost(state.benkos.x) ?? crossingAt(state.benkos.x);
-    text('contextHint', state.benkos.waterFall ? 'La corriente arrastra a Benkos' : bridge ? bridgeHint(state, bridge) : messenger?'E · Escuchar al mensajero de Cartagena':frontierHint(state)|| (canMediate(state)?'E · Mediar en la discusión':context||social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar'));
+    text('contextHint', state.benkos.waterFall ? 'La corriente arrastra a Benkos' : bridge ? bridgeHint(state, bridge) : messenger?'E · Escuchar al mensajero de Cartagena':amaraNearby(state)?'E · Hablar con Amara':frontierHint(state)|| (canMediate(state)?'E · Mediar en la discusión':context||social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar'));
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   on('btnStoryNext', () => { if (++storyPage < cinematic.lines.length) renderStory(); else closeStory(); });
@@ -529,7 +531,9 @@ export function createUI({ state, session, settings, actions }) {
   function renderPerson(){
     const u=state.units.find(n=>n.id===selectedPersonId);if(!u)return;
     ensurePerson(u);
-    text('personName',u.name);text('personRole',`${ROLE_NAMES[u.role]} · ${u.sex === 'F' ? 'Mujer' : 'Hombre'} · Rango ${u.tier}`);
+    const title = u.namedAmara && state.amara.leads ? 'Lideresa de la Matuna' : ROLE_NAMES[u.role];
+    const partner = u.namedAmara && state.amara.bond === 'partners' ? ' · Esposa de Benkos' : '';
+    text('personName',u.name);text('personRole',`${title} · ${u.sex === 'F' ? 'Mujer' : 'Hombre'}${partner} · Rango ${u.tier}`);
     text('personTemperament',`${TEMPERAMENTS[u.temperament]} · ${u.mood}`);
     text('personGift',GIFT_NAMES[u.gift]);
     text('personPreference',`Prefiere: ${ROLE_NAMES[u.preferredRole]} · Salud ${Math.ceil(u.hp)}/${u.maxHp}`);
@@ -563,10 +567,10 @@ export function createUI({ state, session, settings, actions }) {
     const role=$('personNewRole');role.replaceChildren();
     for(const key of WORK_ROLES){const option=document.createElement('option');option.value=key;option.textContent=`${ROLE_NAMES[key]} · afinidad ${affinity(u,key).toFixed(1)}/5`;option.disabled=!roleAvailable(key,state.armyTier);role.append(option);}
     role.value=u.requestedRole??u.preferredRole;
-    $('btnAssignProfession').disabled=['FUGITIVO','CAMPEON_REAL'].includes(u.role);
+    $('btnAssignProfession').disabled=u.namedAmara || ['FUGITIVO','CAMPEON_REAL'].includes(u.role);
     $('btnMountedEscort').classList.toggle('hidden', u.role !== 'CABALLERO_ALIADO');
     text('btnMountedEscort', u.escortBenkos ? 'Volver a la defensa del palenque' : 'Asignar a la escolta de Benkos');
-    $('btnPersonAuto').disabled=['FUGITIVO','CAMPEON_REAL'].includes(u.role);
+    $('btnPersonAuto').disabled=u.namedAmara || ['FUGITIVO','CAMPEON_REAL'].includes(u.role);
     const portrait=$('personPortrait').getContext('2d');portrait.clearRect(0,0,128,160);portrait.save();portrait.scale(2.5,2.5);
     window.SpriteManager?.drawAlly?.(portrait,25,60,1,{...u,vx:0,hurtTimer:0,activity:'IDLE',animSeed:0,carryingSack:false},0);portrait.restore();
   }

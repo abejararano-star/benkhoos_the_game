@@ -1,6 +1,6 @@
-import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=48baf0700084';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=48baf0700084';
-import { ensureTraits, griefEffect } from './daily-life.js?v=48baf0700084';
+import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=1804341f1e90';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=1804341f1e90';
+import { ensureTraits, griefEffect } from './daily-life.js?v=1804341f1e90';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
@@ -104,6 +104,7 @@ export function reactToDamage(unit,damage,direction=1){
 export function roleAvailable(role,tier){return WORK_ROLES.includes(role)&&(!['ESPADACHIN','CABALLERO_ALIADO'].includes(role)||tier>=2);}
 export function requestProfession(unit,role,state){
   ensurePerson(unit);
+  if (unit.namedAmara) return { success: false, message: 'Habla con Amara para acordar dónde ayudará.' };
   if(['FUGITIVO','CAMPEON_REAL'].includes(unit.role))return {success:false,message:'Esta persona aún no puede cambiar de oficio.'};
   if (unit.kitOrder) return { success: false, message: 'Recogerá primero el equipo que ya encargó.' };
   if (unit.recoveredCoins > 0) return { success: false, message: 'Primero llevará los reales recuperados al cofre.' };
@@ -192,6 +193,6 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false){
     const wounded=state.units.find(other=>other!==unit&&other.hp<other.maxHp*.6&&Math.abs(other.x-unit.x)<35);
     if(wounded){wounded.hp=Math.min(wounded.maxHp,wounded.hp+dt*1.5);unit.activity='HELP';unit.mood='Cuidando a un vecino';speak(unit,'Respira. Aquí te cuidamos.');}
   }
-  if(safe&&unit.activity==='IDLE')speak(unit,{BRAVE:'Hoy también resistiremos.',CAUTIOUS:'Conviene revisar las murallas.',CARING:'¿A quién le hace falta una mano?',CALM:'El río sigue su curso.',RESTLESS:'Quiero conocer otro oficio.'}[unit.temperament]);
+  if(safe&&unit.activity==='IDLE'&&!unit.namedAmara)speak(unit,{BRAVE:'Hoy también resistiremos.',CAUTIOUS:'Conviene revisar las murallas.',CARING:'¿A quién le hace falta una mano?',CALM:'El río sigue su curso.',RESTLESS:'Quiero conocer otro oficio.'}[unit.temperament]);
   return false;
 }

@@ -1,10 +1,11 @@
-import { ensureCrossings } from './crossings.js?v=48baf0700084';
-import { initialCommunity } from './community.js?v=48baf0700084';
-import { initialStory, majorHaciendas } from './story.js?v=48baf0700084';
-import { initialEcology } from './ecology.js?v=48baf0700084';
-import { initialExploration } from './exploration.js?v=48baf0700084';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=48baf0700084';
-import { initialSettlement } from './settlement.js?v=48baf0700084';
+import { ensureCrossings } from './crossings.js?v=1804341f1e90';
+import { initialCommunity } from './community.js?v=1804341f1e90';
+import { initialStory, majorHaciendas } from './story.js?v=1804341f1e90';
+import { initialEcology } from './ecology.js?v=1804341f1e90';
+import { initialExploration } from './exploration.js?v=1804341f1e90';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=1804341f1e90';
+import { initialSettlement } from './settlement.js?v=1804341f1e90';
+import { initialAmara } from './amara.js?v=1804341f1e90';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -42,6 +43,7 @@ const state = {
   campaign: { version:1, orders:[], letters:[], warnedDays:[], sentDays:[], bossAnnouncements:[], defeatedBosses:[], lastRaidDay:0, heraldDefeated:false, governorDefeated:false },
 
   story: initialStory(),
+  amara: initialAmara(),
 
   benkos: {
     x: -20,

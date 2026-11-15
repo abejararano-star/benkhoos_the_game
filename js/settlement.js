@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=48baf0700084';
-import { CAMP_EDGE } from './config.js?v=48baf0700084';
+import { ALTAR_X } from './exploration.js?v=1804341f1e90';
+import { CAMP_EDGE } from './config.js?v=1804341f1e90';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -152,7 +152,7 @@ export function constructionStatus(state, job) {
     ? 'Esperando al constructor' : 'Requiere un constructor';
 }
 
-export function advanceConstruction(state, dt, onComplete) {
+export function advanceConstruction(state, dt, onComplete, workRate = () => 1) {
   const settlement = state.settlement;
   if (!settlement.projects.length) return;
   const builders = state.units.filter(unit => unit.hp > 0 && unit.activity === 'BUILD' && unit.constructionJob);
@@ -161,7 +161,7 @@ export function advanceConstruction(state, dt, onComplete) {
     job.working = builders.some(unit => unit.constructionJob === job.id && Math.abs(unit.x - job.x) <= WORK_REACH &&
       (unit.role === 'CONSTRUCTOR' || job.kind === 'rack' && job.targetId === 'rack_hammer'));
     if (!job.working) continue;
-    job.progress = Math.min(1, job.progress + dt / job.duration);
+    job.progress = Math.min(1, job.progress + dt * workRate(job) / job.duration);
     if (job.progress < 1 - 1e-8) continue;
     const target = buildingTarget(state, job.kind, job.targetId);
     if (job.kind === 'hq') settlement.level = job.targetLevel;

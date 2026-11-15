@@ -204,4 +204,20 @@ def import_camp_detail(output):
         'trot': {'idle': [trot[0]], 'walk': trot, 'run': trot},
     }.items():
         sprites['actor_identity_f_' + name] = dict(sheet=combat, ref=420, anims=animations)
+    amara_sheet = 'amara_v21'
+    if output.resolve() != source:
+        copyfile(source / (amara_sheet + '.png'), output / (amara_sheet + '.png'))
+    amara_bounds = [(158,10,274,332), (477,14,597,332), (806,13,976,332), (1135,13,1306,332),
+                    (115,381,303,675), (461,380,613,672), (773,383,960,672), (1118,382,1260,674),
+                    (151,718,261,1056), (428,796,597,1052), (795,717,920,1056), (1106,736,1347,1056)]
+    amara_axes = [212, 537, 860, 1190, 201, 538, 865, 1190, 209, 513, 850, 1180]
+    frames = []
+    for index, (left, top, right, bottom) in enumerate(amara_bounds):
+        x, y = left - 4, top - 4
+        frames.append(dict(i=index, x=x, y=y, w=right-x+5, h=bottom-y+5, ax=amara_axes[index]-x,
+                           ay=[333, 676, 1057][index // 4]-y, ref=304 if 4 <= index <= 7 else 332))
+    animations = {'idle': [0], 'flirt': [1, 2, 1], 'talk': [2], 'walk': [4, 5, 6, 7], 'captive': [8],
+                  'release': [8, 9, 10], 'lead': [3, 2, 11], 'action': [2, 3], 'hurt': [8], 'rest': [9]}
+    sprites['actor_amara'] = dict(sheet=amara_sheet, ref=332,
+                                 anims={name: [frames[i] for i in indices] for name, indices in animations.items()})
     return sprites

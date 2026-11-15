@@ -424,7 +424,7 @@ class BenkosSpriteManager {
 
   drawAlly(ctx, x, y, facing, unit, time) {
     const previous = this.allyFigure;
-    const body = ALLY_SILHOUETTES[unit.physique?.build];
+    const body = unit.namedAmara ? null : ALLY_SILHOUETTES[unit.physique?.build];
     this.allyFigure = body && { shoulders: body[0], hips: body[1],
       stature: ALLY_STATURE[unit.physique.stature] ?? 1, mounted: unit.role === 'CABALLERO_ALIADO' };
     if (unit.grief) {
@@ -441,6 +441,7 @@ class BenkosSpriteManager {
   }
 
   drawAllyPose(ctx, x, y, facing, unit, time) {
+    if (unit.namedAmara && this.has('actor_amara')) return this.drawAmara(ctx, x, y, facing, unit, time);
     const identity = 'actor_identity_' + (unit.sex === 'F' ? 'f' : 'm');
     const personalSprite = ['FUGITIVO', 'ALDEANO'].includes(unit.role) && this.has(identity);
     const workRole = { ARQUERO: 'archer', GUERRERO: 'guard', ESPADACHIN: 'sword', CAMPEON_REAL: 'sword',
@@ -491,6 +492,23 @@ class BenkosSpriteManager {
     }
     const rest = ['REST', 'RECOVER', 'MOURN', 'LEAVE'].includes(unit.activity) && unit.role !== 'CABALLERO_ALIADO';
     return this.drawIdle(ctx, cls, x, y, facing, height, t, unit, rest ? 'rest' : 'idle');
+  }
+
+  drawAmara(ctx, x, y, facing, unit, time) {
+    const cls = 'actor_amara', height = 46;
+    const clock = unit.animSeed ?? time;
+    const gait = this.motion?.sample(unit, clock);
+    if (unit.waterFall) return this.drawDrowning(ctx, cls, x, y, facing, height, unit.waterFall.time);
+    if (unit.role === 'FUGITIVO') return this.draw(ctx, cls, ['captive'], x, y, facing, height, 0);
+    if (unit.liberateAnimTimer > 0) {
+      return this.draw(ctx, cls, ['release'], x, y, facing, height, 0, 0, 1 - unit.liberateAnimTimer / 1.2);
+    }
+    if (unit.hurtTimer > 0) return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0);
+    if (gait?.moving ?? Math.abs(unit.vx || 0) > 8) {
+      return this.draw(ctx, cls, ['walk'], x, y, facing, height, clock, 8, gait?.phase);
+    }
+    const animation = unit.activity === 'LEAD' ? 'lead' : unit.activity === 'FLIRT' ? 'flirt' : 'idle';
+    return this.draw(ctx, cls, [animation], x, y, facing, height, this.reduceMotion ? 0 : clock, 1.4);
   }
 
   drawMessenger(ctx, x, y, messenger, time) {

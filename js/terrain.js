@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=48baf0700084';
-import { landscapeSeed } from './sky.js?v=48baf0700084';
-import { CAMP_EDGE } from './config.js?v=48baf0700084';
-import { TOWER_HEIGHT } from './settlement.js?v=48baf0700084';
-import { CROSSINGS, deckOffset } from './crossings.js?v=48baf0700084';
+import { blend, color, mix, smooth } from './daylight.js?v=1804341f1e90';
+import { landscapeSeed } from './sky.js?v=1804341f1e90';
+import { CAMP_EDGE } from './config.js?v=1804341f1e90';
+import { TOWER_HEIGHT } from './settlement.js?v=1804341f1e90';
+import { CROSSINGS, deckOffset } from './crossings.js?v=1804341f1e90';
 
 let regionCanvas;
 
@@ -653,6 +653,7 @@ export function drawPersonStory(g,x,ground,unit,showSpeech=false){
   g.fillStyle=colors[unit.gift]??'#b1b69b';g.fillRect(x-1,ground+2,3,2);
   if(unit.tier>1){g.fillStyle=unit.tier===3?'#e6c486':'#b5c4c2';g.fillRect(x-3,ground+5,6,1);}
   if(showSpeech&&unit.speechTimer>0){
+    g.font='7px monospace';
     const line=unit.speech.slice(0,38),width=Math.min(220,g.measureText(line).width+12);
     g.fillStyle='#0c1b17ed';g.fillRect(x-width/2,ground-72,width,16);
     g.fillStyle='#d5c6a3';g.font='7px monospace';g.textAlign='center';g.fillText(line,x,ground-61);

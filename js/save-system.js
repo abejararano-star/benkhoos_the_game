@@ -1,14 +1,15 @@
-import { ensureCrossings } from './crossings.js?v=48baf0700084';
-import { NIGHT_START } from './daylight.js?v=48baf0700084';
-import { restoreCommunity } from './community.js?v=48baf0700084';
-import { ensureEcology, seedEcology } from './ecology.js?v=48baf0700084';
-import { seedFrontier } from './exploration.js?v=48baf0700084';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=48baf0700084';
-import { ensurePerson } from './people.js?v=48baf0700084';
-import { ensureSettlement } from './settlement.js?v=48baf0700084';
-import { ensureCampaign } from './campaign.js?v=48baf0700084';
-import { restoreHaciendas } from './haciendas.js?v=48baf0700084';
-import { restoreStory } from './story.js?v=48baf0700084';
+import { ensureCrossings } from './crossings.js?v=1804341f1e90';
+import { NIGHT_START } from './daylight.js?v=1804341f1e90';
+import { restoreCommunity } from './community.js?v=1804341f1e90';
+import { ensureEcology, seedEcology } from './ecology.js?v=1804341f1e90';
+import { seedFrontier } from './exploration.js?v=1804341f1e90';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=1804341f1e90';
+import { ensurePerson } from './people.js?v=1804341f1e90';
+import { restoreAmara } from './amara.js?v=1804341f1e90';
+import { ensureSettlement } from './settlement.js?v=1804341f1e90';
+import { ensureCampaign } from './campaign.js?v=1804341f1e90';
+import { restoreHaciendas } from './haciendas.js?v=1804341f1e90';
+import { restoreStory } from './story.js?v=1804341f1e90';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -139,6 +140,7 @@ export function restoreSave(save, defaults) {
   if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= NIGHT_START ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);
+  restoreAmara(next);
   for (const unit of next.units) {
     if (unit.recoveredCoins !== undefined) unit.recoveredCoins = Math.floor(number(unit.recoveredCoins, 0, 0, 4));
     const order = unit.kitOrder;

@@ -21,7 +21,7 @@ function firstImpression(a, b) {
 }
 
 function available(unit, state) {
-  return unit.role !== 'FUGITIVO' && unit.role !== 'CABALLERO_ALIADO' && unit.hp >= unit.maxHp * .75 &&
+  return !unit.namedAmara && unit.role !== 'FUGITIVO' && unit.role !== 'CABALLERO_ALIADO' && unit.hp >= unit.maxHp * .75 &&
     !state.story.expedition?.party.includes(unit.id) &&
     Math.abs(unit.x) < 610 && unit.fear < 25 && !unit.hurtTimer && !unit.requestedRole &&
     !unit.escortHome && !unit.carryingSack && !unit.recoveredCoins && !unit.pendingShot && !unit.pendingStrike && !unit.liberateAnimTimer && !unit.kitOrder && !unit.leisure &&

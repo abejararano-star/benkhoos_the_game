@@ -1,6 +1,7 @@
-import { BALANCE } from './config.js?v=48baf0700084';
-import { estateById, hasOutpost } from './story.js?v=48baf0700084';
-import { strengthenPostGuard } from './frontier.js?v=48baf0700084';
+import { BALANCE } from './config.js?v=1804341f1e90';
+import { estateById, hasOutpost } from './story.js?v=1804341f1e90';
+import { strengthenPostGuard } from './frontier.js?v=1804341f1e90';
+import { nominateAmara } from './amara.js?v=1804341f1e90';
 
 const PRISONERS = [-23, 0, 23];
 const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];
@@ -56,6 +57,7 @@ export function updateHaciendas(state, spawnCaptive, distanceFromView = 440, spa
       }
       hacienda.captivesPlaced = true;
     }
+    nominateAmara(state, hacienda);
     if (!spawnGuard || hacienda.garrisonPlaced) continue;
     const roster = estate ? [...estate.roster] : hacienda.id === 'hac_east' ? ['SOLDADO_ESPANOL'] : [];
     const guided = estate?.cityX && hasOutpost(state, hacienda.side);

@@ -1,20 +1,21 @@
-import { stepCrossings } from './crossings.js?v=48baf0700084';
-import { NIGHT_START } from './daylight.js?v=48baf0700084';
-import { recoverCoins } from './coins.js?v=48baf0700084';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=48baf0700084';
-import { collectEquipment } from './equipment.js?v=48baf0700084';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=48baf0700084';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=48baf0700084';
-import { updateCommunity, joinEncounter } from './community.js?v=48baf0700084';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=48baf0700084';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=48baf0700084';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=48baf0700084';
-import { advanceParticle, emitEffect } from './effects.js?v=48baf0700084';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=48baf0700084';
-import { ensureCampaign, finaleWon } from './campaign.js?v=48baf0700084';
-import { OUTPOSTS, expeditionFormation } from './story.js?v=48baf0700084';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=48baf0700084';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=48baf0700084';
+import { stepCrossings } from './crossings.js?v=1804341f1e90';
+import { NIGHT_START } from './daylight.js?v=1804341f1e90';
+import { recoverCoins } from './coins.js?v=1804341f1e90';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=1804341f1e90';
+import { collectEquipment } from './equipment.js?v=1804341f1e90';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=1804341f1e90';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=1804341f1e90';
+import { updateCommunity, joinEncounter } from './community.js?v=1804341f1e90';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=1804341f1e90';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=1804341f1e90';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=1804341f1e90';
+import { advanceParticle, emitEffect } from './effects.js?v=1804341f1e90';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=1804341f1e90';
+import { ensureCampaign, finaleWon } from './campaign.js?v=1804341f1e90';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=1804341f1e90';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=1804341f1e90';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=1804341f1e90';
+import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=1804341f1e90';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -298,6 +299,7 @@ return function updateSimulation(dt) {
   // Allied work and defense
   const moraleMult = state.morale / 100;
   const formation = expeditionFormation(state);
+  const leadership = amaraCrew(state);
   const mountedEscort = mountedEscortPosts(state);
   const sentries = new Map();
   for (const tower of state.settlement.towers) {
@@ -360,6 +362,10 @@ return function updateSimulation(dt) {
       delete u.escortHome;
       u.vx = 0;
       addFloatingText(u.x, WATER_LINE_Y - 45, `${u.name.split(' ')[0]} llegó a salvo`, '#d0dc9a');
+    }
+    if (u.namedAmara) {
+      if (leadership) updateAmara(leadership, state, dt);
+      continue;
     }
     if (!tower && recoverCoins(u, state, dt, (worker, amount) => {
       addFloatingText(48, WATER_LINE_Y - 42, `+${amount} ${amount === 1 ? 'real recuperado' : 'reales recuperados'} · ${worker.name.split(' ')[0]}`, '#e4cb85');
@@ -456,7 +462,7 @@ return function updateSimulation(dt) {
         } else {
           u.vx = 0;
           u.activity = 'WORK';
-          const harvest = tendCrop(activeFarm, state, dt, fitMult);
+          const harvest = tendCrop(activeFarm, state, dt, fitMult * amaraSupport(leadership, 'AGRICULTOR', activeFarm.x));
           if (harvest) {
             u.cropCargo = harvest;
             u.carryingSack = true;
@@ -627,7 +633,7 @@ return function updateSimulation(dt) {
     audio.playSfx(sanctuary ? 'roar' : 'pickaxe');
     if (sanctuary) showBanner('NUEVO PODER DEL JAGUAR', state.skills.find(skill => skill.level === job.targetLevel).name);
     updateHUD();
-  });
+  }, job => amaraSupport(leadership, 'CONSTRUCTOR', job.x));
 
   // ==================== COLONIAL ENEMIES & BOSS AI ====================
   for (let i = state.enemies.length - 1; i >= 0 && state.status === 'playing'; i--) {
