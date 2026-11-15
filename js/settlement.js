@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=1804341f1e90';
-import { CAMP_EDGE } from './config.js?v=1804341f1e90';
+import { ALTAR_X } from './exploration.js?v=f7cedf2900dd';
+import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=f7cedf2900dd';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -91,6 +91,13 @@ export function ensureSettlement(state) {
     if (!target || target.id !== job.targetId || job.x !== target.x || !validLevel || (job.repair && job.kind !== 'wall')) throw Error('Destino de construcción inválido.');
     delete job.working;
   }
+  s.projects = s.projects.filter(job => {
+    if (job.kind !== 'rack') return true;
+    const rack = buildingTarget(state, 'rack', job.targetId);
+    if (rack.stock < rack.maxStock) rack.stock++;
+    else state.treasuryCoins += TOOL_COSTS[rack.role] ?? 0;
+    return false;
+  });
 
   const oldDeposits = s.deposits;
   s.deposits = {};
@@ -147,7 +154,6 @@ export function requestBuilding(state, kind, id) {
 
 export function constructionStatus(state, job) {
   if (job.working) return 'En obra';
-  if (job.kind === 'rack' && job.targetId === 'rack_hammer') return 'Esperando al forjador';
   return state.units.some(unit => unit.role === 'CONSTRUCTOR' && unit.hp > 0)
     ? 'Esperando al constructor' : 'Requiere un constructor';
 }
@@ -155,11 +161,10 @@ export function constructionStatus(state, job) {
 export function advanceConstruction(state, dt, onComplete, workRate = () => 1) {
   const settlement = state.settlement;
   if (!settlement.projects.length) return;
-  const builders = state.units.filter(unit => unit.hp > 0 && unit.activity === 'BUILD' && unit.constructionJob);
+  const builders = state.units.filter(unit => unit.role === 'CONSTRUCTOR' && unit.hp > 0 && unit.activity === 'BUILD');
   for (let index = settlement.projects.length - 1; index >= 0; index--) {
     const job = settlement.projects[index];
-    job.working = builders.some(unit => unit.constructionJob === job.id && Math.abs(unit.x - job.x) <= WORK_REACH &&
-      (unit.role === 'CONSTRUCTOR' || job.kind === 'rack' && job.targetId === 'rack_hammer'));
+    job.working = builders.some(unit => unit.constructionJob === job.id && Math.abs(unit.x - job.x) <= WORK_REACH);
     if (!job.working) continue;
     job.progress = Math.min(1, job.progress + dt * workRate(job) / job.duration);
     if (job.progress < 1 - 1e-8) continue;
@@ -169,7 +174,6 @@ export function advanceConstruction(state, dt, onComplete, workRate = () => 1) {
       state.altarTier = job.targetLevel;
       state.skills.find(skill => skill.level === job.targetLevel).unlocked = true;
     }
-    else if (job.kind === 'rack') target.stock = Math.min(target.maxStock, target.stock + 1);
     else {
       target.level = job.targetLevel;
       if (job.kind === 'wall') {
@@ -183,11 +187,11 @@ export function advanceConstruction(state, dt, onComplete, workRate = () => 1) {
   }
 }
 
-export function workConstruction(unit, state, dt, reserved = new Set(), onlyJob = null) {
+export function workConstruction(unit, state, dt, reserved = new Set()) {
   delete unit.constructionJob;
   let job = null;
   for (const candidate of state.settlement.projects) {
-    if (reserved.has(candidate.id) || onlyJob && candidate !== onlyJob) continue;
+    if (reserved.has(candidate.id)) continue;
     if (!job || Math.abs(candidate.x - unit.x) < Math.abs(job.x - unit.x)) job = candidate;
   }
   if (!job) { unit.vx = 0; unit.activity = 'IDLE'; unit.mood = 'Esperando una obra'; return null; }

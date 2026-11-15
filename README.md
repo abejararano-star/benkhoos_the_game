@@ -71,6 +71,8 @@ Mantén **S** frente a la Casa del Cuartel o usa **Aportar 1 real** en **B**. Lo
 
 Pulsa **G** para ver las armas y armaduras desbloqueadas. Elige a un combatiente y el rango de la pieza. El encargo requiere tres segundos de forja y se recoge en la Casa del Cuartel durante el día, cuando el camino sea seguro.
 
+Mantén **S** junto a un puesto para reponer armas y herramientas de oficio. Cada pieza aparece en el estante al completar el pago y queda disponible para los habitantes.
+
 ## Rescates · edición 12
 
 Las haciendas empiezan con tres cautivos. Ataca el portón con **Espacio** para liberarlos y protege su camino a la Matuna, donde buscarán oficio. Pasados tres minutos de juego, un nuevo destacamento puede ocupar la hacienda cuando esté fuera de vista. La primera conquista sigue contando para la campaña.

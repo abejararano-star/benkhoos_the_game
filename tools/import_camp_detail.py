@@ -220,4 +220,18 @@ def import_camp_detail(output):
                   'release': [8, 9, 10], 'lead': [3, 2, 11], 'action': [2, 3], 'hurt': [8], 'rest': [9]}
     sprites['actor_amara'] = dict(sheet=amara_sheet, ref=332,
                                  anims={name: [frames[i] for i in indices] for name, indices in animations.items()})
+    vendor_sheet = 'stall_vendors_v22'
+    if output.resolve() != source:
+        copyfile(source / (vendor_sheet + '.png'), output / (vendor_sheet + '.png'))
+    for variant, floor, poses in [
+        ('f', 434, [(159,11,308,433,229), (552,27,767,433,623),
+                    (991,16,1249,433,1071), (1437,17,1590,433,1506)]),
+        ('m', 880, [(165,457,294,879,224), (548,473,765,878,613),
+                    (982,460,1252,878,1062), (1443,466,1592,879,1508)]),
+    ]:
+        animations = {}
+        for index, (name, (left, top, right, bottom, axis)) in enumerate(zip(('idle', 'arrange', 'offer', 'payment'), poses)):
+            x, y = left - 4, top - 4
+            animations[name] = [dict(i=index, x=x, y=y, w=right-x+5, h=bottom-y+5, ax=axis-x, ay=floor-y)]
+        sprites['stall_vendor_' + variant] = dict(sheet=vendor_sheet, ref=423, anims=animations)
     return sprites

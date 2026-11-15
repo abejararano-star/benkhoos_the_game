@@ -1,21 +1,21 @@
-import { stepCrossings } from './crossings.js?v=1804341f1e90';
-import { NIGHT_START } from './daylight.js?v=1804341f1e90';
-import { recoverCoins } from './coins.js?v=1804341f1e90';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=1804341f1e90';
-import { collectEquipment } from './equipment.js?v=1804341f1e90';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=1804341f1e90';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=1804341f1e90';
-import { updateCommunity, joinEncounter } from './community.js?v=1804341f1e90';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=1804341f1e90';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=1804341f1e90';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=1804341f1e90';
-import { advanceParticle, emitEffect } from './effects.js?v=1804341f1e90';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=1804341f1e90';
-import { ensureCampaign, finaleWon } from './campaign.js?v=1804341f1e90';
-import { OUTPOSTS, expeditionFormation } from './story.js?v=1804341f1e90';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=1804341f1e90';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=1804341f1e90';
-import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=1804341f1e90';
+import { stepCrossings } from './crossings.js?v=f7cedf2900dd';
+import { NIGHT_START } from './daylight.js?v=f7cedf2900dd';
+import { recoverCoins } from './coins.js?v=f7cedf2900dd';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=f7cedf2900dd';
+import { collectEquipment } from './equipment.js?v=f7cedf2900dd';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=f7cedf2900dd';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=f7cedf2900dd';
+import { updateCommunity, joinEncounter } from './community.js?v=f7cedf2900dd';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=f7cedf2900dd';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=f7cedf2900dd';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=f7cedf2900dd';
+import { advanceParticle, emitEffect } from './effects.js?v=f7cedf2900dd';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=f7cedf2900dd';
+import { ensureCampaign, finaleWon } from './campaign.js?v=f7cedf2900dd';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=f7cedf2900dd';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=f7cedf2900dd';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=f7cedf2900dd';
+import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=f7cedf2900dd';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -309,11 +309,6 @@ return function updateSimulation(dt) {
     if (archer) sentries.set(archer.id, tower);
   }
   const reservedJobs = new Set();
-  const hammerOrder = state.settlement.projects.find(job => job.kind === 'rack' && job.targetId === 'rack_hammer');
-  const hasBuilder = state.units.some(unit => unit.role === 'CONSTRUCTOR' && unit.hp > 0 && !unit.requestedRole);
-  const substituteSmith = hammerOrder && !hasBuilder ? nearest(hammerOrder, state.units, unit => unit.hp > 0 &&
-    !unit.requestedRole && !unit.escortHome && !unit.waterFall && !mountedEscort.has(unit.id) &&
-    ['ALDEANO', 'LENADOR', 'MINERO', 'AGRICULTOR', 'CAZADOR'].includes(unit.role)) : null;
   const coveringRescue = state.story.expedition?.stage === 'return';
   const safeOutposts = coveringRescue ? OUTPOSTS.filter(post => state.story.outposts.includes(post.id) &&
     !state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - post.x) < 150)) : [];
@@ -373,11 +368,11 @@ return function updateSimulation(dt) {
       updateHUD();
     })) continue;
     if (collectEquipment(u, state, dt, personMaxHp)) continue;
-    if (u === substituteSmith || u.role === 'CONSTRUCTOR' && !u.requestedRole && state.settlement.projects.length) {
+    if (u.role === 'CONSTRUCTOR' && !u.requestedRole && state.settlement.projects.length) {
       u.leisure = null;
-      const job = workConstruction(u, state, dt, reservedJobs, u === substituteSmith ? hammerOrder : null);
+      const job = workConstruction(u, state, dt, reservedJobs);
       if (job && Math.random() < dt * 3) {
-        const effect = job.kind === 'rack' ? 'spark' : job.kind === 'wall' || job.kind === 'altar' ? 'stone' : 'wood';
+        const effect = job.kind === 'wall' || job.kind === 'altar' ? 'stone' : 'wood';
         emitEffect(state, effect, u.x + u.facing * 8, WATER_LINE_Y - 23, u.facing, .35);
       }
       continue;
@@ -628,8 +623,8 @@ return function updateSimulation(dt) {
 
   advanceConstruction(state, dt, job => {
     const sanctuary = job.kind === 'altar';
-    emitEffect(state, job.kind === 'rack' || sanctuary ? 'spark' : 'dust', job.x, WATER_LINE_Y - 20);
-    addFloatingText(job.x, WATER_LINE_Y - 65, job.kind === 'rack' ? 'Equipo forjado' : 'Obra terminada', '#d6c78e');
+    emitEffect(state, sanctuary ? 'spark' : 'dust', job.x, WATER_LINE_Y - 20);
+    addFloatingText(job.x, WATER_LINE_Y - 65, 'Obra terminada', '#d6c78e');
     audio.playSfx(sanctuary ? 'roar' : 'pickaxe');
     if (sanctuary) showBanner('NUEVO PODER DEL JAGUAR', state.skills.find(skill => skill.level === job.targetLevel).name);
     updateHUD();

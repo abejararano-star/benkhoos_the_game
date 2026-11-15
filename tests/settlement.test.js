@@ -11,21 +11,20 @@ function world() {
   return state;
 }
 
-test('an empty hammer rack can be forged by a villager without letting them build other upgrades', () => {
+test('old paid rack orders add a piece once or refund a full rack, while building work stays queued', () => {
   const state = createInitialState();
   const rack = state.toolRacks.find(tool => tool.id === 'rack_hammer');
   rack.stock = 0;
-  const villager = ensurePerson({ id: 1, role: 'ALDEANO', hp: 80, maxHp: 80, x: rack.x });
-  state.units = [villager];
-  advanceConstruction(state, 4);
-  assert.equal(rack.stock, 0);
-  const work = queueConstruction(state, 'rack', rack, null, 3);
-  const wall = state.walls[0];
-  const wallWork = queueConstruction(state, 'wall', wall, 2, 3);
-  assert.equal(workConstruction(villager, state, 1, new Set(), work), work);
-  advanceConstruction(state, 3);
-  assert.equal(rack.stock, 1);
-  assert.equal(wallWork.progress, 0);
+  queueConstruction(state, 'rack', rack, null, 3);
+  queueConstruction(state, 'wall', state.walls[0], 2, 3);
+  const loaded = restoreSave(makeSave(state, 20), createInitialState()).state;
+  assert.equal(loaded.toolRacks.find(tool => tool.id === rack.id).stock, 1);
+  assert.deepEqual(loaded.settlement.projects.map(job => job.kind), ['wall']);
+  const reopened = restoreSave(makeSave(loaded, 20), createInitialState()).state;
+  assert.equal(reopened.toolRacks.find(tool => tool.id === rack.id).stock, 1);
+  rack.stock = rack.maxStock;
+  const refunded = restoreSave(makeSave(state, 20), createInitialState()).state;
+  assert.equal(refunded.treasuryCoins, state.treasuryCoins + rack.cost);
 });
 
 function fund(state, kind, id) {

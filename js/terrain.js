@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=1804341f1e90';
-import { landscapeSeed } from './sky.js?v=1804341f1e90';
-import { CAMP_EDGE } from './config.js?v=1804341f1e90';
-import { TOWER_HEIGHT } from './settlement.js?v=1804341f1e90';
-import { CROSSINGS, deckOffset } from './crossings.js?v=1804341f1e90';
+import { blend, color, mix, smooth } from './daylight.js?v=f7cedf2900dd';
+import { landscapeSeed } from './sky.js?v=f7cedf2900dd';
+import { CAMP_EDGE } from './config.js?v=f7cedf2900dd';
+import { TOWER_HEIGHT } from './settlement.js?v=f7cedf2900dd';
+import { CROSSINGS, deckOffset } from './crossings.js?v=f7cedf2900dd';
 
 let regionCanvas;
 
@@ -293,12 +293,12 @@ export function drawConstructionSites(g, toScreen, ground, width, state) {
     g.fillStyle = job.working ? '#dbb879' : '#8a8b69';
     g.fillRect(x - 23, ground - height - 11, Math.round(46 * job.progress), 3);
     g.fillStyle = '#efdcac'; g.font = '7px monospace'; g.textAlign = 'center';
-    const label = job.working ? job.kind === 'rack' ? 'FORJANDO' : 'EN OBRA' : 'EN ESPERA';
+    const label = job.working ? 'EN OBRA' : 'EN ESPERA';
     g.fillText(label, x, ground - height - 17);
   }
 }
 
-export function drawToolStand(g,x,ground,rack,tier){
+export function drawToolStand(g, x, ground, rack, tier, time, player) {
   const width = 20 + rack.maxStock * 14;
   const left = x - Math.round(width / 2), top = ground - 49;
   const sprites = window.SpriteManager;
@@ -318,6 +318,18 @@ export function drawToolStand(g,x,ground,rack,tier){
   }
   if (sprites?.has(openStand)) {
     woodFace(g, left + 9, top + (armory ? 18 : 22), width - 18, 4, '#775039', x + 32);
+  }
+  const near = Math.abs(player.x - rack.x) < 38;
+  const phase = (time + landscapeSeed(rack.x) * 7) % 7;
+  const gesture = near && player.payTimer > 0 ? 'payment'
+    : phase < 1.5 ? near ? 'offer' : 'arrange' : 'idle';
+  const variant = ['CONSTRUCTOR', 'AGRICULTOR', 'ARQUERO', 'ESPADACHIN', 'CABALLERO_ALIADO'].includes(rack.role) ? 'f' : 'm';
+  const offset = Math.round(width * .24);
+  const facing = near && player.x > rack.x + offset ? 1 : -1;
+  const pose = sprites?.reduceMotion ? null : { tilt: gesture === 'arrange' ? Math.sin(phase * 4.2) * .035 : 0,
+    stretch: 1 + Math.sin(phase * Math.PI * 4 / 7) * .015 };
+  sprites?.draw?.(g, 'stall_vendor_' + variant, [gesture, 'idle'], x + offset, ground - 1, facing, armory ? 37 : 31, 0, 0, null, pose);
+  if (sprites?.has(openStand)) {
     woodFace(g, left + 9, ground - 12, width - 18, 4, '#987047', x + 13);
   }
   const metal = tier === 3 ? '#efd089' : tier === 2 ? '#d7e1d7' : '#b9c7bb';

@@ -265,6 +265,33 @@ test('tower levels improve the real sentry attack and keep the archer at deck he
   }
 });
 
+test('paying the last coin stocks a tool rack immediately with no builder or project', async () => {
+  await loadState(s => {
+    const rack = s.toolRacks.find(tool => tool.id === 'rack_hammer');
+    rack.stock = 0;
+    rack.filledSlots = 0;
+    s.status = 'playing';
+    s.phase = 'DAY_EXPLORE';
+    s.timeOfDay = .25;
+    s.benkos.x = rack.x;
+    s.benkos.waterFall = null;
+    s.coins = rack.cost;
+    s.units = [];
+    s.enemies = [];
+    s.droppedCoins = [];
+    s.settlement.projects = [];
+  });
+  const rack = () => inspect().state.toolRacks.find(tool => tool.id === 'rack_hammer');
+  key('KeyS'); advance(.24); key('KeyS', true);
+  assert.equal(rack().stock, 0);
+  assert.equal(rack().filledSlots, 1);
+  key('KeyS'); advance(.24); key('KeyS', true);
+  assert.equal(rack().stock, 1);
+  assert.equal(rack().filledSlots, 0);
+  assert.equal(inspect().state.coins, 0);
+  assert.deepEqual(inspect().state.settlement.projects, []);
+});
+
 test('the hanging bridge can be cut and repaired at a post and the river ends the run', async () => {
   const site = CROSSINGS[1];
   await loadState(s => {

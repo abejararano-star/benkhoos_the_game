@@ -1,21 +1,21 @@
-import { crossingFeet } from './crossings.js?v=1804341f1e90';
-import { animalInStream } from './ecology.js?v=1804341f1e90';
-import { jaguarPose } from './jaguar.js?v=1804341f1e90';
-import { torchIsLit } from './exploration.js?v=1804341f1e90';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=1804341f1e90';
-import { blend, color, daylightAt } from './daylight.js?v=1804341f1e90';
-import { drawSky } from './sky.js?v=1804341f1e90';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=1804341f1e90';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=1804341f1e90';
-import { createLighting } from './lighting.js?v=1804341f1e90';
-import { RenderInterpolation } from './visual-motion.js?v=1804341f1e90';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=1804341f1e90';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=1804341f1e90';
-import { drawParticle } from './effects.js?v=1804341f1e90';
-import { haciendaActive } from './haciendas.js?v=1804341f1e90';
-import { COLONIAL_POSTS, orderPost } from './frontier.js?v=1804341f1e90';
-import { CITIES, OUTPOSTS } from './story.js?v=1804341f1e90';
-import { WATER_LINE_Y } from './config.js?v=1804341f1e90';
+import { crossingFeet } from './crossings.js?v=f7cedf2900dd';
+import { animalInStream } from './ecology.js?v=f7cedf2900dd';
+import { jaguarPose } from './jaguar.js?v=f7cedf2900dd';
+import { torchIsLit } from './exploration.js?v=f7cedf2900dd';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=f7cedf2900dd';
+import { blend, color, daylightAt } from './daylight.js?v=f7cedf2900dd';
+import { drawSky } from './sky.js?v=f7cedf2900dd';
+import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=f7cedf2900dd';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=f7cedf2900dd';
+import { createLighting } from './lighting.js?v=f7cedf2900dd';
+import { RenderInterpolation } from './visual-motion.js?v=f7cedf2900dd';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=f7cedf2900dd';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=f7cedf2900dd';
+import { drawParticle } from './effects.js?v=f7cedf2900dd';
+import { haciendaActive } from './haciendas.js?v=f7cedf2900dd';
+import { COLONIAL_POSTS, orderPost } from './frontier.js?v=f7cedf2900dd';
+import { CITIES, OUTPOSTS } from './story.js?v=f7cedf2900dd';
+import { WATER_LINE_Y } from './config.js?v=f7cedf2900dd';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -141,7 +141,7 @@ function renderWorldAboveWater(g, time, air) {
   state.toolRacks.forEach((rk) => {
     const sx = toScreenX(rk.x);
     if (sx < -50 || sx > w + 50) return;
-    drawToolStand(g,sx,GROUND_SURFACE_Y,rk,state.armyTier);
+    drawToolStand(g, sx, GROUND_SURFACE_Y, rk, state.armyTier, wind, state.benkos);
   });
 
   window.SpriteManager?.draw?.(g,'landmark_totem',['idle'],toScreenX(-48),GROUND_SURFACE_Y,1,57,0);

@@ -1,7 +1,7 @@
-import { BALANCE } from './config.js?v=1804341f1e90';
-import { estateById, hasOutpost } from './story.js?v=1804341f1e90';
-import { strengthenPostGuard } from './frontier.js?v=1804341f1e90';
-import { nominateAmara } from './amara.js?v=1804341f1e90';
+import { BALANCE } from './config.js?v=f7cedf2900dd';
+import { estateById, hasOutpost } from './story.js?v=f7cedf2900dd';
+import { strengthenPostGuard } from './frontier.js?v=f7cedf2900dd';
+import { nominateAmara } from './amara.js?v=f7cedf2900dd';
 
 const PRISONERS = [-23, 0, 23];
 const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];
