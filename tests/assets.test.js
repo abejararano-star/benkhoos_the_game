@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROLES } from '../js/config.js';
+import { ROLES, TOOL_COSTS } from '../js/config.js';
 import { GaitClock } from '../js/visual-motion.js';
 const root=fileURLToPath(new URL('../',import.meta.url));
 
@@ -39,6 +39,7 @@ test('every role and enemy draws from the real atlas, with stable foot anchors',
   const manager=sandbox.window.SpriteManager;
   for(let i=0;i<20&&!manager.ready;i++)await Promise.resolve();
   assert.equal(manager.ready,true);
+  for (const role of Object.keys(TOOL_COSTS)) assert.ok(manager.has(`stock_item_${role}`), role);
   assert.ok(!Object.keys(atlas.sprites).some(name => /^(gait_|motion_|battle_|enemy_act_|retro_)/.test(name)));
   for (const name of ['hero','hero_royal','hero_mounted','hero_mounted_royal']) {
     const family = atlas.sprites['actor_' + name];

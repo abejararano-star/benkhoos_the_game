@@ -1,15 +1,15 @@
-import { ensureCrossings } from './crossings.js?v=f7cedf2900dd';
-import { NIGHT_START } from './daylight.js?v=f7cedf2900dd';
-import { restoreCommunity } from './community.js?v=f7cedf2900dd';
-import { ensureEcology, seedEcology } from './ecology.js?v=f7cedf2900dd';
-import { seedFrontier } from './exploration.js?v=f7cedf2900dd';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=f7cedf2900dd';
-import { ensurePerson } from './people.js?v=f7cedf2900dd';
-import { restoreAmara } from './amara.js?v=f7cedf2900dd';
-import { ensureSettlement } from './settlement.js?v=f7cedf2900dd';
-import { ensureCampaign } from './campaign.js?v=f7cedf2900dd';
-import { restoreHaciendas } from './haciendas.js?v=f7cedf2900dd';
-import { restoreStory } from './story.js?v=f7cedf2900dd';
+import { ensureCrossings } from './crossings.js?v=51123491eb40';
+import { NIGHT_START } from './daylight.js?v=51123491eb40';
+import { restoreCommunity } from './community.js?v=51123491eb40';
+import { ensureEcology, seedEcology } from './ecology.js?v=51123491eb40';
+import { seedFrontier } from './exploration.js?v=51123491eb40';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=51123491eb40';
+import { ensurePerson } from './people.js?v=51123491eb40';
+import { restoreAmara } from './amara.js?v=51123491eb40';
+import { ensureSettlement } from './settlement.js?v=51123491eb40';
+import { ensureCampaign } from './campaign.js?v=51123491eb40';
+import { restoreHaciendas } from './haciendas.js?v=51123491eb40';
+import { restoreStory } from './story.js?v=51123491eb40';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>

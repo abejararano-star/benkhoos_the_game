@@ -1,21 +1,21 @@
-import { stepCrossings } from './crossings.js?v=f7cedf2900dd';
-import { NIGHT_START } from './daylight.js?v=f7cedf2900dd';
-import { recoverCoins } from './coins.js?v=f7cedf2900dd';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=f7cedf2900dd';
-import { collectEquipment } from './equipment.js?v=f7cedf2900dd';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=f7cedf2900dd';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=f7cedf2900dd';
-import { updateCommunity, joinEncounter } from './community.js?v=f7cedf2900dd';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=f7cedf2900dd';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=f7cedf2900dd';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=f7cedf2900dd';
-import { advanceParticle, emitEffect } from './effects.js?v=f7cedf2900dd';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=f7cedf2900dd';
-import { ensureCampaign, finaleWon } from './campaign.js?v=f7cedf2900dd';
-import { OUTPOSTS, expeditionFormation } from './story.js?v=f7cedf2900dd';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=f7cedf2900dd';
-import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=f7cedf2900dd';
-import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=f7cedf2900dd';
+import { stepCrossings } from './crossings.js?v=51123491eb40';
+import { NIGHT_START } from './daylight.js?v=51123491eb40';
+import { recoverCoins } from './coins.js?v=51123491eb40';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=51123491eb40';
+import { collectEquipment } from './equipment.js?v=51123491eb40';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=51123491eb40';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=51123491eb40';
+import { updateCommunity, joinEncounter } from './community.js?v=51123491eb40';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=51123491eb40';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=51123491eb40';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=51123491eb40';
+import { advanceParticle, emitEffect } from './effects.js?v=51123491eb40';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=51123491eb40';
+import { ensureCampaign, finaleWon } from './campaign.js?v=51123491eb40';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=51123491eb40';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=51123491eb40';
+import { nearest, chooseToolRack, chooseWorksite, defensePostX } from './ai.js?v=51123491eb40';
+import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=51123491eb40';
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
 saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,

@@ -6,6 +6,17 @@ from shutil import copyfile
 def import_camp_detail(output):
     source = Path(__file__).resolve().parents[1] / 'assets' / 'atlas'
     entries = {
+        'rack_tools_v23': {
+            'stock_item_CONSTRUCTOR': (62, 28, 314, 370, 452),
+            'stock_item_LENADOR': (476, 23, 317, 375, 456),
+            'stock_item_AGRICULTOR': (889, 41, 353, 356, 508),
+            'stock_item_MINERO': (36, 429, 355, 380, 511),
+            'stock_item_CAZADOR': (444, 457, 374, 340, 538),
+            'stock_item_ARQUERO': (908, 421, 319, 389, 459),
+            'stock_item_GUERRERO': (40, 836, 349, 393, 502),
+            'stock_item_ESPADACHIN': (459, 842, 321, 382, 462),
+            'stock_item_CABALLERO_ALIADO': (862, 855, 364, 368, 524),
+        },
         'open_shops_v20': {
             'stock_rack_workshop': (54, 114, 936, 508, 508),
             'stock_rack_armory': (1177, 132, 952, 492, 492),

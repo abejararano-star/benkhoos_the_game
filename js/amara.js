@@ -1,5 +1,5 @@
-import { canTendCrop } from './crops.js?v=f7cedf2900dd';
-import { speak } from './people.js?v=f7cedf2900dd';
+import { canTendCrop } from './crops.js?v=51123491eb40';
+import { speak } from './people.js?v=51123491eb40';
 
 export const AMARA_NAME = 'Amara de la Ceiba';
 const COUNCIL_X = -104;

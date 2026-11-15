@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=f7cedf2900dd';
-import { landscapeSeed } from './sky.js?v=f7cedf2900dd';
-import { CAMP_EDGE } from './config.js?v=f7cedf2900dd';
-import { TOWER_HEIGHT } from './settlement.js?v=f7cedf2900dd';
-import { CROSSINGS, deckOffset } from './crossings.js?v=f7cedf2900dd';
+import { blend, color, mix, smooth } from './daylight.js?v=51123491eb40';
+import { landscapeSeed } from './sky.js?v=51123491eb40';
+import { CAMP_EDGE } from './config.js?v=51123491eb40';
+import { TOWER_HEIGHT } from './settlement.js?v=51123491eb40';
+import { CROSSINGS, deckOffset } from './crossings.js?v=51123491eb40';
 
 let regionCanvas;
 
@@ -299,7 +299,8 @@ export function drawConstructionSites(g, toScreen, ground, width, state) {
 }
 
 export function drawToolStand(g, x, ground, rack, tier, time, player) {
-  const width = 20 + rack.maxStock * 14;
+  const slotWidth = 17;
+  const width = 20 + rack.maxStock * slotWidth;
   const left = x - Math.round(width / 2), top = ground - 49;
   const sprites = window.SpriteManager;
   const armory = ['ARQUERO', 'GUERRERO', 'ESPADACHIN', 'CAZADOR', 'CABALLERO_ALIADO'].includes(rack.role);
@@ -334,37 +335,13 @@ export function drawToolStand(g, x, ground, rack, tier, time, player) {
   }
   const metal = tier === 3 ? '#efd089' : tier === 2 ? '#d7e1d7' : '#b9c7bb';
   for (let slot = 0; slot < rack.maxStock; slot++) {
-    const tx = left + 17 + slot * 14;
-    g.fillStyle = '#bc9967'; g.fillRect(tx, top + (armory ? 18 : 22), 2, 3);
+    const peg = left + 19 + slot * slotWidth;
+    g.fillStyle = '#bc9967';
+    g.fillRect(peg, top + (armory ? 18 : 22), 2, 3);
     if (slot >= rack.stock) continue;
-    const y = top + (armory ? 19 : 22);
-    g.fillStyle = '#221c19a0';
-    g.fillRect(tx + 1, y + 3, 3, 24);
-    if (rack.role === 'CABALLERO_ALIADO') {
-      g.fillStyle = '#38251f'; g.fillRect(tx - 6, y + 4, 13, 13);
-      g.fillStyle = '#a87346'; g.fillRect(tx - 5, y + 2, 11, 6);
-      g.fillStyle = '#d1a16b'; g.fillRect(tx - 3, y + 1, 7, 2);
-      g.fillStyle = '#c5b691'; g.fillRect(tx + 3, y + 11, 3, 5);
-    } else if (rack.role === 'ARQUERO') {
-      g.strokeStyle = '#d4a76b'; g.lineWidth = 2; g.beginPath(); g.moveTo(tx - 3, y);
-      g.quadraticCurveTo(tx + 13, y + 12, tx - 3, y + 25); g.stroke();
-      g.fillStyle = '#e1c6a0'; g.fillRect(tx - 3, y + 2, 1, 22);
-    } else {
-      const sword = rack.role === 'ESPADACHIN';
-      g.fillStyle = '#8f5f3e'; g.fillRect(tx, y + (sword ? 17 : 4), 3, sword ? 9 : 21);
-      g.fillStyle = '#d0a16e'; g.fillRect(tx, y + (sword ? 17 : 4), 1, sword ? 9 : 21);
+    if (!sprites?.draw?.(g, `stock_item_${rack.role}`, ['idle'], peg + 1, ground - 8, 1, 23, 0)) {
       g.fillStyle = metal;
-      if (sword) {
-        g.fillRect(tx + 1, y, 2, 16); g.fillRect(tx, y + 4, 2, 13);
-        g.fillStyle = '#a9874c'; g.fillRect(tx - 3, y + 17, 9, 3);
-        g.fillStyle = '#f5d48f'; g.fillRect(tx - 2, y + 17, 7, 1);
-      }
-      else if (rack.role === 'GUERRERO' || rack.role === 'CAZADOR') {
-        g.fillRect(tx - 1, y, 4, 8); g.fillRect(tx, y - 3, 2, 4);
-      } else if (rack.role === 'LENADOR') { g.fillRect(tx - 5, y + 1, 8, 5); g.fillRect(tx - 5, y + 5, 5, 4); }
-      else if (rack.role === 'CONSTRUCTOR') { g.fillRect(tx - 4, y + 1, 9, 4); g.fillRect(tx - 5, y + 3, 3, 4); }
-      else if (rack.role === 'MINERO') { g.fillRect(tx - 5, y + 1, 12, 2); g.fillRect(tx + 5, y + 3, 2, 3); }
-      else { g.fillRect(tx - 5, y + 1, 8, 2); g.fillRect(tx - 5, y + 3, 2, 5); }
+      g.fillRect(peg - 1, ground - 24, 4, 13);
     }
   }
   g.fillStyle = tier > 1 ? metal : '#806549';
