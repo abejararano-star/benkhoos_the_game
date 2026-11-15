@@ -1,7 +1,7 @@
-import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=65095ee4846d';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=65095ee4846d';
-import { ensureTraits, griefEffect } from './daily-life.js?v=65095ee4846d';
-import { addWound, healerAtCamp, recoverHealth } from './care.js?v=65095ee4846d';
+import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=763cc8e52309';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=763cc8e52309';
+import { ensureTraits, griefEffect } from './daily-life.js?v=763cc8e52309';
+import { addWound, healerAtCamp, recoverHealth } from './care.js?v=763cc8e52309';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón', CURANDERO:'Curandero', BRUJO:'Brujo' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
@@ -137,11 +137,16 @@ export function completeProfession(unit,rack,state){
 }
 
 // Returns true when safety, rest or retraining takes priority over normal work.
-export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false){
+export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false,enemies=state.enemies){
   ensurePerson(unit);
   unit.speechTimer=Math.max(0,unit.speechTimer-dt);unit.speechCooldown=Math.max(0,unit.speechCooldown-dt);
-  const enemy=state.enemies.filter(e=>e.hp>0&&!e.waterFall&&!(e.appearTimer>0)).sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x))[0];
-  const distance=enemy?Math.abs(enemy.x-unit.x):Infinity;
+  let enemy = null, distance = Infinity;
+  for (const candidate of enemies) {
+    const gap = Math.abs(candidate.x - unit.x);
+    if (gap >= distance || candidate.hp <= 0 || candidate.waterFall || candidate.appearTimer > 0) continue;
+    enemy = candidate;
+    distance = gap;
+  }
   const military=MILITARY.includes(unit.role), ranged=['ARQUERO','CAZADOR'].includes(unit.role);
   unit.fear=clamp(unit.fear+dt*(distance<140?Math.max(2, (unit.temperament==='BRAVE'?5:13)-(unit.traits.courage-3)*2):-9),0,100);
   if(unit.hurtTimer>0){

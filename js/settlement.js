@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=65095ee4846d';
-import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=65095ee4846d';
+import { ALTAR_X } from './exploration.js?v=763cc8e52309';
+import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=763cc8e52309';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -139,8 +139,12 @@ export function requestBuilding(state, kind, id) {
   const info = upgradeInfo(state, kind, id);
   if (info.reason) return { success: false, message: info.reason };
   if (state.coins < 1) return { success: false, message: 'Necesitas un real en la bolsa.' };
-  const paid = info.paid + 1;
   state.coins--;
+  return applyBuildingPayment(state, kind, info, 1);
+}
+
+export function applyBuildingPayment(state, kind, info, amount) {
+  const paid = info.paid + amount;
   if (paid < info.coins) {
     state.settlement.deposits[info.target.id] = paid;
     return { success: true, paid, message: `${paid} de ${info.coins} reales aportados.` };

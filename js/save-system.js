@@ -1,15 +1,16 @@
-import { ensureCrossings } from './crossings.js?v=65095ee4846d';
-import { NIGHT_START } from './daylight.js?v=65095ee4846d';
-import { restoreCommunity } from './community.js?v=65095ee4846d';
-import { ensureEcology, seedEcology } from './ecology.js?v=65095ee4846d';
-import { seedFrontier } from './exploration.js?v=65095ee4846d';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=65095ee4846d';
-import { ensurePerson } from './people.js?v=65095ee4846d';
-import { restoreAmara } from './amara.js?v=65095ee4846d';
-import { ensureSettlement } from './settlement.js?v=65095ee4846d';
-import { ensureCampaign } from './campaign.js?v=65095ee4846d';
-import { restoreHaciendas } from './haciendas.js?v=65095ee4846d';
-import { restoreStory } from './story.js?v=65095ee4846d';
+import { ensureCrossings } from './crossings.js?v=763cc8e52309';
+import { NIGHT_START } from './daylight.js?v=763cc8e52309';
+import { restoreCommunity } from './community.js?v=763cc8e52309';
+import { ensureEcology, seedEcology } from './ecology.js?v=763cc8e52309';
+import { seedFrontier } from './exploration.js?v=763cc8e52309';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=763cc8e52309';
+import { ensurePerson } from './people.js?v=763cc8e52309';
+import { restoreAmara } from './amara.js?v=763cc8e52309';
+import { ensureSettlement } from './settlement.js?v=763cc8e52309';
+import { ensureCampaign } from './campaign.js?v=763cc8e52309';
+import { restoreHaciendas } from './haciendas.js?v=763cc8e52309';
+import { restoreColonialTowers } from './colonial-ai.js?v=763cc8e52309';
+import { restoreStory } from './story.js?v=763cc8e52309';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -164,6 +165,7 @@ export function restoreSave(save, defaults) {
   next.ecology = clone(next.ecology);
   ensureEcology(next);
   const campaign = ensureCampaign(next);
+  restoreColonialTowers(next);
   restoreStory(next, !save.snapshot?.state?.story);
   restoreHaciendas(next);
   if (!Array.isArray(campaign.orders) || !Array.isArray(campaign.letters) || campaign.orders.some(o => !ENEMY_CATALOG[o.type] || !Number.isFinite(o.eta) || ![-1,1].includes(o.side))) throw new Error('La ruta de campaña está dañada.');

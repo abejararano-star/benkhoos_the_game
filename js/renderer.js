@@ -1,22 +1,23 @@
-import { crossingFeet } from './crossings.js?v=65095ee4846d';
-import { animalInStream } from './ecology.js?v=65095ee4846d';
-import { jaguarPose } from './jaguar.js?v=65095ee4846d';
-import { torchIsLit } from './exploration.js?v=65095ee4846d';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=65095ee4846d';
-import { blend, color, daylightAt } from './daylight.js?v=65095ee4846d';
-import { drawSky } from './sky.js?v=65095ee4846d';
-import { drawCampEnclosure, drawWatchtower } from './terrain.js?v=65095ee4846d';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=65095ee4846d';
-import { createLighting } from './lighting.js?v=65095ee4846d';
-import { RenderInterpolation } from './visual-motion.js?v=65095ee4846d';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=65095ee4846d';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=65095ee4846d';
-import { drawParticle } from './effects.js?v=65095ee4846d';
-import { haciendaActive } from './haciendas.js?v=65095ee4846d';
-import { COLONIAL_POSTS, orderPost } from './frontier.js?v=65095ee4846d';
-import { CITIES, OUTPOSTS } from './story.js?v=65095ee4846d';
-import { WATER_LINE_Y } from './config.js?v=65095ee4846d';
-import { roleAvailable } from './people.js?v=65095ee4846d';
+import { crossingFeet } from './crossings.js?v=763cc8e52309';
+import { animalInStream } from './ecology.js?v=763cc8e52309';
+import { jaguarPose } from './jaguar.js?v=763cc8e52309';
+import { torchIsLit } from './exploration.js?v=763cc8e52309';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=763cc8e52309';
+import { blend, color, daylightAt } from './daylight.js?v=763cc8e52309';
+import { drawSky } from './sky.js?v=763cc8e52309';
+import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=763cc8e52309';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=763cc8e52309';
+import { createLighting } from './lighting.js?v=763cc8e52309';
+import { RenderInterpolation } from './visual-motion.js?v=763cc8e52309';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=763cc8e52309';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=763cc8e52309';
+import { drawParticle } from './effects.js?v=763cc8e52309';
+import { haciendaActive } from './haciendas.js?v=763cc8e52309';
+import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=763cc8e52309';
+import { COLONIAL_TOWERS } from './colonial-ai.js?v=763cc8e52309';
+import { CITIES, OUTPOSTS } from './story.js?v=763cc8e52309';
+import { WATER_LINE_Y } from './config.js?v=763cc8e52309';
+import { roleAvailable } from './people.js?v=763cc8e52309';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -130,7 +131,12 @@ function renderWorldAboveWater(g, time, air) {
 
   state.haciendas.forEach((hac) => {
     const sx = toScreenX(hac.x);
-    if (sx < -150 || sx > w + 150) return;
+    if (sx < -245 || sx > w + 245) return;
+    if (CITIES.some(city => city.id === hac.id)) {
+      for (const offset of [-183, -103, 104, 182]) {
+        sprites?.draw?.(g, 'enclosure_battlements', ['idle'], sx + offset, GROUND_SURFACE_Y, hac.side, 36, 0);
+      }
+    }
     drawHacienda(g, sx, GROUND_SURFACE_Y, !haciendaActive(hac), hac.major);
   });
 
@@ -237,6 +243,10 @@ function renderWorldAboveWater(g, time, air) {
     const incoming = state.campaign.orders.some(order => orderPost(state.campaign, order, state.day).id === gate.id);
     drawRoadGate(g, x, GROUND_SURFACE_Y, gate.side, incoming, gate.grade);
   }
+  for (const tower of COLONIAL_TOWERS) {
+    const x = toScreenX(tower.x);
+    if (x > -90 && x < w + 90) drawColonialTower(g, x, GROUND_SURFACE_Y, tower, towerHealth(state, tower));
+  }
   state.units.forEach((u) => {
     const sx = toScreenX(position(u));
     if (sx < -50 || sx > w + 50) return;
@@ -277,7 +287,7 @@ function renderWorldAboveWater(g, time, air) {
     if (sx < -70 || sx > w + 70) return;
     g.save();
     if(en.appearTimer>0)g.globalAlpha=Math.max(0,Math.min(1,1-en.appearTimer/1.2));
-    const feet = GROUND_SURFACE_Y + crossingFeet(state, en, position(en));
+    const feet = GROUND_SURFACE_Y - (en.towerHeight ?? 0) + crossingFeet(state, en, position(en));
     drawBody(en, sx, feet, y => window.SpriteManager?.drawEnemy?.(g, sx, y, en.facing, en, time));
     g.restore();
     if (!en.waterFall) drawMarker(g, sx, feet, en, true);

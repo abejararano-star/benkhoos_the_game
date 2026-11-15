@@ -1,10 +1,12 @@
-import { canTendCrop } from './crops.js?v=65095ee4846d';
-import { speak } from './people.js?v=65095ee4846d';
+import { canTendCrop } from './crops.js?v=763cc8e52309';
+import { speak } from './people.js?v=763cc8e52309';
+import { readBudget } from './amara-orders.js?v=763cc8e52309';
 
 export const AMARA_NAME = 'Amara de la Ceiba';
 const COUNCIL_X = -104;
 const BONDS = ['new', 'friends', 'courtship', 'partners'];
-export const initialAmara = () => ({ id: null, bond: 'new', leads: false, duty: 'crops', proposalDay: 0 });
+export const initialAmara = () => ({ id: null, bond: 'new', leads: false, duty: 'crops', proposalDay: 0,
+  budget: 0, managing: false, lastExpense: '', order: null });
 
 export function restoreAmara(state) {
   const saved = state.amara;
@@ -13,7 +15,11 @@ export function restoreAmara(state) {
     bond: BONDS.includes(saved?.bond) ? saved.bond : 'new',
     leads: saved?.leads === true,
     duty: saved?.duty === 'works' ? 'works' : 'crops',
-    proposalDay: Number.isSafeInteger(saved?.proposalDay) ? Math.max(0, saved.proposalDay) : 0
+    proposalDay: Number.isSafeInteger(saved?.proposalDay) ? Math.max(0, saved.proposalDay) : 0,
+    budget: readBudget(saved?.budget),
+    managing: saved?.managing === true,
+    lastExpense: typeof saved?.lastExpense === 'string' ? saved.lastExpense.slice(0, 160) : '',
+    order: null
   };
   for (const unit of state.units) {
     if (unit.id === state.amara.id) markAmara(unit);

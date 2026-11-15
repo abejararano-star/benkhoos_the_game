@@ -1,11 +1,11 @@
-import { ensureCrossings } from './crossings.js?v=65095ee4846d';
-import { initialCommunity } from './community.js?v=65095ee4846d';
-import { initialStory, majorHaciendas } from './story.js?v=65095ee4846d';
-import { initialEcology } from './ecology.js?v=65095ee4846d';
-import { initialExploration } from './exploration.js?v=65095ee4846d';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=65095ee4846d';
-import { initialSettlement } from './settlement.js?v=65095ee4846d';
-import { initialAmara } from './amara.js?v=65095ee4846d';
+import { ensureCrossings } from './crossings.js?v=763cc8e52309';
+import { initialCommunity } from './community.js?v=763cc8e52309';
+import { initialStory, majorHaciendas } from './story.js?v=763cc8e52309';
+import { initialEcology } from './ecology.js?v=763cc8e52309';
+import { initialExploration } from './exploration.js?v=763cc8e52309';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=763cc8e52309';
+import { initialSettlement } from './settlement.js?v=763cc8e52309';
+import { initialAmara } from './amara.js?v=763cc8e52309';
 export function createInitialState() {
 const state = {
   status: "playing",

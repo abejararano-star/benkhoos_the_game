@@ -358,6 +358,46 @@ test('care stalls accept coins before Elite and staff restore recovery after wou
   assert.ok(inspect().state.benkos.spirit > 33);
 });
 
+test('Amara spends only the delegated reais, hires ordinary work and respects player decisions', async () => {
+  await loadState(s => {
+    Object.assign(s, { status: 'playing', phase: 'DAY_EXPLORE', timeOfDay: .25, hitStopTimer: 0, armyTier: 1,
+      enemies: [], wildlife: [], projectiles: [], droppedCoins: [], coins: 12, treasuryCoins: 12 });
+    s.campaign.orders = [];
+    s.benkos.x = 150;
+    s.story.expedition = null;
+    s.story.finale = '';
+    s.settlement.level = 1;
+    s.settlement.projects = [];
+    s.settlement.deposits = {};
+    const make = (id, role, x) => ensurePerson({ id, role, x, hp: 80, maxHp: 80, y: 268, tier: 1, vx: 0 });
+    const leader = make(601, 'ALDEANO', 150);
+    const applicant = make(602, 'LENADOR', 120);
+    applicant.requestedRole = 'CONSTRUCTOR';
+    s.units = [leader, applicant, make(603, 'CONSTRUCTOR', 0)];
+    s.amara = { ...s.amara, id: 601, leads: true, bond: 'friends', budget: 0, managing: false };
+    s.toolRacks.find(rack => rack.role === 'CONSTRUCTOR').stock = 0;
+  });
+  key('KeyF');
+  assert.equal(elements.get('amaraManagement').classList.contains('hidden'), false);
+  elements.get('amaraAmount').value = '9';
+  elements.get('btnFundAmara').click();
+  assert.equal(inspect().state.coins, 3);
+  assert.equal(inspect().state.amara.budget, 9);
+  elements.get('btnClosePeople').click();
+  key('Escape');
+  advance(7);
+  const state = inspect().state;
+  assert.equal(state.units.find(unit => unit.id === 602).role, 'CONSTRUCTOR');
+  assert.equal(state.amara.budget, 1);
+  assert.equal(state.coins, 3);
+  assert.equal(state.treasuryCoins, 12);
+  assert.equal(state.story.expedition, null);
+  assert.equal(state.story.finale, '');
+  assert.ok(state.settlement.projects.some(job => job.kind === 'hq') || state.settlement.level === 2);
+  await loadState(() => {});
+  assert.equal(inspect().state.amara.budget, 1);
+});
+
 test('the hanging bridge can be cut and repaired at a post and the river ends the run', async () => {
   const site = CROSSINGS[1];
   await loadState(s => {

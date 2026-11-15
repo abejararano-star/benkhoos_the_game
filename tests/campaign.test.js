@@ -7,6 +7,7 @@ import { conquerHacienda, gateRequirement, updateHaciendas } from '../js/haciend
 import { ensurePerson } from '../js/people.js';
 import { makeSave, restoreSave } from '../js/save-system.js';
 import { advanceGarrisons, COLONIAL_POSTS, departurePost } from '../js/frontier.js';
+import { COLONIAL_TOWERS, damageColonialTower, enemyTower } from '../js/colonial-ai.js';
 import { ENEMY_CATALOG } from '../js/config.js';
 function harness(){const s=createInitialState(),arrivals=[],banners=[];let id=1,treaties=0;
   const campaign=createCampaign({state:s,nextId:()=>id++,spawnEnemy:(type,side,x)=>{const enemy={type,side,x};arrivals.push(enemy);return enemy;},showBanner:(...v)=>banners.push(v),onTreaty:()=>treaties++});
@@ -155,4 +156,49 @@ test('colonial posts scale by region and replace defeated guards only after the 
   state.benkos.x = city.x;
   advanceGarrisons(state, 1, spawn);
   assert.ok(state.enemies.some(enemy => enemy.guardSite === city.id && enemy.appearTimer > 0));
+});
+
+test('a city holds its gate with two firing positions and one reserve, including after reload', () => {
+  const state = createInitialState();
+  const city = CITIES[0];
+  state.story.plan = 'guides';
+  state.story.completed = ESTATES.map(site => site.id);
+  assert.equal(beginExpedition(state, city.id), true);
+  state.benkos.x = city.x;
+  let id = 40;
+  const spawn = (type, side, x) => {
+    const cfg = ENEMY_CATALOG[type];
+    const enemy = { ...cfg, id: id++, type, x, maxHp: cfg.hp, side };
+    state.enemies.push(enemy);
+    return enemy;
+  };
+  const captive = (x, sex) => {
+    const unit = ensurePerson({ id: id++, role: 'FUGITIVO', x, sex, hp: 80, maxHp: 80 });
+    state.units.push(unit);
+    return unit;
+  };
+  updateHaciendas(state, captive, 440, spawn, 1);
+  const garrison = state.enemies.filter(enemy => enemy.guardSite === city.id);
+  assert.equal(garrison.length, city.roster.length);
+  const sentry = garrison.find(enemy => enemy.towerId);
+  assert.equal(garrison.filter(enemy => enemyTower(state, enemy)).length, 2);
+  const tower = COLONIAL_TOWERS.find(entry => entry.id === sentry.towerId);
+  assert.ok(damageColonialTower(state, tower, tower.maxHp));
+  assert.equal(enemyTower(state, sentry), null);
+  assert.ok(sentry.hp < sentry.maxHp);
+
+  state.enemies = [];
+  const gate = state.haciendas.find(site => site.id === city.id);
+  updateHaciendas(state, captive, 440, spawn, 2);
+  assert.match(gateRequirement(state, gate), /reserva/);
+  const loaded = restoreSave(makeSave(state, id), createInitialState()).state;
+  assert.equal(loaded.campaign.towerDamage[tower.id], tower.maxHp);
+  assert.equal(loaded.haciendas.find(site => site.id === city.id).reserveETA, 6);
+
+  updateHaciendas(state, captive, 440, spawn, 6);
+  assert.equal(state.enemies.filter(enemy => enemy.guardSite === city.id).length, city.reserve.length);
+  state.enemies = [];
+  updateHaciendas(state, captive, 440, spawn, 60);
+  assert.equal(gateRequirement(state, gate), '');
+  assert.equal(state.enemies.length, 0);
 });

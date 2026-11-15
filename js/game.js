@@ -1,31 +1,32 @@
-import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=65095ee4846d';
-import { ensureCrop, needsCropCare } from './crops.js?v=65095ee4846d';
-import { NIGHT_START } from './daylight.js?v=65095ee4846d';
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=65095ee4846d';
-import { GROUND_COIN_LIFE } from './coins.js?v=65095ee4846d';
-import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=65095ee4846d';
-import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=65095ee4846d';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=65095ee4846d';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=65095ee4846d';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus } from './settlement.js?v=65095ee4846d';
-import { emitEffect } from './effects.js?v=65095ee4846d';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=65095ee4846d';
-import { AfroColombianAudioEngine } from './audio.js?v=65095ee4846d';
-import { createInitialState } from './world-state.js?v=65095ee4846d';
-import { makeSave, restoreSave } from './save-system.js?v=65095ee4846d';
-import { createRenderer } from './renderer.js?v=65095ee4846d';
-import { createSimulation } from './simulation.js?v=65095ee4846d';
-import { FixedStepper } from './clock.js?v=65095ee4846d';
-import { bindInput } from './input.js?v=65095ee4846d';
-import { createUI } from './ui.js?v=65095ee4846d';
-import { chooseDefenseSide } from './ai.js?v=65095ee4846d';
-import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=65095ee4846d';
-import { addWound } from './care.js?v=65095ee4846d';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=65095ee4846d';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=65095ee4846d';
-import { mediateEncounter } from './community.js?v=65095ee4846d';
-import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, establishOutpost, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=65095ee4846d';
-import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=65095ee4846d';
+import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=763cc8e52309';
+import { ensureCrop, needsCropCare } from './crops.js?v=763cc8e52309';
+import { NIGHT_START } from './daylight.js?v=763cc8e52309';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=763cc8e52309';
+import { GROUND_COIN_LIFE } from './coins.js?v=763cc8e52309';
+import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=763cc8e52309';
+import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=763cc8e52309';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=763cc8e52309';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=763cc8e52309';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus } from './settlement.js?v=763cc8e52309';
+import { emitEffect } from './effects.js?v=763cc8e52309';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=763cc8e52309';
+import { AfroColombianAudioEngine } from './audio.js?v=763cc8e52309';
+import { createInitialState } from './world-state.js?v=763cc8e52309';
+import { makeSave, restoreSave } from './save-system.js?v=763cc8e52309';
+import { createRenderer } from './renderer.js?v=763cc8e52309';
+import { createSimulation } from './simulation.js?v=763cc8e52309';
+import { FixedStepper } from './clock.js?v=763cc8e52309';
+import { bindInput } from './input.js?v=763cc8e52309';
+import { createUI } from './ui.js?v=763cc8e52309';
+import { chooseDefenseSide } from './ai.js?v=763cc8e52309';
+import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=763cc8e52309';
+import { addWound } from './care.js?v=763cc8e52309';
+import { COLONIAL_TOWERS, damageColonialTower } from './colonial-ai.js?v=763cc8e52309';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=763cc8e52309';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=763cc8e52309';
+import { mediateEncounter } from './community.js?v=763cc8e52309';
+import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, establishOutpost, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=763cc8e52309';
+import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=763cc8e52309';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -539,7 +540,7 @@ function handleInteractOrMount() {
   if (amara) {
     amara.facing = Math.sign(b.x - amara.x) || amara.facing;
     const scene = amaraConversation(state);
-    ui.openStory({ ...scene, chapter: 'La gente de la Matuna', choices: scene.choices.map(([label, choice]) => [label, () => {
+    const choices = scene.choices.map(([label, choice]) => [label, () => {
       chooseAmara(state, choice);
       if (choice === 'marry') {
         ui.openStory({ chapter: 'La gente de la Matuna', title: 'Una boda en el palenque', lines: [
@@ -549,7 +550,9 @@ function handleInteractOrMount() {
         ] });
       } else ui.resume();
       updateHUD();
-    }]) });
+    }]);
+    if (state.amara.leads) choices.push(['Administrar los reales de Amara', () => ui.openPeople(amara.id)]);
+    ui.openStory({ ...scene, chapter: 'La gente de la Matuna', choices });
     return;
   }
   const outpost = OUTPOSTS.find(post => Math.abs(post.x - b.x) < 42);
@@ -667,7 +670,7 @@ function resolveBenkosHit(){
   const baseDmg=spec.damage*(b.jaguarTimer>0?1.8:1)*(b.mounted?1.25:1)*armorMult;
   let hitAny = false;
   state.enemies.forEach((en) => {
-    if(en.hp<=0||en.appearTimer>0)return;
+    if(en.hp<=0||en.appearTimer>0||en.towerHeight||en.waterFall)return;
     if(inStrikeRange(b,en,reach,b.attackFacing)){
       {
         strikeEnemy(en,baseDmg,b.attackFacing);
@@ -688,6 +691,11 @@ function resolveBenkosHit(){
       animal.lastHunterId = null;
       animal.hp-=baseDmg;hitAny=true;addParticles(animal.x,WATER_LINE_Y-13,5,'#bd9b64',45);
     }
+  }
+  for (const tower of COLONIAL_TOWERS) {
+    if (!inStrikeRange(b, tower, reach + 9, b.attackFacing) || !damageColonialTower(state, tower, baseDmg)) continue;
+    emitEffect(state, tower.level > 1 ? 'stone' : 'wood', tower.x, WATER_LINE_Y - 23, b.attackFacing, .8);
+    hitAny = true;
   }
   state.haciendas.forEach((hac) => {
     if (haciendaActive(hac)&&inStrikeRange(b,hac,reach+25,b.attackFacing)) {
@@ -852,7 +860,8 @@ const simulation = createSimulation({ state, keys, audio, updateHUD, spawnSpanis
   showBanner, resolveBenkosHit, triggerBenkosAttack, saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
   addFloatingText, spawnPhysicalCoin, giveCoinToBenkos, spawnEnemy, hitBenkosKingdomStyle, finishCampaign, campaign, queueReinforcement,
   nextId: () => nextEntityId++, updateStory: updateStoryProgress,
-  updateCaptivity: () => updateHaciendas(state, (x, sex) => spawnCimarron('FUGITIVO', x, 1, sex), Math.max(440, view.width / 2 + 95), spawnEnemy) });
+  updateCaptivity: dt => updateHaciendas(state, (x, sex) => spawnCimarron('FUGITIVO', x, 1, sex),
+    Math.max(440, view.width / 2 + 95), spawnEnemy, dt, showBanner) });
 const stepper = new FixedStepper(BALANCE.fixedStep);
 
 function resize() {

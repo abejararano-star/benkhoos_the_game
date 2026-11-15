@@ -1,9 +1,9 @@
-import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=65095ee4846d';
-import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=65095ee4846d';
-import { haciendaActive } from './haciendas.js?v=65095ee4846d';
-import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=65095ee4846d';
-import { CROSSINGS } from './crossings.js?v=65095ee4846d';
-import { COLONIAL_POSTS } from './frontier.js?v=65095ee4846d';
+import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=763cc8e52309';
+import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=763cc8e52309';
+import { haciendaActive } from './haciendas.js?v=763cc8e52309';
+import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=763cc8e52309';
+import { CROSSINGS } from './crossings.js?v=763cc8e52309';
+import { COLONIAL_POSTS } from './frontier.js?v=763cc8e52309';
 
 export const mapX = x => 7 + 86 * Math.max(0, Math.min(1, (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X)));
 
@@ -29,7 +29,8 @@ export function mapLocations(state) {
   }
   const chapter = storyChapter(state);
   for (const post of COLONIAL_POSTS) sites.push({ ...post, name: post.label, label: ['Posta', 'Reducto', 'Guardia mayor'][post.grade - 1],
-    row: 'lower', kind: 'estate', detail: 'Avanzada colonial con guarnición propia. Las patrullas salen desde este puesto.' });
+    row: 'lower', kind: 'estate', detail: post.grade === 1 ? 'Posta de camino con una patrulla ligera.' :
+      post.grade === 2 ? 'Reducto rural con piqueros y vigía en una atalaya.' : 'Guardia exterior con caballería, piqueros y tiradores. Puedes derribar la torre atacando su base.' });
   for (const post of OUTPOSTS) {
     const active = state.story.outposts.includes(post.id);
     sites.push({ ...post, label: 'Avanzada', row: 'upper', kind: active ? 'secured' : 'sanctuary',
@@ -46,7 +47,8 @@ export function mapLocations(state) {
     const label = estate?.cityX ? 'Puesto de cautivos' : estate ? (h.side < 0 ? 'Jegua' : 'Boca de Marea') : h.side < 0 ? 'Hacienda oeste' : 'Hacienda este';
     const secured = state.story.completed.includes(h.id) || !haciendaActive(h);
     const detail = secured ? 'Las personas de esta hacienda ya fueron liberadas.' : h.major ?
-      'Convoca la expedición en La Matuna. Derrota a la guarnición, abre el portón y escolta a la gente de regreso.' :
+      (estate?.cityX ? 'Convoca la expedición en La Matuna. El acceso tiene dos torres y una reserva. Abre el portón y vuelve con la gente rescatada.' :
+        'Convoca la expedición en La Matuna. Derrota a la guarnición, abre el portón y escolta a la gente de regreso.') :
       'Derrota a los guardias que haya y rompe el portón con Espacio para liberar a las personas cautivas.';
     sites.push({ id: h.id, x: h.x, label, name: estate?.name ?? label, row: 'lower', kind: secured ? 'secured' : 'estate', detail });
   }

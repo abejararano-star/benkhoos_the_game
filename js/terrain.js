@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=65095ee4846d';
-import { landscapeSeed } from './sky.js?v=65095ee4846d';
-import { CAMP_EDGE } from './config.js?v=65095ee4846d';
-import { TOWER_HEIGHT } from './settlement.js?v=65095ee4846d';
-import { CROSSINGS, deckOffset } from './crossings.js?v=65095ee4846d';
+import { blend, color, mix, smooth } from './daylight.js?v=763cc8e52309';
+import { landscapeSeed } from './sky.js?v=763cc8e52309';
+import { CAMP_EDGE } from './config.js?v=763cc8e52309';
+import { TOWER_HEIGHT } from './settlement.js?v=763cc8e52309';
+import { CROSSINGS, deckOffset } from './crossings.js?v=763cc8e52309';
 
 let regionCanvas;
 
@@ -629,7 +629,6 @@ export function drawRoadGate(g,x,ground,side,active=false,grade=1){
   for (const offset of [-wing, wing]) {
     sm?.draw?.(g, grade === 3 ? 'enclosure_stone' : 'enclosure_wood', ['idle'], x + offset, ground, side, 23 + grade * 2, 0);
   }
-  if (grade > 1) drawWatchtower(g, x + side * (wing + 27), ground, { level: grade - 1 });
   if(sm?.draw?.(g,'landmark_gate',['idle'],x,ground,1,height,0)){
     if(active){g.fillStyle='#d6b877';g.fillRect(x-2,ground-height-9,4,6);g.fillRect(x-2,ground-height,4,2);}return;
   }
@@ -640,6 +639,25 @@ export function drawRoadGate(g,x,ground,side,active=false,grade=1){
   g.fillStyle=active?'#cf8460':'#8d947b';g.fillRect(x+side*29,ground-89,side*18,11);
   g.fillStyle='#ad9c70';g.fillRect(x+side*28,ground-91,2,29);
   g.fillStyle='#8f8a6a';g.font='6px monospace';g.textAlign='center';g.fillText(side<0?'A CARTAGENA':'CAMINO ORIENTAL',x,ground-75);
+}
+
+export function drawColonialTower(g, x, ground, tower, hp) {
+  if (hp <= 0) {
+    for (const [dx, dy, width, height] of [[-24, 0, 25, 8], [7, 0, 18, 9], [-12, 6, 27, 8]]) {
+      stoneFace(g, x + dx, ground - dy - height, width, height, '#6d6350', .45 + dx / 75);
+    }
+    return;
+  }
+  drawWatchtower(g, x, ground, tower);
+  const deck = ground - TOWER_HEIGHT[tower.level];
+  const flagX = x + tower.side * 15;
+  g.fillStyle = '#563d2d'; g.fillRect(flagX, deck - 31, 2, 34);
+  g.fillStyle = '#713b37'; g.fillRect(flagX + (tower.side < 0 ? -13 : 2), deck - 30, 13, 12);
+  g.fillStyle = '#c99658'; g.fillRect(flagX + (tower.side < 0 ? -12 : 3), deck - 27, 11, 2);
+  if (hp < tower.maxHp) {
+    g.fillStyle = '#2f211c'; g.fillRect(x - 13, ground - 24, 26, 4);
+    g.fillStyle = '#d19271'; g.fillRect(x - 12, ground - 23, Math.ceil(24 * hp / tower.maxHp), 2);
+  }
 }
 
 export function drawPersonStory(g,x,ground,unit,showSpeech=false){

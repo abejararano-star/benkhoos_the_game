@@ -856,6 +856,7 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 .attribute-row span,.attribute-row b { z-index:1; font-size:11px; }
 .profession-actions { display:flex; gap:10px; margin:16px 0; }
 .profession-actions button { flex:1; font-size:11px; }
+#amaraAmount { width:5rem; margin-inline-start:.5rem; padding:.3rem .4rem; background:#122720; color:#f1dfb2; border:1px solid #73684d; font:inherit; }
 #personFeedback { font-size:11px; color:var(--gold); min-height:34px; }
 .people-content fieldset label { display:grid; gap:10px; }
 .campaign-notice { position:absolute; bottom:166px; left:50%; transform:translateX(-50%); background:#10221ee6; border-left:2px solid var(--gold); padding:9px 14px; font-size:10px; color:#dac99e; max-width:560px; line-height:1.6; text-align:center; }

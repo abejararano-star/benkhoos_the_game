@@ -1,12 +1,12 @@
-import { BALANCE } from './config.js?v=65095ee4846d';
-import { estateById, hasOutpost } from './story.js?v=65095ee4846d';
-import { strengthenPostGuard } from './frontier.js?v=65095ee4846d';
-import { nominateAmara } from './amara.js?v=65095ee4846d';
+import { estateById, hasOutpost } from './story.js?v=763cc8e52309';
+import { deployGuards } from './frontier.js?v=763cc8e52309';
+import { nominateAmara } from './amara.js?v=763cc8e52309';
 
 const PRISONERS = [-23, 0, 23];
 const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];
 const REBUILD_TIME = 180;
-const campaignTime = state => (state.day - 1 + state.timeOfDay) * BALANCE.dayDuration;
+// Persisted rebuild deadlines use the original 180 units per game day.
+const campaignTime = state => (state.day - 1 + state.timeOfDay) * 180;
 export const haciendaActive = hacienda => !hacienda.destroyed || hacienda.reoccupied === true;
 
 export function restoreHaciendas(state) {
@@ -32,12 +32,12 @@ export function restoreHaciendas(state) {
   }
 }
 
-export function updateHaciendas(state, spawnCaptive, distanceFromView = 440, spawnGuard) {
+export function updateHaciendas(state, spawnCaptive, distanceFromView = 440, spawnGuard, dt = 0, announce) {
   for (const hacienda of state.haciendas) {
     if (hacienda.major && (state.story.completed.includes(hacienda.id) || state.story.expedition?.site !== hacienda.id && !hacienda.destroyed)) continue;
     if (state.story.expedition?.site === hacienda.id && state.story.expedition.stage === 'return') continue;
     const estate = estateById(hacienda.id);
-    if (estate?.cityX && Math.abs(state.benkos.x - hacienda.x) > 525 && haciendaActive(hacienda)) continue;
+    if (estate?.cityX && Math.abs(state.benkos.x - hacienda.x) > 545 && haciendaActive(hacienda)) continue;
     const offScreen = Math.min(Math.abs(state.cameraX - hacienda.x), Math.abs(state.benkos.x - hacienda.x)) > distanceFromView;
     if (!haciendaActive(hacienda) && campaignTime(state) >= hacienda.rebuildAt && offScreen) {
       hacienda.reoccupied = true;
@@ -58,25 +58,36 @@ export function updateHaciendas(state, spawnCaptive, distanceFromView = 440, spa
       hacienda.captivesPlaced = true;
     }
     nominateAmara(state, hacienda);
-    if (!spawnGuard || hacienda.garrisonPlaced) continue;
+    if (!spawnGuard) continue;
+    if (hacienda.garrisonPlaced) {
+      if (!estate?.reserve || hacienda.reservesSent) continue;
+      const survivors = state.enemies.filter(enemy => enemy.guardSite === hacienda.id && enemy.hp > 0).length;
+      if (survivors > 3 || Math.abs(state.benkos.x - hacienda.x) > 285) continue;
+      if (hacienda.reserveETA === undefined) {
+        hacienda.reserveETA = 8;
+        announce?.('TOQUE DE RELEVO', 'La guarnición de la ciudad llama a su reserva.');
+      }
+      hacienda.reserveETA = Math.max(0, hacienda.reserveETA - dt);
+      if (hacienda.reserveETA === 0) {
+        deployGuards(state, { ...estate, x: estate.x + estate.side * 190, grade: 3, towers: false }, estate.reserve, spawnGuard, .6);
+        hacienda.reservesSent = true;
+      }
+      continue;
+    }
     const roster = estate ? [...estate.roster] : hacienda.id === 'hac_east' ? ['SOLDADO_ESPANOL'] : [];
     const guided = estate?.cityX && hasOutpost(state, hacienda.side);
     if (guided) roster.pop();
     else if (estate && state.story.plan === 'assault') roster.push('SOLDADO_ESPANOL', 'PIQUERO');
-    for (const [index, type] of roster.entries()) {
-      const post = hacienda.x + hacienda.side * (-95 + index * 38);
-      const guard = spawnGuard(type, hacienda.side, post);
-      if (estate?.cityX) strengthenPostGuard(guard, estate.id === 'cartagena' ? 3 : 2);
-      guard.guardSite = hacienda.id;
-      guard.guardX = post;
-    }
+    deployGuards(state, { ...hacienda, grade: estate?.grade ?? 1 }, roster, spawnGuard, estate?.cityX ? .45 : 0);
     hacienda.garrisonPlaced = true;
   }
 }
 
 export function gateRequirement(state, site) {
   if (site.major && state.story.expedition?.site !== site.id) return 'Convoca esta expedición en la casa central con E.';
-  return state.enemies.some(enemy => enemy.guardSite === site.id && enemy.hp > 0) ? 'Derrota a la guarnición antes de abrir el portón.' : '';
+  if (state.enemies.some(enemy => enemy.guardSite === site.id && enemy.hp > 0)) return 'Derrota a la guarnición antes de abrir el portón.';
+  if (site.reserveETA > 0 && !site.reservesSent) return `La reserva está llegando · ${Math.ceil(site.reserveETA)} s.`;
+  return '';
 }
 
 function releaseCaptive(state, unit) {

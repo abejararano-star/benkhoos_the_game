@@ -1,6 +1,6 @@
-import { CAMP_EDGE } from './config.js?v=65095ee4846d';
-import { INFANTRY } from './equipment.js?v=65095ee4846d';
-import { COLONIAL_POSTS } from './frontier.js?v=65095ee4846d';
+import { CAMP_EDGE } from './config.js?v=763cc8e52309';
+import { INFANTRY } from './equipment.js?v=763cc8e52309';
+import { COLONIAL_POSTS } from './frontier.js?v=763cc8e52309';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,
@@ -9,14 +9,16 @@ export const ESTATES = [
     roster: ['PIQUERO', 'SOLDADO_ESPANOL', 'ARQUERO_COLONIAL', 'ARCABUCERO'] }
 ];
 export const CITIES = [
-  { id: 'cartagena', name: 'Cartagena de Indias', x: -10420, cityX: -11220, side: -1, maxHp: 650, prisoners: 6,
+  { id: 'cartagena', name: 'Cartagena de Indias', x: -10420, cityX: -11220, side: -1, grade: 5, maxHp: 775, prisoners: 6,
     sprite: 'city_cartagena', gateOffset: 26, envoy: 'Escribano de Cartagena',
     context: 'Las carretas de las haciendas pasan por aquí. El gobernador Girón ordenó retener a quienes venían del camino de Jegua.',
-    roster: ['PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'CABALLERO'] },
-  { id: 'puerto_marea', name: 'Puerto de la Marea', x: 10280, cityX: 11090, side: 1, maxHp: 600, prisoners: 6,
+    roster: ['PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'ARQUERO_COLONIAL', 'PIQUERO', 'CABALLERO', 'SOLDADO_ESPANOL', 'ARCABUCERO'],
+    reserve: ['PIQUERO', 'ARQUERO_COLONIAL', 'CABALLERO'] },
+  { id: 'puerto_marea', name: 'Puerto de la Marea', x: 10280, cityX: 11090, side: 1, grade: 4, maxHp: 700, prisoners: 6,
     sprite: 'city_marea', gateOffset: 9, envoy: 'Portera del cabildo',
     context: 'El gobernador del puerto cerró el paso por el estero. Desde entonces, las familias cautivas esperan en el patio exterior.',
-    roster: ['ARQUERO_COLONIAL', 'PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL'] }
+    roster: ['ARQUERO_COLONIAL', 'PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'BANDOLERO', 'PIQUERO', 'CABALLERO'],
+    reserve: ['SOLDADO_ESPANOL', 'ARQUERO_COLONIAL'] }
 ];
 export const OUTPOSTS = [
   { id: 'avanzada_jegua', name: 'Avanzada de la Loma', x: -7960, side: -1 },
@@ -49,15 +51,20 @@ export function restoreStory(state, legacy) {
   if (story.plan && mission && estateById(mission.site) && !story.completed.includes(mission.site) &&
       ['march', 'assault', 'return'].includes(mission.stage) && Array.isArray(mission.party) && Array.isArray(mission.rescued)) {
     story.expedition = { site: mission.site, stage: mission.stage,
-      party: [...new Set(mission.party.filter(id => Number.isSafeInteger(id)))].slice(0, 3),
+      party: [...new Set(mission.party.filter(id => Number.isSafeInteger(id)))].slice(0, estateById(mission.site).cityX ? 4 : 3),
       rescued: [...new Set(mission.rescued.filter(id => Number.isSafeInteger(id)))].slice(0, 6) };
   }
   state.story = story;
   for (const site of majorHaciendas()) {
     const saved = state.haciendas.find(h => h.id === site.id);
     if (!saved) state.haciendas.push(site);
-    else if (saved.x !== site.x && CITIES.some(city => city.id === site.id)) {
+    else if (CITIES.some(city => city.id === site.id)) {
+      if (saved.maxHp > 0 && saved.maxHp < site.maxHp && Number.isFinite(saved.hp)) {
+        saved.hp = Math.max(0, Math.round(saved.hp * site.maxHp / saved.maxHp));
+        saved.maxHp = site.maxHp;
+      }
       const offset = site.x - saved.x;
+      if (!offset) continue;
       saved.x = site.x;
       for (const unit of state.units) if (unit.captiveHacienda === site.id) unit.x += offset;
       for (const guard of state.enemies) if (guard.guardSite === site.id && Number.isFinite(guard.guardX)) {
@@ -119,8 +126,13 @@ export function beginExpedition(state, id) {
   if (storyChapter(state) < 2 || !state.story.plan || state.story.finale || state.story.expedition || state.story.completed.includes(id) || !estateById(id)) return false;
   const site = state.haciendas.find(h => h.id === id);
   if (!site || site.destroyed && !site.reoccupied) return false;
-  const available = state.units.filter(u => COMPANIONS.includes(u.role) && u.hp >= u.maxHp * .55 && !u.requestedRole && !u.kitOrder && Math.abs(u.x) < CAMP_EDGE + 300);
-  const party = available.sort((a, b) => (b.role === 'ARQUERO') - (a.role === 'ARQUERO') || b.hp / b.maxHp - a.hp / a.maxHp).slice(0, 3).map(u => u.id);
+  const city = !!estateById(id).cityX;
+  const available = state.units.filter(u => COMPANIONS.includes(u.role) && u.hp >= u.maxHp * .55 && !u.waterFall &&
+    !(u.wound > 0) && !u.requestedRole && !u.kitOrder && Math.abs(u.x) < CAMP_EDGE + 300);
+  available.sort((a, b) => b.hp / b.maxHp - a.hp / a.maxHp || a.id - b.id);
+  const ranged = available.find(u => u.role === 'ARQUERO');
+  const melee = available.find(u => !['ARQUERO', 'CAZADOR'].includes(u.role));
+  const party = [...new Set([ranged, melee, ...available].filter(Boolean))].slice(0, city ? 4 : 3).map(u => u.id);
   state.story.expedition = { site: id, stage: 'march', party, rescued: [] };
   return true;
 }

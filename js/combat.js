@@ -41,6 +41,8 @@ export function strikeEnemy(enemy,damage,direction=1){
   enemy.hp-=damage;enemy.hurtTimer=enemy.isBoss?.16:.24;
   enemy.stunTimer=Math.max(enemy.stunTimer??0,enemy.isBoss?.05:.14);
   enemy.vx=direction*(enemy.isBoss?30:75);enemy.windupTimer=0;enemy.attackReady=false;
+  delete enemy.aimId;
+  delete enemy.aimFacing;
   enemy.attackCooldown=Math.max(enemy.attackCooldown??0,enemy.isBoss?.2:.35);return true;
 }
 
@@ -79,7 +81,7 @@ export function advanceAllyAction(unit,state,dt,onHit){
     if(strike.eta<=0){
       unit.pendingStrike=null;
       const target = (strike.wildlife ? state.wildlife : state.enemies).find(actor => actor.id === strike.targetId);
-      if (target && inStrikeRange(unit, target, strike.reach, strike.facing)) {
+      if (target && !target.towerHeight && !target.waterFall && inStrikeRange(unit, target, strike.reach, strike.facing)) {
         const hit = strike.wildlife ? threatensMilitia(target) && strikeWildlife(target, strike.damage) :
           strikeEnemy(target, strike.damage, strike.facing);
         if (hit) onHit?.(target, strike.damage);

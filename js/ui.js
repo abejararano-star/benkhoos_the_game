@@ -1,19 +1,20 @@
-import { needsCropCare } from './crops.js?v=65095ee4846d';
-import { AMARA_NAME, amaraNearby } from './amara.js?v=65095ee4846d';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=65095ee4846d';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=65095ee4846d';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=65095ee4846d';
-import { describeTraits } from './daily-life.js?v=65095ee4846d';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=65095ee4846d';
-import { canMediate, relationshipsFor } from './community.js?v=65095ee4846d';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=65095ee4846d';
-import { ecologyHint } from './ecology.js?v=65095ee4846d';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=65095ee4846d';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=65095ee4846d';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=65095ee4846d';
-import { arrivalHint } from './campaign.js?v=65095ee4846d';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=65095ee4846d';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=65095ee4846d';
+import { needsCropCare } from './crops.js?v=763cc8e52309';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=763cc8e52309';
+import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=763cc8e52309';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=763cc8e52309';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=763cc8e52309';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=763cc8e52309';
+import { describeTraits } from './daily-life.js?v=763cc8e52309';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=763cc8e52309';
+import { canMediate, relationshipsFor } from './community.js?v=763cc8e52309';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=763cc8e52309';
+import { ecologyHint } from './ecology.js?v=763cc8e52309';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=763cc8e52309';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=763cc8e52309';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=763cc8e52309';
+import { arrivalHint } from './campaign.js?v=763cc8e52309';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=763cc8e52309';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=763cc8e52309';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -534,7 +535,7 @@ export function createUI({ state, session, settings, actions }) {
     ensurePerson(u);
     const title = u.namedAmara && state.amara.leads ? 'Lideresa de la Matuna' : ROLE_NAMES[u.role];
     const partner = u.namedAmara && state.amara.bond === 'partners' ? ' · Esposa de Benkos' : '';
-    text('personName',u.name);text('personRole',`${title} · ${u.sex === 'F' ? 'Mujer' : 'Hombre'}${partner} · Rango ${u.tier}`);
+    text('personName',u.name);text('personRole',`${title} · ${u.sex === 'F' ? 'Mujer' : 'Hombre'}${partner} · Rango ${u.tier ?? 1}`);
     text('personTemperament',`${TEMPERAMENTS[u.temperament]} · ${u.mood}`);
     text('personGift',GIFT_NAMES[u.gift]);
     text('personPreference',`Prefiere: ${ROLE_NAMES[u.preferredRole]} · Salud ${Math.ceil(u.hp)}/${u.maxHp}`);
@@ -547,6 +548,18 @@ export function createUI({ state, session, settings, actions }) {
     }).join('  /  ') : 'Aún no tiene vínculos en el palenque.');
     text('personTraits', `${describePhysique(u)} · ${describeTraits(u)}`);
     text('personGrief', u.grief ? `De luto por ${u.grief.name} · ${Math.ceil(u.grief.remaining)} s` : '');
+    $('amaraManagement').classList.toggle('hidden', !u.namedAmara || !state.amara.leads);
+    if (u.namedAmara && state.amara.leads) {
+      const { budget, managing, order, lastExpense } = state.amara;
+      const status = !budget ? 'Sin fondos asignados' : managing ? order?.title ?? 'Buscando encargos' : 'Encargos en pausa';
+      text('amaraBudgetStatus', `${budget} reales en reserva · ${status}`);
+      text('amaraLastExpense', lastExpense ? `Último gasto · ${lastExpense}` : 'Puede reponer herramientas y encargar obras con los materiales del palenque.');
+      $('amaraAmount').max = state.coins;
+      $('btnFundAmara').disabled = !state.coins;
+      $('btnReturnAmara').disabled = !budget;
+      $('btnToggleAmara').disabled = !budget;
+      text('btnToggleAmara', managing ? 'Pausar encargos' : 'Reanudar encargos');
+    }
     const kit = $('personEquipment');
     kit.classList.toggle('hidden', !u.equipment);
     if (u.equipment) {
@@ -579,8 +592,23 @@ export function createUI({ state, session, settings, actions }) {
     returnDialog='pauseDialog';selectedPersonId=Number(id);open('peopleDialog');
     const select=$('personSelect');select.replaceChildren();
     for(const u of state.units){ensurePerson(u);const option=document.createElement('option');option.value=u.id;option.textContent=`${u.name} · ${ROLE_NAMES[u.role]}`;select.append(option);}
-    select.value=selectedPersonId;text('personKitFeedback','');renderPerson();text('personFeedback','El don permanece cuando cambia de oficio. Se conserva la experiencia y la proporción de salud.');
+    select.value=selectedPersonId;text('personKitFeedback','');text('amaraBudgetFeedback','');renderPerson();text('personFeedback','El don permanece cuando cambia de oficio. Se conserva la experiencia y la proporción de salud.');
   }
+  on('btnFundAmara', () => {
+    text('amaraBudgetFeedback', transferAmaraBudget(state, Number($('amaraAmount').value)));
+    renderPerson(); update();
+  });
+  on('btnToggleAmara', () => {
+    state.amara.managing = !state.amara.managing;
+    if (!state.amara.managing) state.amara.order = null;
+    text('amaraBudgetFeedback', '');
+    renderPerson();
+  });
+  on('btnReturnAmara', () => {
+    const amount = returnAmaraBudget(state);
+    text('amaraBudgetFeedback', `${amount} ${amount === 1 ? 'real vuelve' : 'reales vuelven'} al cofre.`);
+    renderPerson(); update();
+  });
   $('personSelect').addEventListener('change',e=>{selectedPersonId=Number(e.target.value);text('personKitFeedback','');renderPerson();});
   for (const [piece, id] of [['weapon','btnOrderWeapon'], ['armor','btnOrderArmor']]) {
     on(id, () => {
