@@ -1,15 +1,15 @@
-import { ensureCrossings } from './crossings.js?v=51123491eb40';
-import { NIGHT_START } from './daylight.js?v=51123491eb40';
-import { restoreCommunity } from './community.js?v=51123491eb40';
-import { ensureEcology, seedEcology } from './ecology.js?v=51123491eb40';
-import { seedFrontier } from './exploration.js?v=51123491eb40';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=51123491eb40';
-import { ensurePerson } from './people.js?v=51123491eb40';
-import { restoreAmara } from './amara.js?v=51123491eb40';
-import { ensureSettlement } from './settlement.js?v=51123491eb40';
-import { ensureCampaign } from './campaign.js?v=51123491eb40';
-import { restoreHaciendas } from './haciendas.js?v=51123491eb40';
-import { restoreStory } from './story.js?v=51123491eb40';
+import { ensureCrossings } from './crossings.js?v=65095ee4846d';
+import { NIGHT_START } from './daylight.js?v=65095ee4846d';
+import { restoreCommunity } from './community.js?v=65095ee4846d';
+import { ensureEcology, seedEcology } from './ecology.js?v=65095ee4846d';
+import { seedFrontier } from './exploration.js?v=65095ee4846d';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=65095ee4846d';
+import { ensurePerson } from './people.js?v=65095ee4846d';
+import { restoreAmara } from './amara.js?v=65095ee4846d';
+import { ensureSettlement } from './settlement.js?v=65095ee4846d';
+import { ensureCampaign } from './campaign.js?v=65095ee4846d';
+import { restoreHaciendas } from './haciendas.js?v=65095ee4846d';
+import { restoreStory } from './story.js?v=65095ee4846d';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -135,6 +135,7 @@ export function restoreSave(save, defaults) {
   next.benkos.x = number(next.benkos.x, 0, WORLD_MIN_X + 40, WORLD_MAX_X - 40);
   next.benkos.maxSpirit = number(next.benkos.maxSpirit, 100, 1, 1000);
   next.benkos.spirit = number(next.benkos.spirit, 0, 0, next.benkos.maxSpirit);
+  next.benkos.wound = number(next.benkos.wound, 0, 0, 3);
   next.benkos.royalArmor = next.benkos.royalArmor && next.armorUnlocked;
   if (!['playing', 'victory', 'defeat'].includes(next.status)) next.status = 'playing';
   if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= NIGHT_START ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
@@ -142,6 +143,7 @@ export function restoreSave(save, defaults) {
   next.units.forEach(ensurePerson);
   restoreAmara(next);
   for (const unit of next.units) {
+    if (unit.wound !== undefined) unit.wound = number(unit.wound, 0, 0, 3);
     if (unit.recoveredCoins !== undefined) unit.recoveredCoins = Math.floor(number(unit.recoveredCoins, 0, 0, 4));
     const order = unit.kitOrder;
     if (order && (!unit.equipment || !['weapon', 'armor'].includes(order.piece) || ![2, 3].includes(order.rank) ||

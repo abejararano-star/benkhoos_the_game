@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=51123491eb40';
-import { landscapeSeed } from './sky.js?v=51123491eb40';
-import { CAMP_EDGE } from './config.js?v=51123491eb40';
-import { TOWER_HEIGHT } from './settlement.js?v=51123491eb40';
-import { CROSSINGS, deckOffset } from './crossings.js?v=51123491eb40';
+import { blend, color, mix, smooth } from './daylight.js?v=65095ee4846d';
+import { landscapeSeed } from './sky.js?v=65095ee4846d';
+import { CAMP_EDGE } from './config.js?v=65095ee4846d';
+import { TOWER_HEIGHT } from './settlement.js?v=65095ee4846d';
+import { CROSSINGS, deckOffset } from './crossings.js?v=65095ee4846d';
 
 let regionCanvas;
 
@@ -346,6 +346,11 @@ export function drawToolStand(g, x, ground, rack, tier, time, player) {
   }
   g.fillStyle = tier > 1 ? metal : '#806549';
   g.fillRect(x - 3, top - 2, 6, 4);
+  if (rack.role === 'CURANDERO' || rack.role === 'BRUJO') {
+    const banner = rack.role === 'CURANDERO' ? '#41664d' : '#3e456b';
+    woodFace(g, x - 10, top - 8, 20, 13, banner, x);
+    sprites?.draw?.(g, `stock_item_${rack.role}`, ['idle'], x, top + 4, 1, 18, 0);
+  }
 }
 
 function stoneFace(g, x, y, width, height, tint, seed) {

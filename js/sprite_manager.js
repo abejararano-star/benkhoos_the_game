@@ -233,7 +233,7 @@ class BenkosSpriteManager {
       FUGITIVO: 'captive', ALDEANO: 'civil', LENADOR: 'woodcutter', AGRICULTOR: 'farmer',
       MINERO: 'miner', CAZADOR: 'hunter', CONSTRUCTOR: 'builder', ARQUERO: 'archer',
       GUERRERO: 'spearman', ESPADACHIN: 'swordsman', CAMPEON_REAL: 'champion',
-      CABALLERO_ALIADO: 'ally_mounted'
+      CABALLERO_ALIADO: 'ally_mounted', CURANDERO: 'civil', BRUJO: 'civil'
     }[role];
     const ranked = ['GUERRERO', 'ARQUERO', 'ESPADACHIN'].includes(role);
     if (ranked && weapon > 1) return `actor_${name}_a${tier}_w${weapon}`;
@@ -443,7 +443,7 @@ class BenkosSpriteManager {
   drawAllyPose(ctx, x, y, facing, unit, time) {
     if (unit.namedAmara && this.has('actor_amara')) return this.drawAmara(ctx, x, y, facing, unit, time);
     const identity = 'actor_identity_' + (unit.sex === 'F' ? 'f' : 'm');
-    const personalSprite = ['FUGITIVO', 'ALDEANO'].includes(unit.role) && this.has(identity);
+    const personalSprite = ['FUGITIVO', 'ALDEANO', 'CURANDERO', 'BRUJO'].includes(unit.role) && this.has(identity);
     const workRole = { ARQUERO: 'archer', GUERRERO: 'guard', ESPADACHIN: 'sword', CAMPEON_REAL: 'sword',
       CAZADOR: 'guard', CABALLERO_ALIADO: 'rider' }[unit.role] ?? 'work';
     const profession = identity + '_' + workRole;
@@ -479,6 +479,12 @@ class BenkosSpriteManager {
         : womanAtWork && ['archer', 'sword'].includes(workRole) ? identity : cls;
       const drawn = this.draw(ctx, movingClass, [run ? 'run' : 'walk', 'walk', 'idle'], x, y, facing, height, t, 8, gait?.phase);
       if (drawn) this.drawCargo(ctx, x, y, facing, unit);
+      return drawn;
+    }
+    if (['TREAT', 'RITUAL'].includes(unit.activity)) {
+      const pose = this.reduceMotion ? null : { tilt: Math.sin(t * 5) * .055, stretch: 1 };
+      const drawn = this.draw(ctx, cls, ['action', 'idle'], x, y, facing, height, t, 3, null, pose);
+      this.draw(ctx, `stock_item_${unit.role}`, ['idle'], x + facing * 11, y - 16, facing, 12, 0);
       return drawn;
     }
     if (['CHOP', 'BUILD', 'WORK'].includes(unit.activity)) {

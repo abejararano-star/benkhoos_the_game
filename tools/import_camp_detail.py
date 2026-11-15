@@ -6,6 +6,10 @@ from shutil import copyfile
 def import_camp_detail(output):
     source = Path(__file__).resolve().parents[1] / 'assets' / 'atlas'
     entries = {
+        'rack_care_v24': {
+            'stock_item_CURANDERO': (68, 172, 742, 580, 1050),
+            'stock_item_BRUJO': (996, 172, 710, 593, 1010),
+        },
         'rack_tools_v23': {
             'stock_item_CONSTRUCTOR': (62, 28, 314, 370, 452),
             'stock_item_LENADOR': (476, 23, 317, 375, 456),

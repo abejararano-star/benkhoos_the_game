@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=51123491eb40';
-import { updateJaguar } from './jaguar.js?v=51123491eb40';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=65095ee4846d';
+import { updateJaguar } from './jaguar.js?v=65095ee4846d';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -116,6 +116,9 @@ export function interactEcology(state,{fish=false}={}){
   if(item.kind==='fruit'){if(item.target.berryDay===state.day)return {handled:true,message:'Los frutos ya se recogieron hoy.'};item.target.berryDay=state.day;state.resources.food++;return {handled:true,message:'+1 alimento · frutos del bosque'};}
   if(item.kind==='creek'){
     const creek=item.target;
+    if (!fish && b.wound > 0 && b.spirit < b.maxSpirit - 3) {
+      return { handled: true, message: 'Una herida bloquea tu recuperación. Busca un curandero en la botica.' };
+    }
     if (!fish && creek.bridge && b.spirit >= b.maxSpirit - 3) {
       return { handled: true, message: 'Bebes agua fresca del puente. Tu espíritu ya está lleno.' };
     }

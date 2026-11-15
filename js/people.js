@@ -1,8 +1,9 @@
-import { getUnitMaxHp, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=51123491eb40';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=51123491eb40';
-import { ensureTraits, griefEffect } from './daily-life.js?v=51123491eb40';
+import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=65095ee4846d';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=65095ee4846d';
+import { ensureTraits, griefEffect } from './daily-life.js?v=65095ee4846d';
+import { addWound, healerAtCamp, recoverHealth } from './care.js?v=65095ee4846d';
 
-export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón' });
+export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón', CURANDERO:'Curandero', BRUJO:'Brujo' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
 export const GIFT_NAMES = Object.freeze({ strength:'Brazos de ceiba', endurance:'Pulso incansable', perception:'Ojo del monte', dexterity:'Manos certeras', cultivation:'Manos de tierra' });
 export const TEMPERAMENTS = Object.freeze({ BRAVE:'Valiente', CAUTIOUS:'Prudente', CARING:'Solidario', CALM:'Sereno', RESTLESS:'Inquieto' });
@@ -11,7 +12,7 @@ export const BUILD_NAMES = Object.freeze({
   ROBUST: ['Fornido', 'Fornida'], CURVED: ['De formas redondeadas', 'De formas redondeadas']
 });
 const STATURE_NAMES = ['Estatura baja', 'Estatura media', 'Estatura alta'];
-export const WORK_ROLES = ['LENADOR','AGRICULTOR','MINERO','CAZADOR','ARQUERO','GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CONSTRUCTOR'];
+export const WORK_ROLES = ['LENADOR','AGRICULTOR','MINERO','CAZADOR','ARQUERO','GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CONSTRUCTOR','CURANDERO','BRUJO'];
 export const MILITARY = ['GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CAMPEON_REAL'];
 const names=['Amara','Badu','Juana','Mateo','Nala','Kofi','Inés','Domingo','Amina','Manuel','Sira','Tomás','Adama','María','Lemba','Lucía','Samba','Ana','Binta','Gaspar','Dalia','Antonio','Zuri','Baltasar'];
 const femaleNames = new Set(['Amara', 'Juana', 'Nala', 'Inés', 'Amina', 'Sira', 'Adama', 'María', 'Lucía', 'Ana', 'Binta', 'Dalia', 'Zuri']);
@@ -93,11 +94,15 @@ export function proficiency(unit,role=unit.role){
   return (1 + (affinity(unit, role) - 3) * .10 + Math.min(.25, (unit.experience?.[role] ?? 0) / 1200) + dedication * .035) * griefEffect(unit);
 }
 export function speak(unit,line){if(unit.speechCooldown>0)return;unit.speech=line;unit.speechTimer=3;unit.speechCooldown=11;}
-export function reactToDamage(unit,damage,direction=1){
+export function reactToDamage(unit,damage,direction=1,projectile=false){
   ensurePerson(unit);
-  unit.hp-=damage;unit.hurtTimer=.4;unit.hurtDirection=direction;
-  unit.fear=clamp(unit.fear+22+(unit.temperament==='CAUTIOUS'?15:0),0,100);
-  unit.mood=MILITARY.includes(unit.role)?'Bajo presión':'Asustado';
+  const defender = MILITARY.includes(unit.role) || unit.role === 'ARQUERO';
+  unit.hp-=damage;unit.hurtTimer=defender ? .2 : .4;unit.hurtDirection=direction;
+  if (projectile || damage >= unit.maxHp * .15 || unit.hp < unit.maxHp * .7) {
+    addWound(unit, damage >= unit.maxHp * .22 ? 1.5 : 1);
+  }
+  unit.fear=clamp(unit.fear+(defender?12:22)+(unit.temperament==='CAUTIOUS'?12:0),0,100);
+  unit.mood=defender?'Bajo presión':'Asustado';
   unit.activity='HURT';unit.vx=direction*55;
   speak(unit,MILITARY.includes(unit.role)?'¡Mantengan la línea!':unit.role==='CAZADOR'?'¡Al monte, rápido!':'¡Necesito refugio!');
 }
@@ -135,7 +140,7 @@ export function completeProfession(unit,rack,state){
 export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false){
   ensurePerson(unit);
   unit.speechTimer=Math.max(0,unit.speechTimer-dt);unit.speechCooldown=Math.max(0,unit.speechCooldown-dt);
-  const enemy=state.enemies.filter(e=>e.hp>0&&e.appearTimer<=0).sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x))[0];
+  const enemy=state.enemies.filter(e=>e.hp>0&&!e.waterFall&&!(e.appearTimer>0)).sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x))[0];
   const distance=enemy?Math.abs(enemy.x-unit.x):Infinity;
   const military=MILITARY.includes(unit.role), ranged=['ARQUERO','CAZADOR'].includes(unit.role);
   unit.fear=clamp(unit.fear+dt*(distance<140?Math.max(2, (unit.temperament==='BRAVE'?5:13)-(unit.traits.courage-3)*2):-9),0,100);
@@ -146,7 +151,8 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false){
   }
   const critical=unit.hp/unit.maxHp<(unit.temperament==='BRAVE'?.18:.32);
   const dangerRadius=critical?220:ranged?55:military?60:165;
-  const flee=(distance<dangerRadius||unit.activity==='FLEE'&&distance<240)&&(!military&&!ranged||critical||unit.fear>85);
+  const defender = military || unit.role === 'ARQUERO';
+  const flee=(distance<dangerRadius||unit.activity==='FLEE'&&distance<240)&&(!military&&!ranged||critical||!defender&&unit.fear>85);
   if(flee){
     unit.activity='FLEE';unit.mood='Buscando refugio';unit.fear=Math.max(unit.fear,35);
     // Retreat toward the palenque; do not run beyond the map when surrounded.
@@ -160,10 +166,18 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false){
   }
   if(ranged&&!onWatch&&distance<90){unit.activity='KITE';unit.mood='Tomando distancia';unit.vx=-(Math.sign(enemy.x-unit.x)||1)*62;unit.x+=unit.vx*dt;unit.facing=-Math.sign(unit.vx);return false;}
   if(!military&&!ranged&&distance<260&&unit.fear>15){unit.activity='SHELTER';unit.mood='Esperando a salvo';unit.vx=0;unit.fear=Math.max(20,unit.fear);return true;}
-  if(unit.fear>35&&distance>200||critical&&distance>180){
+  const needsClinic = unit.wound > 0 && !unit.requestedRole && !unit.escortHome && distance > 240 &&
+    (critical || Math.abs(unit.x) <= CAMP_EDGE + 380) && healerAtCamp(state);
+  if(!defender&&unit.fear>35&&distance>200||critical&&distance>180||needsClinic){
     unit.activity='RECOVER';unit.mood='Recuperándose';unit.vx=0;
-    if(Math.abs(unit.x)>150){unit.vx=-Math.sign(unit.x)*58;unit.facing=Math.sign(unit.vx);unit.x+=unit.vx*dt;}
-    else unit.hp=Math.min(unit.maxHp,unit.hp+dt*(1+(unit.attributes.endurance??3)*.3)*recoveryMultiplier);
+    const dx = needsClinic ? STATION_X.CURANDERO - unit.x : -unit.x;
+    if(Math.abs(dx)>(needsClinic?18:150)){
+      unit.vx=Math.sign(dx)*58;unit.facing=Math.sign(unit.vx);unit.x+=unit.vx*dt;
+      if (needsClinic) unit.mood = 'Camino a la botica';
+    } else {
+      recoverHealth(unit,dt*(1+(unit.attributes.endurance??3)*.3)*recoveryMultiplier);
+      if (needsClinic) unit.mood = 'Esperando un vendaje';
+    }
     return true;
   }
   if(unit.requestedRole&&!unit.carryingSack){
@@ -177,11 +191,12 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false){
     }
   }
   const safe=distance>220;
+  if (safe && defender) recoverHealth(unit, dt * .85 * recoveryMultiplier);
   const working=['WORK','ATTACK','CHOP','HUNT','BUILD'].includes(unit.activity);
   unit.fatigue=clamp(unit.fatigue+dt*(working?.18:-.22),0,100);
   if(safe&&(unit.fatigue>75||unit.restTimer>0)){
     unit.activity='REST';unit.mood='Tomando un respiro';unit.vx=0;unit.fatigue=Math.max(0,unit.fatigue-dt*8);
-    unit.hp=Math.min(unit.maxHp,unit.hp+dt*.5*recoveryMultiplier);
+    recoverHealth(unit,dt*.5*recoveryMultiplier);
     unit.restTimer=(unit.restTimer??0)+dt;
     if(unit.restTimer<4)return true;
     unit.restTimer=0;unit.fatigue=45;
@@ -190,8 +205,8 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false){
   unit.mood=distance<220?(military?'Protegiendo al pueblo':'Alerta'):affinity(unit,unit.role)>=4?'En su elemento':'Tranquilo';
   unit.experience[unit.role]=(unit.experience[unit.role]??0)+dt*(working?.8:.15)*(.76+unit.traits.intelligence*.08);
   if(safe&&Math.abs(unit.vx)<3&&unit.temperament==='CARING'){
-    const wounded=state.units.find(other=>other!==unit&&other.hp<other.maxHp*.6&&Math.abs(other.x-unit.x)<35);
-    if(wounded){wounded.hp=Math.min(wounded.maxHp,wounded.hp+dt*1.5);unit.activity='HELP';unit.mood='Cuidando a un vecino';speak(unit,'Respira. Aquí te cuidamos.');}
+    const tired=state.units.find(other=>other!==unit&&other.hp>0&&!(other.wound>0)&&other.hp<other.maxHp*.6&&Math.abs(other.x-unit.x)<35);
+    if(tired){recoverHealth(tired,dt*1.5);unit.activity='HELP';unit.mood='Cuidando a un vecino';speak(unit,'Respira. Aquí te cuidamos.');}
   }
   if(safe&&unit.activity==='IDLE'&&!unit.namedAmara)speak(unit,{BRAVE:'Hoy también resistiremos.',CAUTIOUS:'Conviene revisar las murallas.',CARING:'¿A quién le hace falta una mano?',CALM:'El río sigue su curso.',RESTLESS:'Quiero conocer otro oficio.'}[unit.temperament]);
   return false;

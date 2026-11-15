@@ -15,7 +15,7 @@ export const SKILLS = Object.freeze([
   { id:'roar', level:4, name:'Rugido del Magdalena', cost:10, spiritCost:30, unlocked:false },
   { id:'jaguar', level:5, name:'Espíritu Jaguar Negro', cost:14, spiritCost:40, unlocked:false }
 ]);
-export const TOOL_COSTS = Object.freeze({ CONSTRUCTOR:2, LENADOR:2, AGRICULTOR:1, MINERO:2, CAZADOR:2, ARQUERO:2, GUERRERO:3, ESPADACHIN:4, CABALLERO_ALIADO:5 });
+export const TOOL_COSTS = Object.freeze({ CONSTRUCTOR:2, LENADOR:2, AGRICULTOR:1, MINERO:2, CAZADOR:2, ARQUERO:2, GUERRERO:3, ESPADACHIN:4, CABALLERO_ALIADO:5, CURANDERO:2, BRUJO:3 });
 export const ALLY_COMBAT = Object.freeze({
   GUERRERO:{ damage:20, speed:68, cooldown:.8 }, ESPADACHIN:{ damage:24, speed:76, cooldown:.7 },
   CABALLERO_ALIADO:{ damage:28, speed:96, cooldown:.85 }, CAMPEON_REAL:{ damage:32, speed:76, cooldown:.8 }
@@ -23,7 +23,7 @@ export const ALLY_COMBAT = Object.freeze({
 export const UNIT_HP = Object.freeze({
   FUGITIVO: 80, ALDEANO: 80, CONSTRUCTOR:90, LENADOR:95, AGRICULTOR: 80, MINERO: 80,
   CAZADOR: 80, ARQUERO: 80, GUERRERO: 115, ESPADACHIN: 115,
-  CABALLERO_ALIADO: 150, CAMPEON_REAL: 260
+  CABALLERO_ALIADO: 150, CAMPEON_REAL: 260, CURANDERO: 85, BRUJO: 80
 });
 export const ROLES = Object.keys(UNIT_HP);
 export function getUnitMaxHp(role, tier) {
@@ -43,6 +43,6 @@ export const ENEMY_CATALOG = Object.freeze({
 });
 
 export const STATION_X = Object.freeze({
-  LENADOR: -760, AGRICULTOR: -610, MINERO: -455, CAZADOR: -300,
-  CONSTRUCTOR: 150, ARQUERO: 300, GUERRERO: 455, ESPADACHIN: 610, CABALLERO_ALIADO: 760
+  LENADOR: -795, AGRICULTOR: -685, MINERO: -575, CAZADOR: -465, ESPADACHIN: -355, CABALLERO_ALIADO: -245,
+  CONSTRUCTOR: 150, ARQUERO: 300, GUERRERO: 455, CURANDERO: 610, BRUJO: 760
 });

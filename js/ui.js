@@ -1,19 +1,19 @@
-import { needsCropCare } from './crops.js?v=51123491eb40';
-import { AMARA_NAME, amaraNearby } from './amara.js?v=51123491eb40';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=51123491eb40';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=51123491eb40';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=51123491eb40';
-import { describeTraits } from './daily-life.js?v=51123491eb40';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=51123491eb40';
-import { canMediate, relationshipsFor } from './community.js?v=51123491eb40';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=51123491eb40';
-import { ecologyHint } from './ecology.js?v=51123491eb40';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=51123491eb40';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=51123491eb40';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=51123491eb40';
-import { arrivalHint } from './campaign.js?v=51123491eb40';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=51123491eb40';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=51123491eb40';
+import { needsCropCare } from './crops.js?v=65095ee4846d';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=65095ee4846d';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=65095ee4846d';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=65095ee4846d';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=65095ee4846d';
+import { describeTraits } from './daily-life.js?v=65095ee4846d';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=65095ee4846d';
+import { canMediate, relationshipsFor } from './community.js?v=65095ee4846d';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=65095ee4846d';
+import { ecologyHint } from './ecology.js?v=65095ee4846d';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=65095ee4846d';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=65095ee4846d';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=65095ee4846d';
+import { arrivalHint } from './campaign.js?v=65095ee4846d';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=65095ee4846d';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=65095ee4846d';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -166,7 +166,7 @@ export function createUI({ state, session, settings, actions }) {
       const remaining = Math.max(0, node.cost - (node.getFilled() || 0));
       const unit = remaining === 1 ? 'real' : 'reales';
       text('nodeHintCoins', node.job ? `${Math.ceil((1 - node.job.progress) * node.job.duration)} s de labor` :
-        node.cost === 0 ? 'Nivel máximo' : node.purchase ? `${node.getFilled()}/${node.cost} reales` : `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
+        node.stockFull ? 'Completo' : node.cost === 0 ? 'Nivel máximo' : node.purchase ? `${node.getFilled()}/${node.cost} reales` : `${remaining === 1 ? 'Falta' : 'Faltan'} ${remaining} ${unit}`);
     }
     text('hudCoins', state.coins); text('hudMaxCoins', state.maxCoins); text('hudTreasury', state.treasuryCoins);
     const freeSlots = state.maxCoins - state.coins;
@@ -187,15 +187,16 @@ export function createUI({ state, session, settings, actions }) {
     $('phaseProgress').style.width = `${state.timeOfDay * 100}%`;
     text('hudSpiritText', `${Math.floor(state.benkos.spirit)} / ${state.benkos.maxSpirit}`);
     $('hudSpiritBar').style.width = `${state.benkos.spirit / state.benkos.maxSpirit * 100}%`;
-    text('hudCrownStatus', state.coins ? `Protegido por ${state.coins} reales` : `Sin escudo · Rescate: ${BALANCE.rescueCost} del cofre`);
-    $('hudCrownStatus').classList.toggle('danger', state.coins === 0);
+    const crownStatus = state.coins ? `Protegido por ${state.coins} reales` : `Sin escudo · Rescate: ${BALANCE.rescueCost} del cofre`;
+    text('hudCrownStatus', state.benkos.wound > 0 ? `${crownStatus} · Herido · Busca la botica` : crownStatus);
+    $('hudCrownStatus').classList.toggle('danger', state.coins === 0 || state.benkos.wound > 0);
     $('hudMountBadge').classList.toggle('hidden', !state.benkos.mounted);
     $('hudRoyalArmorBadge').classList.toggle('hidden', !state.benkos.royalArmor);
     const ranks = ['Cimarrón', 'Élite', 'Real'];
     text('hudArmyTierBadge', `Rango ${['I', 'II', 'III'][state.armyTier - 1]} · ${ranks[state.armyTier - 1]}`);
     text('hudNextTierHint', state.armyTier < 3 ? armyRequirement(state) || `Mantén S en el tótem · ${BALANCE.tierCosts[state.armyTier]} reales para ascender.` : 'Rango Real · Abre la Armería con G. Armadura de Benkos en C.');
     const count = role => state.units.filter(u => u.role === role).length;
-    for (const [suffix, role] of Object.entries({ Constructor:'CONSTRUCTOR', Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL' })) text(`pop${suffix}`, count(role));
+    for (const [suffix, role] of Object.entries({ Constructor:'CONSTRUCTOR', Aldeano:'ALDEANO', Lenador:'LENADOR', Agricultor:'AGRICULTOR', Minero:'MINERO', Cazador:'CAZADOR', Arquero:'ARQUERO', Guerrero:'GUERRERO', Espadachin:'ESPADACHIN', Caballero:'CABALLERO_ALIADO', Campeon:'CAMPEON_REAL', Curandero:'CURANDERO', Brujo:'BRUJO' })) text(`pop${suffix}`, count(role));
     const mapPercent = x => (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X) * 100;
     $('minimapBenkos').style.left = `${mapPercent(state.benkos.x)}%`;
     $('minimapAltar').style.left = `${mapPercent(ALTAR_X)}%`;
@@ -538,7 +539,7 @@ export function createUI({ state, session, settings, actions }) {
     text('personGift',GIFT_NAMES[u.gift]);
     text('personPreference',`Prefiere: ${ROLE_NAMES[u.preferredRole]} · Salud ${Math.ceil(u.hp)}/${u.maxHp}`);
     text('personExperience',`Afinidad con su oficio: ${affinity(u,u.role).toFixed(1)}/5 · Eficacia ${Math.round(proficiency(u)*100)}% · Experiencia ${Math.floor(u.experience[u.role]??0)}`);
-    text('personCondition',`Miedo ${Math.round(u.fear)}% · Cansancio ${Math.round(u.fatigue)}%${u.requestedRole?' · Preparando cambio a '+ROLE_NAMES[u.requestedRole]:''}`);
+    text('personCondition',`Miedo ${Math.round(u.fear)}% · Cansancio ${Math.round(u.fatigue)}%${u.wound > 0 ? ' · Heridas sin vendar' : ''}${u.requestedRole?' · Preparando cambio a '+ROLE_NAMES[u.requestedRole]:''}`);
     const links = relationshipsFor(u, state).slice(0, 4);
     text('personRelations', links.length ? links.map(link => {
       const label = link.partner ? 'Pareja' : link.score >= 3 ? 'Amistad' : link.score <= -2 ? 'Rivalidad' : 'Conoce a';

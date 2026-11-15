@@ -1,11 +1,11 @@
-import { ensureCrossings } from './crossings.js?v=51123491eb40';
-import { initialCommunity } from './community.js?v=51123491eb40';
-import { initialStory, majorHaciendas } from './story.js?v=51123491eb40';
-import { initialEcology } from './ecology.js?v=51123491eb40';
-import { initialExploration } from './exploration.js?v=51123491eb40';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=51123491eb40';
-import { initialSettlement } from './settlement.js?v=51123491eb40';
-import { initialAmara } from './amara.js?v=51123491eb40';
+import { ensureCrossings } from './crossings.js?v=65095ee4846d';
+import { initialCommunity } from './community.js?v=65095ee4846d';
+import { initialStory, majorHaciendas } from './story.js?v=65095ee4846d';
+import { initialEcology } from './ecology.js?v=65095ee4846d';
+import { initialExploration } from './exploration.js?v=65095ee4846d';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=65095ee4846d';
+import { initialSettlement } from './settlement.js?v=65095ee4846d';
+import { initialAmara } from './amara.js?v=65095ee4846d';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -65,6 +65,7 @@ const state = {
     invulnTimer: 0,
     hurtKneelTimer: 0,
     hurtTimer:0,
+    wound: 0,
     payTimer:0,
     interaction:null,
     waterFall:null,
@@ -91,7 +92,9 @@ const state = {
     { id: 'rack_bow',   role: 'ARQUERO',    x: 95,   label: 'Arcos del Reino',   icon: '', cost: 2, stock: 1, maxStock: 4, filledSlots: 0 },
     { id: 'rack_spear', role: 'GUERRERO',   x: 150,  label: 'Lanzas y Escudos',  icon: '', cost: 3, stock: 1, maxStock: 4, filledSlots: 0 },
     { id: 'rack_sword', role: 'ESPADACHIN', x: 205,  label: 'Espadas Curvas',    icon: '', cost: 4, stock: 0, maxStock: 4, filledSlots: 0 },
-    { id: 'rack_cav',   role: 'CABALLERO_ALIADO', x: 260, label: 'Establo Real', icon: '', cost: 5, stock: 0, maxStock: 3, filledSlots: 0 }
+    { id: 'rack_cav',   role: 'CABALLERO_ALIADO', x: 260, label: 'Establo Real', icon: '', cost: 5, stock: 0, maxStock: 3, filledSlots: 0 },
+    { id: 'rack_healer', role: 'CURANDERO', label: 'Botica', stock: 1, maxStock: 3, filledSlots: 0 },
+    { id: 'rack_shaman', role: 'BRUJO', label: 'Puesto ritual', stock: 1, maxStock: 3, filledSlots: 0 }
   ],
 
   mines: [

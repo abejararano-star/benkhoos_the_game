@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { makeSave } from '../js/save-system.js';
-import { ENEMY_CATALOG } from '../js/config.js';
+import { ENEMY_CATALOG, STATION_X } from '../js/config.js';
+import { ensurePerson } from '../js/people.js';
 import { createAnimal } from '../js/ecology.js';
 import { ALTAR_X } from '../js/exploration.js';
 import { ESTATES } from '../js/story.js';
@@ -290,6 +291,71 @@ test('paying the last coin stocks a tool rack immediately with no builder or pro
   assert.equal(rack().filledSlots, 0);
   assert.equal(inspect().state.coins, 0);
   assert.deepEqual(inspect().state.settlement.projects, []);
+});
+
+test('a guard under arrow fire closes the distance and lands a blow', async () => {
+  await loadState(s => {
+    Object.assign(s, { status: 'playing', phase: 'DAY_EXPLORE', timeOfDay: .25, hitStopTimer: 0,
+      walls: [], wildlife: [], projectiles: [], morale: 100 });
+    s.benkos.x = -200;
+    s.story.expedition = null;
+    s.campaign.orders = [];
+    const guard = ensurePerson({ id: 55, role: 'GUERRERO', x: 287, y: 268, vx: 0, hp: 115, maxHp: 115,
+      tier: 1, assignedSide: 1, facing: 1, attackCooldown: 0 });
+    guard.fear = 95;
+    s.units = [guard];
+    s.enemies = [{ ...ENEMY_CATALOG.ARQUERO_COLONIAL, id: 56, type: 'ARQUERO_COLONIAL', x: 435,
+      y: 268, maxHp: 45, vx: 0, speed: 0, facing: -1, appearTimer: 0, attackCooldown: 0 }];
+  });
+  advance(.52);
+  const first = inspect().state;
+  assert.ok(first.projectiles.some(p => !p.fromPlayerSide));
+  assert.equal(first.units[0].wound ?? 0, 0);
+  advance(1);
+  assert.ok(inspect().state.units[0].wound > 0);
+  advance(1.3);
+  assert.ok(inspect().state.enemies[0].hp < 45);
+});
+
+test('care stalls accept coins before Elite and staff restore recovery after wounds are treated', async () => {
+  await loadState(s => {
+    Object.assign(s, { status: 'playing', phase: 'DAY_EXPLORE', timeOfDay: .25, hitStopTimer: 0, armyTier: 1,
+      units: [], enemies: [], wildlife: [], projectiles: [], droppedCoins: [], coins: 12 });
+    s.campaign.orders = [];
+    s.benkos.x = STATION_X.CURANDERO;
+    s.benkos.wound = 1;
+    s.benkos.spirit = 25;
+    s.toolRacks.find(rack => rack.role === 'CURANDERO').stock = 0;
+  });
+  assert.match(elements.get('nodeHintTitle').textContent, /Botica/);
+  key('KeyS'); advance(.49); key('KeyS', true);
+  assert.equal(inspect().state.toolRacks.find(rack => rack.role === 'CURANDERO').stock, 1);
+  assert.equal(inspect().state.benkos.spirit, 25);
+  await loadState(s => {
+    const unit = (id, role, x = STATION_X.CURANDERO) => ensurePerson({ id, role, x, y: 268, tier: 1,
+      vx: 0, facing: 1, assignedSide: 1, hp: 80, maxHp: 80, attackCooldown: 0 });
+    const patient = unit(61, 'GUERRERO');
+    patient.hp = 50;
+    patient.wound = 1;
+    s.units = [patient, unit(62, 'CURANDERO'), unit(63, 'BRUJO', STATION_X.BRUJO)];
+  });
+  advance(2);
+  assert.equal(inspect().state.units[0].hp, 50);
+  assert.equal(inspect().state.benkos.spirit, 25);
+  advance(4.5);
+  assert.equal(inspect().state.units[0].wound, 0);
+  assert.ok(inspect().state.units[0].hp > 50);
+  assert.equal(inspect().state.benkos.wound, 0);
+  assert.ok(inspect().state.benkos.spirit > 25);
+  await loadState(s => {
+    s.benkos.x = STATION_X.BRUJO;
+    s.benkos.spirit = 25;
+    s.toolRacks.find(rack => rack.role === 'BRUJO').stock = 3;
+  });
+  assert.match(elements.get('nodeHintTitle').textContent, /Puesto ritual/);
+  assert.equal(elements.get('nodeHintCoins').textContent, 'Completo');
+  advance(1);
+  assert.ok(inspect().state.benkos.spirit > 33);
 });
 
 test('the hanging bridge can be cut and repaired at a post and the river ends the run', async () => {

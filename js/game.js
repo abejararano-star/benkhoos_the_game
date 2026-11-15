@@ -1,30 +1,31 @@
-import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=51123491eb40';
-import { ensureCrop, needsCropCare } from './crops.js?v=51123491eb40';
-import { NIGHT_START } from './daylight.js?v=51123491eb40';
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=51123491eb40';
-import { GROUND_COIN_LIFE } from './coins.js?v=51123491eb40';
-import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=51123491eb40';
-import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=51123491eb40';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=51123491eb40';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=51123491eb40';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus } from './settlement.js?v=51123491eb40';
-import { emitEffect } from './effects.js?v=51123491eb40';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=51123491eb40';
-import { AfroColombianAudioEngine } from './audio.js?v=51123491eb40';
-import { createInitialState } from './world-state.js?v=51123491eb40';
-import { makeSave, restoreSave } from './save-system.js?v=51123491eb40';
-import { createRenderer } from './renderer.js?v=51123491eb40';
-import { createSimulation } from './simulation.js?v=51123491eb40';
-import { FixedStepper } from './clock.js?v=51123491eb40';
-import { bindInput } from './input.js?v=51123491eb40';
-import { createUI } from './ui.js?v=51123491eb40';
-import { chooseDefenseSide } from './ai.js?v=51123491eb40';
-import { ensurePerson, requestProfession, ROLE_NAMES } from './people.js?v=51123491eb40';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=51123491eb40';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=51123491eb40';
-import { mediateEncounter } from './community.js?v=51123491eb40';
-import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, establishOutpost, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=51123491eb40';
-import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=51123491eb40';
+import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=65095ee4846d';
+import { ensureCrop, needsCropCare } from './crops.js?v=65095ee4846d';
+import { NIGHT_START } from './daylight.js?v=65095ee4846d';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=65095ee4846d';
+import { GROUND_COIN_LIFE } from './coins.js?v=65095ee4846d';
+import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=65095ee4846d';
+import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=65095ee4846d';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=65095ee4846d';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=65095ee4846d';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus } from './settlement.js?v=65095ee4846d';
+import { emitEffect } from './effects.js?v=65095ee4846d';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=65095ee4846d';
+import { AfroColombianAudioEngine } from './audio.js?v=65095ee4846d';
+import { createInitialState } from './world-state.js?v=65095ee4846d';
+import { makeSave, restoreSave } from './save-system.js?v=65095ee4846d';
+import { createRenderer } from './renderer.js?v=65095ee4846d';
+import { createSimulation } from './simulation.js?v=65095ee4846d';
+import { FixedStepper } from './clock.js?v=65095ee4846d';
+import { bindInput } from './input.js?v=65095ee4846d';
+import { createUI } from './ui.js?v=65095ee4846d';
+import { chooseDefenseSide } from './ai.js?v=65095ee4846d';
+import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=65095ee4846d';
+import { addWound } from './care.js?v=65095ee4846d';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=65095ee4846d';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=65095ee4846d';
+import { mediateEncounter } from './community.js?v=65095ee4846d';
+import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, establishOutpost, estateById, localHaciendas, onEstateLiberated, storyChapter } from './story.js?v=65095ee4846d';
+import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=65095ee4846d';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -351,19 +352,28 @@ function getInteractionNodes() {
   });
 
   state.toolRacks.forEach((rk) => {
-    if (rk.stock < rk.maxStock && (state.armyTier >= 2 || !['ESPADACHIN','CABALLERO_ALIADO'].includes(rk.role))) {
-      candidates.push({
-        id: rk.id,
-        x: rk.x,
-        title: `${rk.label} · ${rk.stock}/${rk.maxStock}`,
-        sub: 'Mantén [S] para comprar una pieza',
-        height: 59,
-        cost: rk.cost,
-        getFilled: () => rk.filledSlots,
-        setFilled: (v) => { rk.filledSlots = v; },
-        onComplete: () => { rk.stock++; }
-      });
-    }
+    if (!roleAvailable(rk.role, state.armyTier)) return;
+    const full = rk.stock >= rk.maxStock;
+    const care = {
+      CURANDERO: ['vendajes', 'Espera aquí para curarte'],
+      BRUJO: ['amuletos', 'Espera aquí para recuperar espíritu']
+    }[rk.role];
+    const action = full ? 'Estante abastecido' : `Mantén [S] para reponer ${care?.[0] ?? 'una pieza'}`;
+    const staffed = care && state.units.some(unit => unit.role === rk.role && unit.hp > 0 && !unit.requestedRole);
+    const service = care ? staffed ? care[1] : 'F para asignar el oficio' : '';
+    candidates.push({
+      id: rk.id,
+      x: rk.x,
+      title: `${rk.label} · ${rk.stock}/${rk.maxStock}`,
+      sub: service ? `${action} · ${service}` : action,
+      height: 59,
+      cost: full ? 0 : rk.cost,
+      locked: full,
+      stockFull: full,
+      getFilled: () => rk.filledSlots,
+      setFilled: (v) => { rk.filledSlots = v; },
+      onComplete: () => { rk.stock++; }
+    });
   });
 
   state.walls.forEach((w) => {
@@ -694,7 +704,7 @@ function resolveBenkosHit(){
   if (hitAny) {
     state.hitStopTimer = 0.035;
     state.screenShake = b.comboStep === 3 ? 4 : 2;
-    b.spirit = Math.min(b.maxSpirit, b.spirit + 8);
+    if (!b.wound) b.spirit = Math.min(b.maxSpirit, b.spirit + 8);
   }
 }
 
@@ -797,6 +807,7 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
   }
 
   b.invulnTimer=.65;b.hurtTimer=.4;b.attackTimer=0;b.queuedAttack=false;b.comboWindow=0;b.attackCooldown=Math.max(b.attackCooldown,.25);
+  if (rawDmg >= 10) addWound(b, rawDmg >= 22 ? 1.5 : 1);
   b.vx = (knockDir || -b.facing) * 115;
   state.screenShake = 5;
   emitEffect(state, b.royalArmor ? 'spark' : 'blood', b.x, WATER_LINE_Y - 22, knockDir);

@@ -1,6 +1,6 @@
-import { CAMP_EDGE } from './config.js?v=51123491eb40';
-import { INFANTRY } from './equipment.js?v=51123491eb40';
-import { COLONIAL_POSTS } from './frontier.js?v=51123491eb40';
+import { CAMP_EDGE } from './config.js?v=65095ee4846d';
+import { INFANTRY } from './equipment.js?v=65095ee4846d';
+import { COLONIAL_POSTS } from './frontier.js?v=65095ee4846d';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,

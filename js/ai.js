@@ -1,4 +1,4 @@
-import { affinity } from './people.js?v=51123491eb40';
+import { affinity, roleAvailable } from './people.js?v=65095ee4846d';
 export function nearest(entity, candidates, predicate = () => true) {
   let best = null, distance = Infinity;
   for (const item of candidates) {
@@ -26,9 +26,8 @@ export function chooseDefenseSide(x, units) {
 
 export function chooseToolRack(unit, state) {
   // Reserve the last tool for an approaching worker rather than sending everyone to it.
-  const demand = { CONSTRUCTOR:2, LENADOR:2, AGRICULTOR: 2, MINERO: 2, CAZADOR: 2, ARQUERO: 4, GUERRERO: 4, ESPADACHIN: 3, CABALLERO_ALIADO: 2 };
-  const candidates = state.toolRacks.filter(r => r.stock > 0 &&
-    (state.armyTier >= 2 || !['ESPADACHIN', 'CABALLERO_ALIADO'].includes(r.role)));
+  const demand = { CONSTRUCTOR:2, LENADOR:2, AGRICULTOR: 2, MINERO: 2, CAZADOR: 2, ARQUERO: 4, GUERRERO: 4, ESPADACHIN: 3, CABALLERO_ALIADO: 2, CURANDERO: 1, BRUJO: 1 };
+  const candidates = state.toolRacks.filter(r => r.stock > 0 && roleAvailable(r.role, state.armyTier));
   const score = r => {
     const population = state.units.filter(u => u.role === r.role).length;
     const reservations = state.units.filter(u => u !== unit && u.role === 'ALDEANO' && u.rackId === r.id).length;
