@@ -30,6 +30,8 @@ Los videos opcionales van en `assets/prologue-local/` como `abuelo.mp4`, `mapa.m
 
 Para generar el doblaje, configura `ELEVENLABS_API_KEY`, `BENKHOOS_ELEVENLABS_BENKOS_VOICE_ID` y `BENKHOOS_ELEVENLABS_ABUELO_VOICE_ID` en el entorno local y ejecuta `node tools/generate-prologue-voices.js`. Benkos adulto y niño comparten el mismo ID. El comando guarda las pistas junto a los videos y reutiliza las ya generadas. La carpeta multimedia y la configuración privada de `.work/` quedan fuera de Git.
 
+En Windows puedes generar las voces de respaldo sin conexión con `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/generate-prologue-local-voices.ps1`. El juego da prioridad al doblaje de ElevenLabs, luego reproduce los WAV locales y, si faltan ambos, puede leer el texto con una voz en español instalada en el navegador. El volumen y la opción de audio del juego también controlan el prólogo.
+
 ## Controles
 
 | Tecla | Acción |

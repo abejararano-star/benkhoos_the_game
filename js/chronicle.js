@@ -28,9 +28,15 @@ export const PROLOGUE = {
   voice: {
     0: { id: 'abuelo-marea', role: 'abuelo' },
     1: { id: 'benkos-nino-barcos', role: 'nino' },
+    2: { id: 'narrador-primera-noche', role: 'narrador' },
+    3: { id: 'narrador-segunda-noche', role: 'narrador' },
+    4: { id: 'narrador-tercera-noche', role: 'narrador' },
     5: { id: 'benkos-captura', role: 'benkos' },
+    6: { id: 'narrador-travesia', role: 'narrador' },
+    7: { id: 'narrador-cartagena', role: 'narrador' },
     8: { id: 'benkos-mapa', role: 'benkos' },
     9: { id: 'benkos-fuga', role: 'benkos' },
+    10: { id: 'wiwa-refugio', role: 'wiwa' },
     11: { id: 'benkos-matuna', role: 'benkos' }
   },
   exercises: { 2: 1, 3: 2, 4: 3 }

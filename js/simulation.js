@@ -1,25 +1,25 @@
-import { stepCrossings } from './crossings.js?v=f7ff6b3bfb83';
-import { NIGHT_START } from './daylight.js?v=f7ff6b3bfb83';
-import { recoverCoins } from './coins.js?v=f7ff6b3bfb83';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=f7ff6b3bfb83';
-import { collectEquipment } from './equipment.js?v=f7ff6b3bfb83';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=f7ff6b3bfb83';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=f7ff6b3bfb83';
-import { updateCommunity, joinEncounter } from './community.js?v=f7ff6b3bfb83';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=f7ff6b3bfb83';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=f7ff6b3bfb83';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=f7ff6b3bfb83';
-import { advanceParticle, emitEffect } from './effects.js?v=f7ff6b3bfb83';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=f7ff6b3bfb83';
-import { ensureCampaign, finaleWon } from './campaign.js?v=f7ff6b3bfb83';
-import { OUTPOSTS, expeditionFormation } from './story.js?v=f7ff6b3bfb83';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=f7ff6b3bfb83';
-import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=f7ff6b3bfb83';
-import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=f7ff6b3bfb83';
-import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=f7ff6b3bfb83';
-import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=f7ff6b3bfb83';
-import { colonialShooter } from './frontier.js?v=f7ff6b3bfb83';
-import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=f7ff6b3bfb83';
+import { stepCrossings } from './crossings.js?v=756398033889';
+import { NIGHT_START } from './daylight.js?v=756398033889';
+import { recoverCoins } from './coins.js?v=756398033889';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=756398033889';
+import { collectEquipment } from './equipment.js?v=756398033889';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=756398033889';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=756398033889';
+import { updateCommunity, joinEncounter } from './community.js?v=756398033889';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=756398033889';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=756398033889';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=756398033889';
+import { advanceParticle, emitEffect } from './effects.js?v=756398033889';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=756398033889';
+import { ensureCampaign, finaleWon } from './campaign.js?v=756398033889';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=756398033889';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=756398033889';
+import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=756398033889';
+import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=756398033889';
+import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=756398033889';
+import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=756398033889';
+import { colonialShooter } from './frontier.js?v=756398033889';
+import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=756398033889';
 
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,

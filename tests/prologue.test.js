@@ -32,6 +32,7 @@ test('the first two nights teach movement, attacks and dodging before the third 
 
 test('source clips never replace a playable night and skipped pages cannot start narration late', async t => {
   assert.deepEqual([...new Set(Object.values(PROLOGUE.clips).map(clip => clip.id))].sort(), ['abuelo', 'fuga', 'mapa', 'matuna']);
+  assert.ok(PROLOGUE.lines.every((_, page) => !!PROLOGUE.voice[page]?.id));
   for (const page of Object.keys(PROLOGUE.exercises)) assert.equal(PROLOGUE.clips[page], undefined);
   let serveManifest;
   t.mock.method(globalThis, 'fetch', () => new Promise(resolve => { serveManifest = resolve; }));
@@ -52,7 +53,10 @@ test('source clips never replace a playable night and skipped pages cannot start
   const media = createStoryMedia({ video, voice, replay, settings: { audio_enabled: true, audio_volume: .55 } });
   const skipped = media.show(PROLOGUE.clips[0], PROLOGUE.voice[0]);
   media.clear();
-  serveManifest({ ok: true, json: async () => ({ videos: ['abuelo'], voices: ['abuelo-marea', 'benkos-nino-barcos'] }) });
+  serveManifest({ ok: true, json: async () => ({
+    videos: ['abuelo'], voices: ['abuelo-marea', 'benkos-nino-barcos'],
+    localVoices: ['benkos-nino-barcos', 'narrador-travesia']
+  }) });
   await skipped;
   assert.equal(video.src, '');
   assert.equal(voice.src, '');
@@ -61,6 +65,12 @@ test('source clips never replace a playable night and skipped pages cannot start
   assert.equal(video.currentTime, 15);
   assert.equal(voice.volume, .55);
   assert.equal(voice.playing, true);
+  assert.ok(voice.src.endsWith('.mp3'));
+  voice.onerror();
+  assert.ok(voice.src.endsWith('benkos-nino-barcos.wav'));
+  await media.show(undefined, PROLOGUE.voice[6]);
+  assert.ok(voice.src.endsWith('narrador-travesia.wav'));
+  assert.equal(replay.textContent, 'Repetir voz');
   media.clear();
   assert.equal(video.playing, false);
   assert.equal(voice.playing, false);

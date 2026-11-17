@@ -1,6 +1,6 @@
-import { COLONIAL_POSTS, colonialShooter, fortTowers, towerHealth } from './frontier.js?v=f7ff6b3bfb83';
-import { CITIES } from './story.js?v=f7ff6b3bfb83';
-import { TOWER_TIERS } from './settlement.js?v=f7ff6b3bfb83';
+import { COLONIAL_POSTS, colonialShooter, fortTowers, towerHealth } from './frontier.js?v=756398033889';
+import { CITIES } from './story.js?v=756398033889';
+import { TOWER_TIERS } from './settlement.js?v=756398033889';
 
 export const COLONIAL_TOWERS = [...COLONIAL_POSTS, ...CITIES].flatMap(fortTowers);
 const towersById = new Map(COLONIAL_TOWERS.map(tower => [tower.id, tower]));
