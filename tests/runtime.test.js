@@ -55,7 +55,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().mode,'menu');
   elements.get('btnNewGame').click(); assert.equal(inspect().mode,'playing');
   assert.equal(elements.get('storyDialog').open,true);
-  elements.get('btnStoryNext').click();assert.equal(elements.get('storySpeaker').textContent,'Benkos');
+  elements.get('btnStoryNext').click();assert.equal(elements.get('storySpeaker').textContent,'Benkos pequeño');
   elements.get('btnStorySkip').click();
   key('KeyM');assert.equal(elements.get('mapDialog').open,true);
   const markers=elements.get('mapMarkers').children;

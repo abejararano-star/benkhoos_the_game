@@ -7,12 +7,12 @@
 <meta name="description" content="Construye, libera y defiende el Palenque de la Matuna. Estrategia y acción para PC.">
 <title>Benkhoos · El Palenque de la Matuna</title>
 <link rel="icon" href="assets/ui/emblem.svg">
-<link rel="stylesheet" href="css/game.css?v=83d9fc2da44e">
-<script src="js/db.js?v=83d9fc2da44e" defer>
+<link rel="stylesheet" href="css/game.css?v=f7ff6b3bfb83">
+<script src="js/db.js?v=f7ff6b3bfb83" defer>
 </script>
-<script src="js/sprite_manager.js?v=83d9fc2da44e" defer>
+<script src="js/sprite_manager.js?v=f7ff6b3bfb83" defer>
 </script>
-<script type="module" src="js/game.js?v=83d9fc2da44e">
+<script type="module" src="js/game.js?v=f7ff6b3bfb83">
 </script>
 </head>
 <body>
@@ -458,15 +458,20 @@
 <dialog id="storyDialog" class="story-scene" aria-labelledby="storyTitle">
   <div class="story-scene-content">
     <header><span id="storyChapter" class="eyebrow"></span><h2 id="storyTitle"></h2></header>
-    <canvas id="storyStage" class="story-stage hidden" width="640" height="360" aria-hidden="true"></canvas>
+    <div id="storyVisual" class="story-visual hidden">
+      <canvas id="storyStage" class="story-stage" width="640" height="360" aria-hidden="true"></canvas>
+      <video id="storyVideo" class="story-video hidden" muted playsinline preload="none" aria-hidden="true"></video>
+    </div>
+    <audio id="storyVoice" preload="none" aria-hidden="true"></audio>
     <div class="story-dialogue"><canvas id="storyPortrait" width="156" height="164" aria-hidden="true"></canvas><div aria-live="polite"><strong id="storySpeaker"></strong><p id="storyLine"></p></div></div>
     <section id="storyExercise" class="story-exercise hidden" aria-label="Controles del prólogo">
       <p id="storyExerciseCue" aria-live="polite"></p>
       <div><button id="storyMoveLeft" aria-label="Caminar a la izquierda">←</button><button id="storyMoveRight" aria-label="Caminar a la derecha">→</button>
       <button id="storyAttack">Atacar</button><button id="storyDodge">Esquivar</button></div>
     </section>
+    <p id="storyNote" class="story-note hidden"></p>
     <div id="storyChoices" class="story-choices"></div>
-    <footer><span id="storyProgress"></span><button id="btnStorySkip">Saltar escena</button><button id="btnStoryNext" class="primary">Continuar</button></footer>
+    <footer><span id="storyProgress"></span><button id="btnStoryReplay" class="hidden">Reproducir escena</button><button id="btnStorySkip">Saltar escena</button><button id="btnStoryNext" class="primary">Continuar</button></footer>
   </div>
 </dialog>
 

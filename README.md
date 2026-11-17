@@ -24,6 +24,12 @@ Juego de estrategia y acción para **PC**. Organiza la Matuna, rescata a persona
 
 Los valores predeterminados de XAMPP son `127.0.0.1`, usuario `root`, contraseña vacía. Si tu instalación usa otros, copia `api/config.local.example.php` a `api/config.local.php`. Este archivo está excluido de Git. También se admiten `BENKHOOS_DB_HOST`, `BENKHOOS_DB_NAME`, `BENKHOOS_DB_USER` y `BENKHOOS_DB_PASSWORD`.
 
+## Videos y voces del prólogo
+
+Los videos opcionales van en `assets/prologue-local/` como `abuelo.mp4`, `mapa.mp4`, `fuga.mp4` y `matuna.mp4`. Ejecuta `node tools/generate-prologue-voices.js --index-only` después de copiarlos. Si no están instalados, el prólogo usa las ilustraciones que vienen con el juego.
+
+Para generar el doblaje, configura `ELEVENLABS_API_KEY`, `BENKHOOS_ELEVENLABS_BENKOS_VOICE_ID` y `BENKHOOS_ELEVENLABS_ABUELO_VOICE_ID` en el entorno local y ejecuta `node tools/generate-prologue-voices.js`. Benkos adulto y niño comparten el mismo ID. El comando guarda las pistas junto a los videos y reutiliza las ya generadas. La carpeta multimedia y la configuración privada de `.work/` quedan fuera de Git.
+
 ## Controles
 
 | Tecla | Acción |

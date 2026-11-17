@@ -1,21 +1,22 @@
-import { needsCropCare } from './crops.js?v=83d9fc2da44e';
-import { AMARA_NAME, amaraNearby } from './amara.js?v=83d9fc2da44e';
-import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=83d9fc2da44e';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=83d9fc2da44e';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=83d9fc2da44e';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=83d9fc2da44e';
-import { describeTraits } from './daily-life.js?v=83d9fc2da44e';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=83d9fc2da44e';
-import { canMediate, relationshipsFor } from './community.js?v=83d9fc2da44e';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=83d9fc2da44e';
-import { ecologyHint } from './ecology.js?v=83d9fc2da44e';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=83d9fc2da44e';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=83d9fc2da44e';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=83d9fc2da44e';
-import { arrivalHint } from './campaign.js?v=83d9fc2da44e';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=83d9fc2da44e';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=83d9fc2da44e';
-import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=83d9fc2da44e';
+import { needsCropCare } from './crops.js?v=f7ff6b3bfb83';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=f7ff6b3bfb83';
+import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=f7ff6b3bfb83';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=f7ff6b3bfb83';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=f7ff6b3bfb83';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=f7ff6b3bfb83';
+import { describeTraits } from './daily-life.js?v=f7ff6b3bfb83';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=f7ff6b3bfb83';
+import { canMediate, relationshipsFor } from './community.js?v=f7ff6b3bfb83';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=f7ff6b3bfb83';
+import { ecologyHint } from './ecology.js?v=f7ff6b3bfb83';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=f7ff6b3bfb83';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=f7ff6b3bfb83';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=f7ff6b3bfb83';
+import { arrivalHint } from './campaign.js?v=f7ff6b3bfb83';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=f7ff6b3bfb83';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=f7ff6b3bfb83';
+import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=f7ff6b3bfb83';
+import { createStoryMedia } from './story-media.js?v=f7ff6b3bfb83';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -30,7 +31,9 @@ export function createUI({ state, session, settings, actions }) {
   let chartSites = [], selectedSite, mapFromPause = false;
   const chartMarkers = new Map();
   const dialogs = [...document.querySelectorAll('dialog')];
+  const storyMedia = createStoryMedia({ video: $('storyVideo'), voice: $('storyVoice'), replay: $('btnStoryReplay'), settings });
   function closeAll() {
+    storyMedia.clear();
     dialogs.forEach(d => { if (d.open) d.close(); });
     document.body.classList.remove('modal-open');
   }
@@ -126,10 +129,14 @@ export function createUI({ state, session, settings, actions }) {
     exercise = night ? createExercise(night) : null;
     const illustrated = !!cinematic.art?.[storyPage];
     $('storyDialog').classList.toggle('illustrated', illustrated);
-    $('storyStage').classList.toggle('hidden', !illustrated);
+    $('storyVisual').classList.toggle('hidden', !illustrated);
     $('storyExercise').classList.toggle('hidden', !exercise);
     $('btnStoryNext').disabled = !!exercise;
     if (exercise) text('storyExerciseCue', exerciseCue(exercise));
+    const note = cinematic.notes?.[storyPage];
+    text('storyNote', note ?? '');
+    $('storyNote').classList.toggle('hidden', !note);
+    void storyMedia.show(cinematic.clips?.[storyPage], cinematic.voice?.[storyPage]);
     const g = $('storyPortrait').getContext('2d');
     g.clearRect(0, 0, 156, 164);
     const isAmara = speaker === 'Amara' || speaker === AMARA_NAME;
@@ -170,7 +177,7 @@ export function createUI({ state, session, settings, actions }) {
   }
 
   function updateStoryFrame(dt) {
-    if (!$('storyDialog').open || !cinematic?.art?.[storyPage]) return;
+    if (!$('storyDialog').open || !cinematic?.art?.[storyPage] || !$('storyVideo').classList.contains('hidden')) return;
     storyClock += dt;
     const g = $('storyStage').getContext('2d');
     const shot = cinematic.art[storyPage];

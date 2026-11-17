@@ -2,20 +2,37 @@ export const PROLOGUE = {
   chapter: 'Prólogo · A ambos lados del mar',
   title: 'El nombre que cruzó el agua',
   lines: [
-    ['Memoria de la Matuna', 'La tradición sitúa el origen de Benkos en la región de las islas Bijagós. Esta primera parte imagina a su padre y las tres noches de resistencia.'],
-    ['Benkos', 'Mi padre decía que un camino se defiende para que alguien pueda pasar. Cuando vieron los barcos en el horizonte, las familias buscaron refugio entre los manglares.'],
+    ['Abuelo', 'Benkos, mira el agua. Cuando sube la marea, cambia el camino. Aprende a oírla.'],
+    ['Benkos pequeño', 'Abuelo, si vuelven los barcos, ¿nos escondemos entre los manglares?'],
     ['Primera noche', 'Mueve al padre de Benkos con A y D o las flechas. Cuando se acerque el primer asaltante, ataca con Espacio.'],
     ['Segunda noche', 'Llegan dos asaltantes. Pulsa Mayús para esquivar cuando veas la señal de ataque. Abre paso para que las familias alcancen el manglar.'],
     ['Tercera noche', 'Defiende el sendero mientras las últimas familias se retiran. Al amanecer, el padre de Benkos queda rodeado.'],
     ['Benkos', 'Se apagaron los fuegos. Los traficantes se llevaron a los cautivos para venderlos en los dominios españoles.'],
     ['Travesía del Atlántico', 'Bajo cubierta apenas había aire para respirar. Las personas cautivas viajaban hacinadas, con poca agua. Hubo quienes murieron antes de que el barco tocara tierra.'],
     ['Cartagena · Finales del siglo XVI', 'Las familias que sobrevivieron fueron desembarcadas y vendidas bajo el dominio colonial español. A Benkos lo llamaron Domingo.'],
-    ['Infancia · Dramatización', 'Cerca de los muelles, el joven Benkos aprende a leer la corriente y a distinguir los remos en la oscuridad.'],
-    ['La fuga · Hacia 1599', 'Benkos y otros cautivos huyeron de Cartagena. El agua y los manglares les permitieron internarse hacia la ciénaga de la Matuna.'],
+    ['Benkos', 'Estudiamos el camino. Si salíamos juntos de Cartagena, podíamos alcanzar la ciénaga.'],
+    ['Benkos', 'Salimos juntos hacia la Matuna. La oscuridad y el manglar nos cubrieron.'],
     ['Wiwa', 'Hicimos un refugio en la Matuna. En las haciendas cercanas todavía hay gente presa. Si volvemos por ellos, que nadie tenga que volver solo.'],
-    ['Benkos', 'En La Matuna, mantén S junto a un puesto para invertir reales y pulsa E en la casa central para abrir el consejo. Primero vamos por quienes quedaron atrás.']
+    ['Benkos', 'Aquí levantamos La Matuna. Ahora volvamos por quienes quedaron atrás.']
   ],
-  art: ['africa', 'africa', 'africa', 'africa', 'africa', 'captura', 'travesia', 'puerto', 'infancia', 'fuga', 'matuna', 'matuna'],
+  art: ['infancia', 'infancia', 'africa', 'africa', 'africa', 'captura', 'travesia', 'puerto', 'consejo', 'fuga', 'matuna', 'matuna'],
+  notes: {
+    0: 'Islas Bijagós, hacia finales del siglo XVI · La infancia, el abuelo y las tres noches se presentan como dramatización.',
+    9: 'La fuga · Hacia 1599',
+    11: 'Mantén S junto a un puesto para invertir reales. Pulsa E en la casa central para abrir el consejo.'
+  },
+  clips: {
+    0: { id: 'abuelo', end: .5 }, 1: { id: 'abuelo', start: .5 },
+    8: { id: 'mapa' }, 9: { id: 'fuga' }, 10: { id: 'matuna', end: .68 }, 11: { id: 'matuna', start: .68 }
+  },
+  voice: {
+    0: { id: 'abuelo-marea', role: 'abuelo' },
+    1: { id: 'benkos-nino-barcos', role: 'nino' },
+    5: { id: 'benkos-captura', role: 'benkos' },
+    8: { id: 'benkos-mapa', role: 'benkos' },
+    9: { id: 'benkos-fuga', role: 'benkos' },
+    11: { id: 'benkos-matuna', role: 'benkos' }
+  },
   exercises: { 2: 1, 3: 2, 4: 3 }
 };
 
