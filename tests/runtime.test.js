@@ -55,7 +55,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().mode,'menu');
   elements.get('btnNewGame').click(); assert.equal(inspect().mode,'playing');
   assert.equal(elements.get('storyDialog').open,true);
-  elements.get('btnStoryNext').click();assert.equal(elements.get('storySpeaker').textContent,'Benkos pequeño');
+  elements.get('btnStoryNext').click();assert.equal(elements.get('storySpeaker').textContent,'Benkos');
   elements.get('btnStorySkip').click();
   key('KeyM');assert.equal(elements.get('mapDialog').open,true);
   const markers=elements.get('mapMarkers').children;
@@ -403,7 +403,7 @@ test('the prologue checkpoints and Cartagena plays the historical ending from th
   elements.get('btnNewGame').click();
   elements.get('btnStoryNext').click();
   elements.get('btnStoryNext').click();
-  assert.equal(elements.get('storySpeaker').textContent, 'Primera noche');
+  assert.match(elements.get('storyNote').textContent, /Primera noche.*Espacio/);
   assert.equal(elements.get('btnStoryNext').disabled, true);
   key('KeyD'); advance(.55); key('KeyD', true);
   for (let i = 0; i < 24 && elements.get('btnStoryNext').disabled; i++) {
@@ -414,7 +414,7 @@ test('the prologue checkpoints and Cartagena plays the historical ending from th
   assert.equal(inspect().state.story.prologuePage, 3);
   await window.gameApp.save();
   await window.gameApp.load();
-  assert.equal(elements.get('storySpeaker').textContent, 'Segunda noche');
+  assert.match(elements.get('storyNote').textContent, /Segunda noche.*Mayús/);
   assert.equal(elements.get('btnStoryNext').disabled, true);
   elements.get('btnStorySkip').click();
   assert.equal(inspect().state.story.prologuePage, null);

@@ -1,4 +1,4 @@
-import { advancePlayerAttack, inStrikeRange, startPlayerAttack } from './combat.js?v=756398033889';
+import { advancePlayerAttack, inStrikeRange, startPlayerAttack } from './combat.js?v=f1f96fdde58b';
 
 export const PROLOGUE_WIDTH = 640;
 export const PROLOGUE_HEIGHT = 360;

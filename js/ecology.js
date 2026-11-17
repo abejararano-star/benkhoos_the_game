@@ -1,5 +1,5 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=756398033889';
-import { updateJaguar } from './jaguar.js?v=756398033889';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=f1f96fdde58b';
+import { updateJaguar } from './jaguar.js?v=f1f96fdde58b';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},

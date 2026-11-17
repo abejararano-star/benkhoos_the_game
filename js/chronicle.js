@@ -2,22 +2,27 @@ export const PROLOGUE = {
   chapter: 'Prólogo · A ambos lados del mar',
   title: 'El nombre que cruzó el agua',
   lines: [
-    ['Abuelo', 'Benkos, mira el agua. Cuando sube la marea, cambia el camino. Aprende a oírla.'],
-    ['Benkos pequeño', 'Abuelo, si vuelven los barcos, ¿nos escondemos entre los manglares?'],
-    ['Primera noche', 'Mueve al padre de Benkos con A y D o las flechas. Cuando se acerque el primer asaltante, ataca con Espacio.'],
-    ['Segunda noche', 'Llegan dos asaltantes. Pulsa Mayús para esquivar cuando veas la señal de ataque. Abre paso para que las familias alcancen el manglar.'],
-    ['Tercera noche', 'Defiende el sendero mientras las últimas familias se retiran. Al amanecer, el padre de Benkos queda rodeado.'],
-    ['Benkos', 'Se apagaron los fuegos. Los traficantes se llevaron a los cautivos para venderlos en los dominios españoles.'],
-    ['Travesía del Atlántico', 'Bajo cubierta apenas había aire para respirar. Las personas cautivas viajaban hacinadas, con poca agua. Hubo quienes murieron antes de que el barco tocara tierra.'],
-    ['Cartagena · Finales del siglo XVI', 'Las familias que sobrevivieron fueron desembarcadas y vendidas bajo el dominio colonial español. A Benkos lo llamaron Domingo.'],
-    ['Benkos', 'Estudiamos el camino. Si salíamos juntos de Cartagena, podíamos alcanzar la ciénaga.'],
-    ['Benkos', 'Salimos juntos hacia la Matuna. La oscuridad y el manglar nos cubrieron.'],
-    ['Wiwa', 'Hicimos un refugio en la Matuna. En las haciendas cercanas todavía hay gente presa. Si volvemos por ellos, que nadie tenga que volver solo.'],
-    ['Benkos', 'Aquí levantamos La Matuna. Ahora volvamos por quienes quedaron atrás.']
-  ],
+    'De niño, mi abuelo me llevaba a mirar el agua. Esperábamos juntos a que subiera la marea. Entonces me mostraba cómo un camino que acabábamos de cruzar desaparecía bajo nuestros pies.',
+    'La tarde en que aparecieron las velas, dejé de oír a los niños que jugaban detrás de las casas. Mi abuelo me tomó de la mano y echó a andar hacia los manglares. Mi padre se quedó en el sendero.',
+    'La primera noche, mi padre oyó pasos en la arena. Esperó a que el asaltante saliera de la sombra. Detrás de él, las primeras familias cruzaron hacia el manglar.',
+    'La segunda noche llegaron dos por el mismo camino. Mi padre cedió unos pasos y los apartó del cruce. A sus espaldas, alguien cargó a un niño para que pudiera pasar sin hacer ruido.',
+    'La tercera noche, mi padre aguantó hasta que pasó la última familia. Al amanecer vio hombres a ambos lados del sendero. Para entonces, ya estaba rodeado.',
+    'Los traficantes nos llevaron a la orilla. Había botes esperando. Desde uno de ellos vi apagarse el último fuego de la aldea.',
+    'Bajo cubierta apenas corría el aire. Éramos tantos que costaba tenderse. El agua escaseaba. Una mañana, la persona que había dormido a mi lado ya no respiraba. Hubo más que nunca llegaron a tierra.',
+    'Desembarcamos en Cartagena. A los que sobrevivimos nos separaron y nos vendieron. Allí empezaron a llamarme Domingo. Yo seguí recordando el nombre con que me llamaba mi abuelo.',
+    'Años después, nos reunimos alrededor de un mapa. Una mujer conocía los turnos de la guardia. Otro sabía dónde el agua era menos profunda. Entre todos encontramos una salida hacia la ciénaga.',
+    'Salimos de noche. En los tramos bajos caminamos con el agua a la cintura. Cada vez que alguien perdía pie, los demás parábamos y le tendíamos la mano. Así llegamos juntos a la Matuna.',
+    'En la Matuna levantamos primero un techo para descansar. Luego vinieron los cultivos, las casas y la guardia. Por fin pudimos encender un fuego sin tener que apagarlo al oír pasos.',
+    'Desde La Matuna todavía se veían los caminos de las haciendas. Sabíamos quiénes seguían al otro lado de sus portones. Cuando llegó el momento, volvimos por ellos.'
+  ].map(text => ['Benkos', text]),
   art: ['infancia', 'infancia', 'africa', 'africa', 'africa', 'captura', 'travesia', 'puerto', 'consejo', 'fuga', 'matuna', 'matuna'],
   notes: {
     0: 'Islas Bijagós, hacia finales del siglo XVI · La infancia, el abuelo y las tres noches se presentan como dramatización.',
+    2: 'Primera noche · Camina con A y D o las flechas. Ataca con Espacio.',
+    3: 'Segunda noche · Pulsa Mayús para esquivar cuando veas la señal de ataque.',
+    4: 'Tercera noche · Cubre la retirada hasta el amanecer.',
+    6: 'Travesía del Atlántico',
+    7: 'Cartagena · Finales del siglo XVI',
     9: 'La fuga · Hacia 1599',
     11: 'Mantén S junto a un puesto para invertir reales. Pulsa E en la casa central para abrir el consejo.'
   },
@@ -25,20 +30,10 @@ export const PROLOGUE = {
     0: { id: 'abuelo', end: .5 }, 1: { id: 'abuelo', start: .5 },
     8: { id: 'mapa' }, 9: { id: 'fuga' }, 10: { id: 'matuna', end: .68 }, 11: { id: 'matuna', start: .68 }
   },
-  voice: {
-    0: { id: 'abuelo-marea', role: 'abuelo' },
-    1: { id: 'benkos-nino-barcos', role: 'nino' },
-    2: { id: 'narrador-primera-noche', role: 'narrador' },
-    3: { id: 'narrador-segunda-noche', role: 'narrador' },
-    4: { id: 'narrador-tercera-noche', role: 'narrador' },
-    5: { id: 'benkos-captura', role: 'benkos' },
-    6: { id: 'narrador-travesia', role: 'narrador' },
-    7: { id: 'narrador-cartagena', role: 'narrador' },
-    8: { id: 'benkos-mapa', role: 'benkos' },
-    9: { id: 'benkos-fuga', role: 'benkos' },
-    10: { id: 'wiwa-refugio', role: 'wiwa' },
-    11: { id: 'benkos-matuna', role: 'benkos' }
-  },
+  voice: [
+    'abuelo-marea', 'benkos-nino-barcos', 'narrador-primera-noche', 'narrador-segunda-noche', 'narrador-tercera-noche',
+    'benkos-captura', 'narrador-travesia', 'narrador-cartagena', 'benkos-mapa', 'benkos-fuga', 'wiwa-refugio', 'benkos-matuna'
+  ].map(id => ({ id, role: 'benkos' })),
   exercises: { 2: 1, 3: 2, 4: 3 }
 };
 
