@@ -192,7 +192,7 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   advance(.02);assert.equal(inspect().state.enemies.length,0);assert.equal(inspect().state.campaign.orders.length,2);
   advance(6.2);assert.equal(inspect().state.enemies.length,2);assert.ok(inspect().state.enemies.every(e=>Math.abs(e.x)>1200));
   advance(5);assert.ok(inspect().state.enemies.every(e=>Number.isFinite(e.x)));
-  // A telegraphed enemy attack spends reserves rather than minting free money.
+  // A telegraphed enemy attack spends coins from the bag.
   const enemy=()=>({id:500,type:'SOLDADO_ESPANOL',...ENEMY_CATALOG.SOLDADO_ESPANOL,maxHp:75,x:0,y:268,vx:0,facing:1,phase:1,attackCooldown:0,attackAnimTimer:0,tauntTimer:0,appearTimer:0,stunTimer:0,nettedTimer:0,bleedTimer:0,animTime:0,stolenCoins:0,muzzleFlash:0,trumpetRing:0});
   await loadState(s=>{s.benkos.x=0;s.timeOfDay=.24;s.phase='DAY_EXPLORE';s.haciendas[0].destroyed=s.haciendas[1].destroyed=true;s.enemies=[];});
   key('KeyE');assert.equal(elements.get('storyTitle').textContent,'Los caminos de la libertad');
@@ -217,11 +217,28 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   advance(.13);assert.ok(inspect().state.enemies[0].hp<75);assert.equal(inspect().state.enemies[1].hp,75);
   key('KeyA');advance(.05);key('KeyA',true);assert.equal(inspect().state.benkos.facing,1);
   while(inspect().state.benkos.attackTimer>.12)advance(.02);key('Space');assert.equal(inspect().state.benkos.queuedAttack,true);advance(.2);assert.equal(inspect().state.benkos.comboStep,2);advance(1);
-  await loadState(s=>{s.timeOfDay=.2;s.phase='DAY_EXPLORE';s.benkos.x=0;s.benkos.invulnTimer=0;s.benkos.ceibaTimer=0;s.benkos.dashTimer=0;s.coins=0;s.treasuryCoins=12;s.units=[];s.enemies=[enemy()];});
+  await loadState(s=>{s.timeOfDay=.2;s.phase='DAY_EXPLORE';s.benkos.x=0;s.benkos.invulnTimer=0;s.benkos.ceibaTimer=0;s.benkos.dashTimer=0;s.coins=2;s.treasuryCoins=12;s.droppedCoins=[];s.units=[];s.enemies=[enemy()];});
   advance(.2);assert.equal(inspect().state.treasuryCoins,12);assert.ok(inspect().state.enemies[0].windupTimer>0);
-  advance(.3);assert.equal(inspect().state.treasuryCoins,4);assert.equal(inspect().state.coins,3);assert.equal(inspect().state.rescueCount,1);
-  await loadState(s=>{s.benkos.invulnTimer=0;s.coins=0;s.treasuryCoins=0;s.enemies=[enemy()];});
-  advance(.5);assert.equal(inspect().mode,'defeat');const overTime=inspect().state.timeOfDay;advance(1);assert.equal(inspect().state.timeOfDay,overTime);
+  advance(.23);
+  assert.equal(inspect().state.treasuryCoins,12);assert.equal(inspect().state.coins,0);assert.equal(inspect().state.rescueCount,0);
+  assert.equal(inspect().state.status,'playing');
+  assert.ok(inspect().state.droppedCoins.length>0);
+  assert.ok(inspect().state.droppedCoins.every(coin=>coin.fallsInRiver&&!coin.recoverable&&coin.vy>0));
+  advance(.35);
+  assert.equal(inspect().state.droppedCoins.length,0);assert.equal(inspect().state.coins,0);
+  await loadState(s=>{s.benkos.invulnTimer=0;s.coins=0;s.enemies=[enemy()];});
+  advance(.5);assert.equal(inspect().mode,'defeat');
+  assert.equal(inspect().state.treasuryCoins,12);assert.equal(inspect().state.defeatReason,'captured');
+  assert.equal(elements.get('storyTitle').textContent,'La última guardia');
+  const overTime=inspect().state.timeOfDay;
+  advance(1);assert.equal(inspect().state.timeOfDay,overTime);
+  assert.match(elements.get('storyLine').textContent,/inmoviliza/);
+  advance(2);assert.match(elements.get('storyLine').textContent,/grilletes/);
+  advance(3);assert.match(elements.get('storyLine').textContent,/encadenado/);
+  advance(4);assert.match(elements.get('storyLine').textContent,/guillotina/);
+  advance(6);
+  assert.equal(elements.get('resultDialog').open,true);
+  assert.match(elements.get('resultDescription').textContent,/capturado y ejecutado/);
   // A completed campaign can award victory only once.
   await loadState(s=>{s.status='playing';s.benkos.invulnTimer=0;s.coins=16;s.haciendas.forEach(h=>h.destroyed=true);s.story.completed=ESTATES.map(site=>site.id);s.story.finale='witnesses';s.bossesDefeated=1;s.enemies=[{...enemy(),type:'GOBERNADOR_GIRON',isBoss:true,phase:2,hp:0}];});
   advance(.02);assert.equal(inspect().mode,'victory');assert.equal(elements.get('storyTitle').textContent,'Quienes dieron testimonio');const count=records.length;advance(1);assert.equal(records.length,count);

@@ -1,22 +1,23 @@
-import { needsCropCare } from './crops.js?v=f1f96fdde58b';
-import { AMARA_NAME, amaraNearby } from './amara.js?v=f1f96fdde58b';
-import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=f1f96fdde58b';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=f1f96fdde58b';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=f1f96fdde58b';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=f1f96fdde58b';
-import { describeTraits } from './daily-life.js?v=f1f96fdde58b';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=f1f96fdde58b';
-import { canMediate, relationshipsFor } from './community.js?v=f1f96fdde58b';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=f1f96fdde58b';
-import { ecologyHint } from './ecology.js?v=f1f96fdde58b';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=f1f96fdde58b';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=f1f96fdde58b';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=f1f96fdde58b';
-import { arrivalHint } from './campaign.js?v=f1f96fdde58b';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=f1f96fdde58b';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=f1f96fdde58b';
-import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=f1f96fdde58b';
-import { createStoryMedia } from './story-media.js?v=f1f96fdde58b';
+import { needsCropCare } from './crops.js?v=9c0121bc3842';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=9c0121bc3842';
+import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=9c0121bc3842';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=9c0121bc3842';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=9c0121bc3842';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=9c0121bc3842';
+import { describeTraits } from './daily-life.js?v=9c0121bc3842';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=9c0121bc3842';
+import { canMediate, relationshipsFor } from './community.js?v=9c0121bc3842';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=9c0121bc3842';
+import { ecologyHint } from './ecology.js?v=9c0121bc3842';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=9c0121bc3842';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=9c0121bc3842';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=9c0121bc3842';
+import { arrivalHint } from './campaign.js?v=9c0121bc3842';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=9c0121bc3842';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=9c0121bc3842';
+import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=9c0121bc3842';
+import { createStoryMedia } from './story-media.js?v=9c0121bc3842';
+import { CAPTURE_DURATION, drawCapture } from './capture.js?v=9c0121bc3842';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -131,7 +132,7 @@ export function createUI({ state, session, settings, actions }) {
     $('storyDialog').classList.toggle('illustrated', illustrated);
     $('storyVisual').classList.toggle('hidden', !illustrated);
     $('storyExercise').classList.toggle('hidden', !exercise);
-    $('btnStoryNext').disabled = !!exercise;
+    $('btnStoryNext').disabled = !!exercise || !!cinematic.capture;
     if (exercise) text('storyExerciseCue', exerciseCue(exercise));
     const note = cinematic.notes?.[storyPage];
     text('storyNote', note ?? '');
@@ -153,8 +154,8 @@ export function createUI({ state, session, settings, actions }) {
       choices.append(button);
     }
     $('btnStoryNext').classList.toggle('hidden', last && !!cinematic.choices?.length);
-    text('btnStoryNext', last ? 'Volver al juego' : 'Continuar');
-    text('btnStorySkip', cinematic.exercises ? 'Saltar prólogo' : cinematic.choices?.length ? 'Cerrar consejo' : 'Saltar escena');
+    text('btnStoryNext', cinematic.capture ? 'Secuencia en curso' : last ? 'Volver al juego' : 'Continuar');
+    text('btnStorySkip', cinematic.capture ? 'Omitir secuencia' : cinematic.exercises ? 'Saltar prólogo' : cinematic.choices?.length ? 'Cerrar consejo' : 'Saltar escena');
     updateStoryFrame(0);
   }
   function closeStory() {
@@ -177,8 +178,9 @@ export function createUI({ state, session, settings, actions }) {
     return true;
   }
 
-  function updateStoryFrame(dt) {
+  function updateStoryFrame(dt, frameElapsed = dt) {
     if (!$('storyDialog').open || !cinematic?.art?.[storyPage] || !$('storyVideo').classList.contains('hidden')) return;
+    if (cinematic.capture) dt = Math.min(1, frameElapsed);
     storyClock += dt;
     const g = $('storyStage').getContext('2d');
     const shot = cinematic.art[storyPage];
@@ -192,8 +194,22 @@ export function createUI({ state, session, settings, actions }) {
     if (frame && sheet) {
       const inset = motion && !exercise ? Math.min(9, storyClock * 1.4) : 0;
       const rock = motion && shot === 'travesia' ? Math.sin(storyClock * 1.6) * 2 : 0;
-      g.drawImage(sheet, frame.x, frame.y, frame.w, frame.h, -inset, -inset + rock,
-        PROLOGUE_WIDTH + inset * 2, PROLOGUE_HEIGHT + inset * 2);
+      if (cinematic.capture) {
+        // Use the distant skyline, keeping the close-up port figures out of the stage.
+        g.drawImage(sheet, frame.x, frame.y, frame.w, Math.round(frame.h * .52),
+          0, 0, PROLOGUE_WIDTH, 300);
+      } else {
+        g.drawImage(sheet, frame.x, frame.y, frame.w, frame.h, -inset, -inset + rock,
+          PROLOGUE_WIDTH + inset * 2, PROLOGUE_HEIGHT + inset * 2);
+      }
+    }
+    if (cinematic.capture) {
+      if (storyClock >= 2 && storyClock - dt < 2) actions.storySound?.('chainBreak');
+      if (storyClock >= 12.5 && storyClock - dt < 12.5) actions.storySound?.('slash');
+      text('storyLine', drawCapture(g, manager, storyClock, settings.reduce_motion));
+      text('storyProgress', storyClock < 2 ? '1 / 4' : storyClock < 4 ? '2 / 4' : storyClock < 10 ? '3 / 4' : '4 / 4');
+      if (storyClock >= CAPTURE_DURATION) closeStory();
+      return;
     }
     if (exercise?.night === 3) {
       g.fillStyle = `rgba(219,127,63,${Math.min(.23, exercise.clock / 16 * .19)})`;
@@ -225,10 +241,11 @@ export function createUI({ state, session, settings, actions }) {
     session.mode = status;
     const historical = status === 'victory' && state.story.finale === 'historical';
     text('resultTitle', historical ? 'La memoria de Benkos Biohó' : status === 'victory' ? 'La Matuna permanece libre' : 'La resistencia necesita un nuevo comienzo');
-    text('resultDescription', historical ? 'Cartagena · 16 de marzo de 1621. El palenque sobrevivió en la memoria y la resistencia.' :
+    text('resultDescription', status === 'defeat' && state.defeatReason === 'captured' ? 'Benkos recibió un golpe con la bolsa vacía. Fue capturado y ejecutado.' :
+      historical ? 'Cartagena · 16 de marzo de 1621. El palenque sobrevivió en la memoria y la resistencia.' :
       status === 'defeat' && state.benkos.waterFall ? 'Benkos cayó al río y la corriente lo arrastró.' : status === 'victory'
       ? state.story.finale === 'witnesses' ? 'Los testimonios de las personas liberadas ya viajan por los caminos.' : 'La Matuna y sus aliados mantienen abiertos los caminos de refugio.'
-      : `Benkos cayó sin plata en la bolsa y el cofre no tenía los ${BALANCE.rescueCost} reales necesarios para rescatarlo.`);
+      : 'La resistencia ha perdido a Benkos.');
     text('resultStats', `Día ${state.day} · ${state.fugitivesFreed} personas liberadas · ${state.enemiesDefeated} enemigos derrotados · ${state.score} puntos${state.sandbox ? ' · Campaña de prueba' : ''}`);
     if (show) open('resultDialog');
   }
@@ -265,7 +282,7 @@ export function createUI({ state, session, settings, actions }) {
     $('phaseProgress').style.width = `${state.timeOfDay * 100}%`;
     text('hudSpiritText', `${Math.floor(state.benkos.spirit)} / ${state.benkos.maxSpirit}`);
     $('hudSpiritBar').style.width = `${state.benkos.spirit / state.benkos.maxSpirit * 100}%`;
-    const crownStatus = state.coins ? `Protegido por ${state.coins} reales` : `Sin escudo · Rescate: ${BALANCE.rescueCost} del cofre`;
+    const crownStatus = state.coins ? `Protegido por ${state.coins} reales` : 'Bolsa vacía · Un golpe causa la captura';
     text('hudCrownStatus', state.benkos.wound > 0 ? `${crownStatus} · Herido · Busca la botica` : crownStatus);
     $('hudCrownStatus').classList.toggle('danger', state.coins === 0 || state.benkos.wound > 0);
     $('hudMountBadge').classList.toggle('hidden', !state.benkos.mounted);
@@ -357,7 +374,7 @@ export function createUI({ state, session, settings, actions }) {
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   on('btnStoryNext', () => {
-    if (!cinematic || exercise && !exercise.finished) return;
+    if (!cinematic || cinematic.capture || exercise && !exercise.finished) return;
     if (++storyPage < cinematic.lines.length) renderStory(); else closeStory();
   });
   on('btnStorySkip', closeStory);

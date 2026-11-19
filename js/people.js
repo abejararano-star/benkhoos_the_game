@@ -1,7 +1,7 @@
-import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=f1f96fdde58b';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=f1f96fdde58b';
-import { ensureTraits, griefEffect } from './daily-life.js?v=f1f96fdde58b';
-import { addWound, healerAtCamp, recoverHealth } from './care.js?v=f1f96fdde58b';
+import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=9c0121bc3842';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=9c0121bc3842';
+import { ensureTraits, griefEffect } from './daily-life.js?v=9c0121bc3842';
+import { addWound, healerAtCamp, recoverHealth } from './care.js?v=9c0121bc3842';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón', CURANDERO:'Curandero', BRUJO:'Brujo' });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });

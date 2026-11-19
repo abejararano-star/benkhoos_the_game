@@ -51,7 +51,7 @@ En Windows puedes generar las voces de respaldo sin conexión con `powershell.ex
 | F5 / F9 | Guardar / cargar |
 | F11 | Pantalla completa |
 
-La bolsa admite 24 reales. El rescate cuesta 8 del cofre y entrega 3 en la bolsa. Las partidas se guardan al amanecer y manualmente. La guía, las decisiones y los menús detienen la simulación. La pérdida de foco pausa el juego y limpia las teclas.
+La bolsa admite 24 reales. Los golpes mandan las monedas perdidas directamente al agua. Un golpe con la bolsa vacía termina la campaña con una secuencia de captura, encadenamiento y traslado al cadalso. La guillotina de esta derrota pertenece a la dramatización del juego. Las partidas se guardan al amanecer y manualmente. La guía, las decisiones y los menús detienen la simulación. La pérdida de foco pausa el juego y limpia las teclas.
 
 ## Guardado
 

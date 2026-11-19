@@ -1,33 +1,34 @@
-import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=f1f96fdde58b';
-import { ensureCrop, needsCropCare } from './crops.js?v=f1f96fdde58b';
-import { NIGHT_START } from './daylight.js?v=f1f96fdde58b';
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=f1f96fdde58b';
-import { GROUND_COIN_LIFE } from './coins.js?v=f1f96fdde58b';
-import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=f1f96fdde58b';
-import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=f1f96fdde58b';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=f1f96fdde58b';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=f1f96fdde58b';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus } from './settlement.js?v=f1f96fdde58b';
-import { emitEffect } from './effects.js?v=f1f96fdde58b';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=f1f96fdde58b';
-import { AfroColombianAudioEngine } from './audio.js?v=f1f96fdde58b';
-import { createInitialState } from './world-state.js?v=f1f96fdde58b';
-import { makeSave, restoreSave } from './save-system.js?v=f1f96fdde58b';
-import { createRenderer } from './renderer.js?v=f1f96fdde58b';
-import { createSimulation } from './simulation.js?v=f1f96fdde58b';
-import { FixedStepper } from './clock.js?v=f1f96fdde58b';
-import { bindInput } from './input.js?v=f1f96fdde58b';
-import { createUI } from './ui.js?v=f1f96fdde58b';
-import { chooseDefenseSide } from './ai.js?v=f1f96fdde58b';
-import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=f1f96fdde58b';
-import { addWound } from './care.js?v=f1f96fdde58b';
-import { COLONIAL_TOWERS, damageColonialTower } from './colonial-ai.js?v=f1f96fdde58b';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=f1f96fdde58b';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=f1f96fdde58b';
-import { mediateEncounter } from './community.js?v=f1f96fdde58b';
-import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, canOccupyCity, establishOutpost, estateById, localHaciendas, occupyCity, onEstateLiberated, storyChapter } from './story.js?v=f1f96fdde58b';
-import { historyDeparture, historyEnding, PROLOGUE } from './chronicle.js?v=f1f96fdde58b';
-import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=f1f96fdde58b';
+import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=9c0121bc3842';
+import { ensureCrop, needsCropCare } from './crops.js?v=9c0121bc3842';
+import { NIGHT_START } from './daylight.js?v=9c0121bc3842';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=9c0121bc3842';
+import { GROUND_COIN_LIFE } from './coins.js?v=9c0121bc3842';
+import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=9c0121bc3842';
+import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=9c0121bc3842';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=9c0121bc3842';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=9c0121bc3842';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus } from './settlement.js?v=9c0121bc3842';
+import { emitEffect } from './effects.js?v=9c0121bc3842';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=9c0121bc3842';
+import { AfroColombianAudioEngine } from './audio.js?v=9c0121bc3842';
+import { createInitialState } from './world-state.js?v=9c0121bc3842';
+import { makeSave, restoreSave } from './save-system.js?v=9c0121bc3842';
+import { createRenderer } from './renderer.js?v=9c0121bc3842';
+import { createSimulation } from './simulation.js?v=9c0121bc3842';
+import { FixedStepper } from './clock.js?v=9c0121bc3842';
+import { bindInput } from './input.js?v=9c0121bc3842';
+import { createUI } from './ui.js?v=9c0121bc3842';
+import { chooseDefenseSide } from './ai.js?v=9c0121bc3842';
+import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=9c0121bc3842';
+import { addWound } from './care.js?v=9c0121bc3842';
+import { COLONIAL_TOWERS, damageColonialTower } from './colonial-ai.js?v=9c0121bc3842';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=9c0121bc3842';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=9c0121bc3842';
+import { mediateEncounter } from './community.js?v=9c0121bc3842';
+import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, canOccupyCity, establishOutpost, estateById, localHaciendas, occupyCity, onEstateLiberated, storyChapter } from './story.js?v=9c0121bc3842';
+import { historyDeparture, historyEnding, PROLOGUE } from './chronicle.js?v=9c0121bc3842';
+import { capturedEnding } from './capture.js?v=9c0121bc3842';
+import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=9c0121bc3842';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -865,30 +866,23 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
   if (coinsLost > 0) {
     state.coins -= coinsLost;
     for (let i = 0; i < coinsLost; i++) {
-      const fallsIntoWater = b.inStream && i === coinsLost - 1 && Math.random() < .25;
       spawnPhysicalCoin(
         b.x,
-        WATER_LINE_Y - 22,
-        (Math.random() - 0.5) * 135,
-        -125 - Math.random() * 45,
+        WATER_LINE_Y + 1,
+        (Math.random() - 0.5) * 65,
+        85 + Math.random() * 20,
+        false,
         true,
-        fallsIntoWater,
-        true
+        false
       );
     }
-    addFloatingText(b.x, WATER_LINE_Y - 42, `-${coinsLost} reales  ¡Monedas Caídas!`, '#f87171');
+    addFloatingText(b.x, WATER_LINE_Y - 42, `-${coinsLost} reales al agua`, '#f87171');
   } else {
-    if (state.treasuryCoins >= BALANCE.rescueCost) {
-      state.treasuryCoins -= BALANCE.rescueCost;
-      state.rescueCount++;
-      b.hurtKneelTimer = 1.6; b.invulnTimer = 3;
-      if (b.mounted) state.horses.push({ id: `horse_${nextEntityId++}`, x: b.x, facing: b.facing, rider: null });
-      b.mounted = false; b.x = 0; b.vx = 0;
-      state.coins = BALANCE.rescueGrant;
-      showBanner('WIWA TE HA RESCATADO', `El rescate cuesta ${BALANCE.rescueCost} reales del cofre. Recibes ${BALANCE.rescueGrant} en la bolsa.`);
-    } else {
-      state.status = 'defeat'; finishCampaign('defeat');
-    }
+    state.defeatReason = 'captured';
+    b.attackTimer = 0; b.queuedAttack = false; b.interaction = null; b.vx = 0;
+    b.mounted = false;
+    state.status = 'defeat';
+    finishCampaign('defeat');
   }
   updateHUD();
 }
@@ -1064,7 +1058,8 @@ function finishCampaign(status) {
   };
   const [title, speech] = endings[outcome] ?? endings.network;
   ui.result(status, false);
-  if (outcome === 'historical') ui.openStory(historyEnding(() => ui.result(status)));
+  if (status === 'defeat' && state.defeatReason === 'captured') ui.openStory(capturedEnding(() => ui.result(status)));
+  else if (outcome === 'historical') ui.openStory(historyEnding(() => ui.result(status)));
   else ui.openStory({ chapter: 'Epílogo · La memoria de la Matuna', title,
     art: [outcome === 'conquest' ? 'conquista' : 'matuna', 'matuna'], lines: [
     ['Wiwa', speech],
@@ -1158,7 +1153,8 @@ async function init() {
 }
 let lastTime = performance.now(), hudTime = 0;
 function loop(now) {
-  const elapsed = Math.min(.25, Math.max(0, (now - lastTime) / 1000)); lastTime = now;
+  const frameElapsed = Math.max(0, (now - lastTime) / 1000);
+  const elapsed = Math.min(.25, frameElapsed); lastTime = now;
   if (isPlaying()) {
     stepper.advance(elapsed, dt => { if(isPlaying()){renderFrame.capturePrevious();simulation(dt);} });
 
@@ -1166,7 +1162,7 @@ function loop(now) {
   if (hudTime > .1) { updateHUD(); hudTime = 0; } else hudTime += elapsed;
   renderFrame(stepper.time,isPlaying()?stepper.alpha:1);
   ui.renderWorldOverlay?.(renderFrame.projection());
-  ui.updateStoryFrame(elapsed);
+  ui.updateStoryFrame(elapsed, frameElapsed);
   requestAnimationFrame(loop);
 }
 window.gameApp = Object.freeze({ useSkill, save: () => saveGameToMySQL(), load: loadGameFromMySQL,

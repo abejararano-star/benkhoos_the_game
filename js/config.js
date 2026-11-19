@@ -5,7 +5,7 @@ export const CAMP_EDGE = 1060;
 export const WATER_LINE_Y = 268;
 export const BALANCE = Object.freeze({
   bagCapacity: 24, dayDuration: 225, baseWaveSize: 2,
-  rescueCost: 8, rescueGrant: 3, fixedStep: 1 / 60,
+  fixedStep: 1 / 60,
   tierCosts: [0, 6, 8], farmCapacity: 2, mineCapacity: 2
 });
 export const SKILLS = Object.freeze([

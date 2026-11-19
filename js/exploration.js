@@ -1,4 +1,4 @@
-import { createAnimal } from './ecology.js?v=f1f96fdde58b';
+import { createAnimal } from './ecology.js?v=9c0121bc3842';
 
 export const ALTAR_X = -1880;
 export const TRAIL_SIGNS = [-1565, -1815, -4360];

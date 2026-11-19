@@ -1,16 +1,16 @@
-import { ensureCrossings } from './crossings.js?v=f1f96fdde58b';
-import { NIGHT_START } from './daylight.js?v=f1f96fdde58b';
-import { restoreCommunity } from './community.js?v=f1f96fdde58b';
-import { ensureEcology, seedEcology } from './ecology.js?v=f1f96fdde58b';
-import { seedFrontier } from './exploration.js?v=f1f96fdde58b';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=f1f96fdde58b';
-import { ensurePerson } from './people.js?v=f1f96fdde58b';
-import { restoreAmara } from './amara.js?v=f1f96fdde58b';
-import { ensureSettlement } from './settlement.js?v=f1f96fdde58b';
-import { ensureCampaign } from './campaign.js?v=f1f96fdde58b';
-import { restoreHaciendas } from './haciendas.js?v=f1f96fdde58b';
-import { restoreColonialTowers } from './colonial-ai.js?v=f1f96fdde58b';
-import { restoreStory } from './story.js?v=f1f96fdde58b';
+import { ensureCrossings } from './crossings.js?v=9c0121bc3842';
+import { NIGHT_START } from './daylight.js?v=9c0121bc3842';
+import { restoreCommunity } from './community.js?v=9c0121bc3842';
+import { ensureEcology, seedEcology } from './ecology.js?v=9c0121bc3842';
+import { seedFrontier } from './exploration.js?v=9c0121bc3842';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=9c0121bc3842';
+import { ensurePerson } from './people.js?v=9c0121bc3842';
+import { restoreAmara } from './amara.js?v=9c0121bc3842';
+import { ensureSettlement } from './settlement.js?v=9c0121bc3842';
+import { ensureCampaign } from './campaign.js?v=9c0121bc3842';
+import { restoreHaciendas } from './haciendas.js?v=9c0121bc3842';
+import { restoreColonialTowers } from './colonial-ai.js?v=9c0121bc3842';
+import { restoreStory } from './story.js?v=9c0121bc3842';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -139,6 +139,7 @@ export function restoreSave(save, defaults) {
   next.benkos.wound = number(next.benkos.wound, 0, 0, 3);
   next.benkos.royalArmor = next.benkos.royalArmor && next.armorUnlocked;
   if (!['playing', 'victory', 'defeat'].includes(next.status)) next.status = 'playing';
+  next.defeatReason = next.status === 'defeat' && source.defeatReason === 'captured' ? 'captured' : '';
   if (!['DAY_EXPLORE', 'NIGHT_DEFENSE', 'RED_NIGHT', 'TRUCE_NIGHT'].includes(next.phase)) next.phase = next.timeOfDay >= NIGHT_START ? 'NIGHT_DEFENSE' : 'DAY_EXPLORE';
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);

@@ -1,25 +1,25 @@
-import { stepCrossings } from './crossings.js?v=f1f96fdde58b';
-import { NIGHT_START } from './daylight.js?v=f1f96fdde58b';
-import { recoverCoins } from './coins.js?v=f1f96fdde58b';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=f1f96fdde58b';
-import { collectEquipment } from './equipment.js?v=f1f96fdde58b';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=f1f96fdde58b';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=f1f96fdde58b';
-import { updateCommunity, joinEncounter } from './community.js?v=f1f96fdde58b';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=f1f96fdde58b';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=f1f96fdde58b';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=f1f96fdde58b';
-import { advanceParticle, emitEffect } from './effects.js?v=f1f96fdde58b';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=f1f96fdde58b';
-import { ensureCampaign, finaleWon } from './campaign.js?v=f1f96fdde58b';
-import { OUTPOSTS, expeditionFormation } from './story.js?v=f1f96fdde58b';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=f1f96fdde58b';
-import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=f1f96fdde58b';
-import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=f1f96fdde58b';
-import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=f1f96fdde58b';
-import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=f1f96fdde58b';
-import { colonialShooter } from './frontier.js?v=f1f96fdde58b';
-import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=f1f96fdde58b';
+import { stepCrossings } from './crossings.js?v=9c0121bc3842';
+import { NIGHT_START } from './daylight.js?v=9c0121bc3842';
+import { recoverCoins } from './coins.js?v=9c0121bc3842';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=9c0121bc3842';
+import { collectEquipment } from './equipment.js?v=9c0121bc3842';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=9c0121bc3842';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=9c0121bc3842';
+import { updateCommunity, joinEncounter } from './community.js?v=9c0121bc3842';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=9c0121bc3842';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=9c0121bc3842';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=9c0121bc3842';
+import { advanceParticle, emitEffect } from './effects.js?v=9c0121bc3842';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=9c0121bc3842';
+import { ensureCampaign, finaleWon } from './campaign.js?v=9c0121bc3842';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=9c0121bc3842';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=9c0121bc3842';
+import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=9c0121bc3842';
+import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=9c0121bc3842';
+import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=9c0121bc3842';
+import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=9c0121bc3842';
+import { colonialShooter } from './frontier.js?v=9c0121bc3842';
+import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=9c0121bc3842';
 
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
@@ -1029,7 +1029,7 @@ return function updateSimulation(dt) {
   }
   if (state.status !== 'playing') return;
   updateStory?.();
-  if (finaleWon(state)) {
+  if (state.status === 'playing' && finaleWon(state)) {
     state.story.finalWon = true;
     state.status = 'victory';
     finishCampaign('victory');
