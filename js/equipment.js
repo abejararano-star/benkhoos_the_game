@@ -1,4 +1,4 @@
-import { HQ_X } from './settlement.js?v=b5596998e672';
+import { HQ_X } from './settlement.js?v=ee79ef434f2b';
 
 export const INFANTRY = ['GUERRERO', 'ARQUERO', 'ESPADACHIN'];
 export const RANK_NAMES = ['Básico', 'Élite', 'Real'];

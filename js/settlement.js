@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=b5596998e672';
-import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=b5596998e672';
+import { ALTAR_X } from './exploration.js?v=ee79ef434f2b';
+import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=ee79ef434f2b';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];

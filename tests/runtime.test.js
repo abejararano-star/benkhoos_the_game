@@ -487,6 +487,22 @@ test('the hanging bridge can be cut and repaired at a post and the river ends th
   assert.match(elements.get('resultDescription').textContent, /cayó al río/);
 });
 
+test('the weather pauses with the real game and footsteps splash on soaked ground', async () => {
+  elements.get('btnNewGame').click(); elements.get('btnStorySkip').click();
+  await loadState(s => {
+    Object.assign(s, { sandbox: true, status: 'playing', day: 1, phase: 'DAY_EXPLORE', timeOfDay: .54,
+      enemies: [], wildlife: [], units: [], projectiles: [], droppedCoins: [], particles: [] });
+    Object.assign(s.benkos, { x: 2250, vx: 0, mounted: false });
+    Object.assign(s.weather, { time: 14, rain: .85, clouds: .9, wetness: 1, puddles: .7 });
+    s.campaign.orders = [];
+  });
+  advance(.3); const weatherTime = inspect().state.weather.time;
+  key('Escape'); advance(1); assert.equal(inspect().state.weather.time, weatherTime);
+  key('Escape'); key('KeyD'); advance(.23); key('KeyD', true);
+  assert.ok(inspect().state.particles.some(p => p.kind === 'water'));
+  assert.ok(inspect().state.weather.time > weatherTime);
+});
+
 test('the live town gathers, Benkos dances and kisses Amara, and movement or attacks cancel immediately', async () => {
   elements.get('btnNewGame').click();
   elements.get('btnStorySkip').click();

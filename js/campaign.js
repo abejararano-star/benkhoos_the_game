@@ -1,5 +1,5 @@
-import { CITIES, storyChapter } from './story.js?v=b5596998e672';
-import { advanceGarrisons, departurePost, orderPost, ROAD_GATES, strengthenPostGuard } from './frontier.js?v=b5596998e672';
+import { CITIES, storyChapter } from './story.js?v=ee79ef434f2b';
+import { advanceGarrisons, departurePost, orderPost, ROAD_GATES, strengthenPostGuard } from './frontier.js?v=ee79ef434f2b';
 export { ROAD_GATES };
 export function ensureCampaign(state){
   state.messengers??=[];

@@ -1,4 +1,4 @@
-import { affinity, roleAvailable } from './people.js?v=b5596998e672';
+import { affinity, roleAvailable } from './people.js?v=ee79ef434f2b';
 export function nearest(entity, candidates, predicate = () => true) {
   let best = null, distance = Infinity;
   for (const item of candidates) {

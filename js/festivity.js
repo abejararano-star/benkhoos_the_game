@@ -1,7 +1,7 @@
-import { CAMP_EDGE, PLAZA } from './config.js?v=b5596998e672';
-import { canTendCrop } from './crops.js?v=b5596998e672';
-import { roleAvailable } from './people.js?v=b5596998e672';
-import { threatensMilitia } from './combat.js?v=b5596998e672';
+import { CAMP_EDGE, PLAZA } from './config.js?v=ee79ef434f2b';
+import { canTendCrop } from './crops.js?v=ee79ef434f2b';
+import { roleAvailable } from './people.js?v=ee79ef434f2b';
+import { threatensMilitia } from './combat.js?v=ee79ef434f2b';
 
 const DUTY = new Set(['GUERRERO', 'ESPADACHIN', 'ARQUERO', 'CABALLERO_ALIADO', 'CAMPEON_REAL', 'CAZADOR', 'CURANDERO', 'BRUJO', 'MINERO']);
 export const initialFestivity = () => ({ clock: 0, mode: 'REST', x: PLAZA.dayX, attendees: [],
@@ -11,7 +11,7 @@ export const initialFestivity = () => ({ clock: 0, mode: 'REST', x: PLAZA.dayX, 
 // The remaining hours belong to the town crier. The alarm always takes priority.
 export function festivalProgram(state) {
   const t = state.timeOfDay;
-  if (state.status !== 'playing' || state.phase === 'RED_NIGHT' ||
+  if (state.status !== 'playing' || state.phase === 'RED_NIGHT' || state.weather?.rain > .55 ||
       state.enemies.some(e => e.hp > 0 && !e.waterFall && Math.abs(e.x) < CAMP_EDGE + 100) ||
       state.wildlife.some(a => threatensMilitia(a) && Math.abs(a.x) < CAMP_EDGE)) return 'SHELTER';
   if (state.day % 3 === 1 && t >= .28 && t < .46 || state.day % 3 === 2 && t >= .76 && t < .92) return 'MUSIC';

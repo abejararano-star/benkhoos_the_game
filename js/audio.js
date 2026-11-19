@@ -1,4 +1,4 @@
-import { ScenarioSoundtrack } from './soundtrack.js?v=b5596998e672';
+import { ScenarioSoundtrack } from './soundtrack.js?v=ee79ef434f2b';
 
 export class AfroColombianAudioEngine {
   constructor() {
@@ -22,11 +22,47 @@ export class AfroColombianAudioEngine {
   setVolume(v) {
     this.volume = Math.max(0, Math.min(1, v));
     this.soundtrack?.setVolume(this.volume);
+    if (!this.volume) this.stopWeatherAudio();
   }
-  pauseSoundtrack() { this.soundtrack?.pause(); }
-  resetSoundtrack() { this.soundtrack?.reset(); }
-  updateSoundtrack(dt, state, playing) { this.soundtrack?.update(dt, state, playing && this.enabled); }
-  inspectSoundtrack() { return this.soundtrack?.inspect() ?? { playing: false, current: '', voices: [], buffered: [], errors: [] }; }
+  pauseSoundtrack() { this.soundtrack?.pause(); this.stopWeatherAudio(); }
+  resetSoundtrack() { this.soundtrack?.reset(); this.stopWeatherAudio(); }
+  updateSoundtrack(dt, state, playing) {
+    this.soundtrack?.update(dt, state, playing && this.enabled);
+    this.updateWeatherAudio(state, playing && this.enabled);
+  }
+  inspectSoundtrack() { return { ...(this.soundtrack?.inspect() ?? { playing: false, current: '', voices: [], buffered: [], errors: [] }), weatherSound: !!this.weatherSound }; }
+  stopWeatherAudio() {
+    if (!this.weatherSound) return;
+    this.weatherSound.source.stop(); this.weatherSound.source.disconnect();
+    this.weatherSound.filter.disconnect(); this.weatherSound.gain.disconnect();
+    this.weatherSound = null;
+  }
+  updateWeatherAudio(state, playing) {
+    const w = state.weather;
+    if (!this.ctx || !playing || !this.volume || !w || w.rain < .02 && Math.abs(w.wind) < .28) {
+      this.stopWeatherAudio(); return;
+    }
+    if (!this.weatherSound) {
+      if (!this.weatherBuffer) {
+        this.weatherBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
+        const samples = this.weatherBuffer.getChannelData(0);
+        let seed = 419;
+        for (let i = 0; i < samples.length; i++) { seed = (Math.imul(seed, 1664525) + 1013904223) | 0; samples[i] = seed / 2147483648; }
+      }
+      const source = this.ctx.createBufferSource(), filter = this.ctx.createBiquadFilter(), gain = this.ctx.createGain();
+      source.buffer = this.weatherBuffer; source.loop = true;
+      filter.type = 'lowpass'; filter.frequency.value = 2400; gain.gain.value = 0;
+      source.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination); source.start();
+      this.weatherSound = { source, filter, gain, updatedAt: -1 };
+    }
+    const sound = this.weatherSound, now = this.ctx.currentTime;
+    if (now - sound.updatedAt < .12) return;
+    const sheltered = w.playerSheltered;
+    const volume = (w.rain * (sheltered ? .28 : 1) * .045 + Math.abs(w.wind) * .003) * this.volume;
+    sound.gain.gain.setTargetAtTime(volume, now, .25);
+    sound.filter.frequency.setTargetAtTime(sheltered ? 1200 : 2600, now, .35);
+    sound.updatedAt = now;
+  }
   playTamboraBass(freq = 75, duration = 0.16, vol = 0.22) {
     if (!this.enabled || !this.ctx || this.volume <= 0) return;
     const effVol = vol * this.volume;

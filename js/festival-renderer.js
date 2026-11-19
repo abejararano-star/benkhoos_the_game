@@ -1,4 +1,4 @@
-import { PLAZA } from './config.js?v=b5596998e672';
+import { PLAZA } from './config.js?v=ee79ef434f2b';
 
 export function drawPlaza(g, toScreen, ground) {
   const left = toScreen(PLAZA.left), right = toScreen(PLAZA.right);

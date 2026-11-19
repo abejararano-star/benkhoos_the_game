@@ -8,6 +8,8 @@ class BenkosSpriteManager {
     this.atlas = null;
     this.sheets = {};
     this.ready = false;
+    this.wetFrames = new Map();
+    this.wetFrameBytes = 0;
     this.init();
   }
 
@@ -50,6 +52,27 @@ class BenkosSpriteManager {
     return null;
   }
 
+  wetFrame(sheet, frame, scale, wetness) {
+    if (!(wetness > .06) || typeof document === 'undefined') return null;
+    const level = Math.min(6, Math.ceil(wetness * 6));
+    const width = Math.max(1, Math.round(frame.w * scale)), height = Math.max(1, Math.round(frame.h * scale));
+    const key = `${sheet}:${frame.x}:${frame.y}:${frame.w}:${frame.h}:${width}:${height}:${level}`;
+    let entry = this.wetFrames.get(key);
+    if (entry) { this.wetFrames.delete(key); this.wetFrames.set(key, entry); return entry; }
+    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+    const g = canvas.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(this.sheets[sheet], frame.x, frame.y, frame.w, frame.h, 0, 0, width, height);
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = `rgba(13,33,31,${level / 6 * .24})`; g.fillRect(0, 0, width, height);
+    entry = { image: canvas, width, height, bytes: width * height * 4 };
+    this.wetFrames.set(key, entry); this.wetFrameBytes += entry.bytes;
+    while (this.wetFrameBytes > 8 * 1024 * 1024 || this.wetFrames.size > 384) {
+      const oldest = this.wetFrames.keys().next().value;
+      this.wetFrameBytes -= this.wetFrames.get(oldest).bytes; this.wetFrames.delete(oldest);
+    }
+    return entry;
+  }
+
   /**
    * Dibuja un fotograma con el anclaje de pies en (x, y).
    * targetH = altura lógica en píxeles de la figura de pie.
@@ -67,6 +90,12 @@ class BenkosSpriteManager {
     const s = targetH / (f.ref || sp.ref || 175);
     const dw = f.w * s;
     const dh = f.h * s;
+    const wet = cls.startsWith('actor_') ? this.actorWetness ?? this.weatherWetness ?? 0 : this.weatherWetness ?? 0;
+    const eligible = /^(actor_|forest_|building_|estate_|enclosure_|watchtower_|bridge_|stock_rack_|fortification_|crop_|mine_)/.test(cls);
+    const sample = eligible ? this.wetFrame(sp.sheet, f, s, wet) : null;
+    const source = sample?.image ?? this.sheets[sp.sheet];
+    const sourceX = sample ? 0 : f.x, sourceY = sample ? 0 : f.y;
+    const sourceW = sample?.width ?? f.w, sourceH = sample?.height ?? f.h;
 
     ctx.save();
     ctx.imageSmoothingEnabled = false;
@@ -96,7 +125,9 @@ class BenkosSpriteManager {
         const shoulders = Math.max(0, 1 - Math.abs(height - .71) / .27);
         const hips = Math.max(0, 1 - Math.abs(height - .42) / .37);
         const breadth = 1 + (figure.shoulders - 1) * shoulders + (figure.hips - 1) * hips;
-        ctx.drawImage(this.sheets[sp.sheet], f.x, f.y + from, f.w, to - from,
+        const sy = Math.round(from * sourceH / f.h), sh = Math.round(to * sourceH / f.h) - sy;
+        if (!sh) continue;
+        ctx.drawImage(source, sourceX, sourceY + sy, sourceW, sh,
           Math.round(-f.ax * s * breadth), top, Math.round(dw * breadth), bottom - top);
       }
     } else if (pose?.bend) {
@@ -107,11 +138,13 @@ class BenkosSpriteManager {
         const top = Math.round(dh * band / bands);
         const bottom = Math.round(dh * (band + 1) / bands);
         const shift = Math.round(pose.bend * (1 - (band + .5) / bands) ** 2);
-        ctx.drawImage(this.sheets[sp.sheet], f.x, f.y + from, f.w, to - from,
+        const sy = Math.round(from * sourceH / f.h), sh = Math.round(to * sourceH / f.h) - sy;
+        if (!sh) continue;
+        ctx.drawImage(source, sourceX, sourceY + sy, sourceW, sh,
           dx + shift, dy + top, Math.round(dw), bottom - top);
       }
     } else {
-      ctx.drawImage(this.sheets[sp.sheet], f.x, f.y, f.w, f.h, dx, dy, Math.round(dw), Math.round(dh));
+      ctx.drawImage(source, sourceX, sourceY, sourceW, sourceH, dx, dy, Math.round(dw), Math.round(dh));
     }
     if (f.flame) {
       if (pose?.royal) {
@@ -421,7 +454,8 @@ class BenkosSpriteManager {
 
   drawTree(ctx, cls, x, y, facing, height, clock, worldX) {
     const gust = Math.sin(clock * .69 - worldX * .005) + .41 * Math.sin(clock * 1.83 - worldX * .011);
-    const bend = this.reduceMotion ? 0 : gust * height * (cls === 'forest_palm' ? .041 : .028) * facing;
+    const storm = 1 + Math.abs(this.weatherWind ?? 0) * 1.3 + (this.weatherRain ?? 0) * .7;
+    const bend = this.reduceMotion ? 0 : (gust * storm + (this.weatherWind ?? 0) * .6) * height * (cls === 'forest_palm' ? .041 : .028) * facing;
     const pose = bend ? { tilt: 0, stretch: 1, bend } : null;
     return this.draw(ctx, cls, ['idle'], x, y, facing, height, 0, 0, null, pose);
   }

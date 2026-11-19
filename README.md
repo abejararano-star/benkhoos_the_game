@@ -57,6 +57,8 @@ Las cuatro grabaciones de música aportadas el 19 de noviembre están extraídas
 
 `assets/audio/music/manifest.json` conserva títulos, grabaciones de origen, duraciones, niveles medidos y huellas de los archivos. Para volver a extraerlas, usa `python tools/import-ambient-audio.py --source-directory "CARPETA_DE_GRABACIONES" --ffmpeg "RUTA_A_FFMPEG"`. Las copias AAC originales quedan en `archive/audio-originals/`, fuera de Git; las cuatro pistas MP3 del juego sí se incluyen en el proyecto. Los efectos y las grabaciones del bardo se incorporarán cuando estén disponibles.
 
+El clima alterna brisa, nubosidad y chubascos durante los días de campaña; el primer día llueve principalmente por la tarde. Las hojas caen desde las copas, se posan en la orilla y pueden ser arrastradas al agua. La lluvia moja ropa, árboles y construcciones, forma pequeños charcos y dibuja ondas sobre el río. La humedad se conserva al guardar y desaparece poco a poco después del chubasco. Los techos y toldos resguardan a las personas, gotean por sus bordes y amortiguan el sonido de la lluvia. Los músicos se retiran con lluvia fuerte. El clima se detiene durante las pausas; la opción de movimiento reducido limita la animación y la densidad de gotas y hojas.
+
 ## Guardado
 
 La versión 3 del formato conserva el estado completo: tropas y daño, edificios, rangos, habilidades, haciendas, recursos, árboles, monturas, oleadas, cartas, mensajeros y progreso político. También guarda nombres, atributos, dones, experiencias por oficio, heridas, miedo, cansancio y cambios de profesión pendientes. Se mantiene una copia local y se usa la más reciente entre navegador y servidor. Las versiones 1 y 2 se migran al cargar; solo es posible recuperar los datos que la versión antigua llegó a guardar. Las partidas anteriores reciben los puestos de hachas y martillos sin sustituir su inventario existente. También reciben la casa central y materiales iniciales; los nuevos constructores se asignan desde F.
@@ -206,6 +208,8 @@ js/renderer.js            Personajes, mundo y reflejo
 js/terrain.js             Paisaje, construcciones y señales de combate
 js/audio.js               Motor de tambores y efectos
 js/soundtrack.js          Música contextual, fundidos y mezcla de ambiente
+js/weather.js             Clima, humedad, exposición y resguardo bajo techos
+js/weather-renderer.js    Lluvia, hojas, charcos, goteo y ondas del río
 js/input.js, ui.js         Controles, pausa, menús y HUD
 js/save-system.js, db.js   Formato versionado y persistencia
 api/                      Adaptador PHP/MySQL

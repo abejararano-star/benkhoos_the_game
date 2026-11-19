@@ -1,4 +1,4 @@
-import { blend, color, smooth } from './daylight.js?v=b5596998e672';
+import { blend, color, smooth } from './daylight.js?v=ee79ef434f2b';
 
 const fract = value => value - Math.floor(value);
 export const landscapeSeed = index => fract(Math.sin(index * 78.233 + 19.19) * 43758.5453);
@@ -72,16 +72,16 @@ export function drawSky(g, width, height, ground, camera, time, air) {
     for (let i = 0; i < 56; i++) {
       const x = Math.round(landscapeSeed(i) * width);
       const y = Math.round((.04 + landscapeSeed(i + 67) * .51) * ground);
-      g.fillStyle = color([219, 226, 229], air.stars * (.24 + landscapeSeed(i + 132) * .55));
+      g.fillStyle = color([219, 226, 229], air.stars * (1 - (air.overcast ?? 0)) * (.24 + landscapeSeed(i + 132) * .55));
       g.fillRect(x, y, i % 13 === 0 ? 2 : 1, 1);
     }
   }
 
   const { t } = air;
-  const sun = smooth(.035, .10, t) * (1 - smooth(.60, .68, t));
+  const sun = smooth(.035, .10, t) * (1 - smooth(.60, .68, t)) * (1 - (air.overcast ?? 0) * .94);
   drawOrb(g, width, ground, (t - .035) / .645, sun, blend([255, 245, 194], [255, 155, 85], smooth(.47, .65, t)), false);
   const moonClock = t < .5 ? t + 1 : t;
-  const moon = smooth(.64, .76, moonClock) * (1 - smooth(1.03, 1.13, moonClock));
+  const moon = smooth(.64, .76, moonClock) * (1 - smooth(1.03, 1.13, moonClock)) * (1 - (air.overcast ?? 0) * .84);
   drawOrb(g, width, ground, (moonClock - .64) / .49, moon, blend([220, 232, 225], [240, 140, 113], air.red), true);
   drawClouds(g, width, ground, camera, time, air);
 }

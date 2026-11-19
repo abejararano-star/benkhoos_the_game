@@ -1,24 +1,25 @@
-import { crossingFeet } from './crossings.js?v=b5596998e672';
-import { animalInStream } from './ecology.js?v=b5596998e672';
-import { jaguarPose } from './jaguar.js?v=b5596998e672';
-import { torchIsLit } from './exploration.js?v=b5596998e672';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=b5596998e672';
-import { blend, color, daylightAt } from './daylight.js?v=b5596998e672';
-import { drawSky } from './sky.js?v=b5596998e672';
-import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=b5596998e672';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=b5596998e672';
-import { createLighting } from './lighting.js?v=b5596998e672';
-import { RenderInterpolation } from './visual-motion.js?v=b5596998e672';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=b5596998e672';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=b5596998e672';
-import { drawParticle } from './effects.js?v=b5596998e672';
-import { haciendaActive } from './haciendas.js?v=b5596998e672';
-import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=b5596998e672';
-import { COLONIAL_TOWERS } from './colonial-ai.js?v=b5596998e672';
-import { CITIES, OUTPOSTS } from './story.js?v=b5596998e672';
-import { WATER_LINE_Y } from './config.js?v=b5596998e672';
-import { roleAvailable } from './people.js?v=b5596998e672';
-import { drawPlaza, drawFestival, drawFestivalKiss } from './festival-renderer.js?v=b5596998e672';
+import { crossingFeet } from './crossings.js?v=ee79ef434f2b';
+import { animalInStream } from './ecology.js?v=ee79ef434f2b';
+import { jaguarPose } from './jaguar.js?v=ee79ef434f2b';
+import { torchIsLit } from './exploration.js?v=ee79ef434f2b';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=ee79ef434f2b';
+import { blend, color, daylightAt } from './daylight.js?v=ee79ef434f2b';
+import { drawSky } from './sky.js?v=ee79ef434f2b';
+import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=ee79ef434f2b';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=ee79ef434f2b';
+import { createLighting } from './lighting.js?v=ee79ef434f2b';
+import { RenderInterpolation } from './visual-motion.js?v=ee79ef434f2b';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=ee79ef434f2b';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=ee79ef434f2b';
+import { drawParticle } from './effects.js?v=ee79ef434f2b';
+import { haciendaActive } from './haciendas.js?v=ee79ef434f2b';
+import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=ee79ef434f2b';
+import { COLONIAL_TOWERS } from './colonial-ai.js?v=ee79ef434f2b';
+import { CITIES, OUTPOSTS } from './story.js?v=ee79ef434f2b';
+import { WATER_LINE_Y } from './config.js?v=ee79ef434f2b';
+import { roleAvailable } from './people.js?v=ee79ef434f2b';
+import { drawPlaza, drawFestival, drawFestivalKiss } from './festival-renderer.js?v=ee79ef434f2b';
+import { weatherAir, drawWeatherBack, drawWeatherFront, drawWetGround } from './weather-renderer.js?v=ee79ef434f2b';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -96,6 +97,7 @@ function renderWorldAboveWater(g, time, air) {
   const wind = settings.reduce_motion ? 0 : time;
   drawSky(g, w, h, GROUND_SURFACE_Y, camX, wind, air);
   drawLandscape(g, w, GROUND_SURFACE_Y, camX, air, time);
+  drawWeatherBack(g, state, camX, w, GROUND_SURFACE_Y, settings.reduce_motion);
   drawTerrainFeatures(g, toScreenX, w, GROUND_SURFACE_Y, state, wind);
   drawMist(g, w, GROUND_SURFACE_Y, camX, air, wind);
 
@@ -130,6 +132,7 @@ function renderWorldAboveWater(g, time, air) {
   drawVines(g, toScreenX, GROUND_SURFACE_Y, w, settings.reduce_motion ? 0 : time);
   drawPlaza(g, toScreenX, GROUND_SURFACE_Y);
   drawVillage(g, toScreenX, GROUND_SURFACE_Y, air.shadow, time, state.settlement, state.armyTier, settings.reduce_motion);
+  drawWetGround(g, state, camX, w, GROUND_SURFACE_Y, air, settings.reduce_motion);
   drawFestival(g, toScreenX, GROUND_SURFACE_Y, w, state, settings.reduce_motion);
 
   state.trees.forEach((tr) => {
@@ -178,6 +181,12 @@ function renderWorldAboveWater(g, time, air) {
   window.SpriteManager?.draw?.(g,'currency_chest',['open'],toScreenX(48),GROUND_SURFACE_Y,1,26,0,0,chestProgress);
 
   const drawBody = (actor, x, base, draw) => {
+    const originalDraw = draw;
+    draw = y => {
+      const sprites = window.SpriteManager, previous = sprites?.actorWetness;
+      if (sprites) sprites.actorWetness = actor.weatherWetness ?? 0;
+      try { originalDraw(y); } finally { if (sprites) sprites.actorWetness = previous; }
+    };
     const fall = actor.waterFall;
     if (fall?.time >= .33) {
       g.save();
@@ -356,15 +365,23 @@ function renderWorldAboveWater(g, time, air) {
 }
 
 function renderFrame(time,alpha=1) {
-  if (window.SpriteManager) window.SpriteManager.reduceMotion = settings.reduce_motion;
+  if (window.SpriteManager) {
+    window.SpriteManager.reduceMotion = settings.reduce_motion;
+    window.SpriteManager.weatherWetness = state.weather.wetness;
+    window.SpriteManager.weatherWind = state.weather.wind;
+    window.SpriteManager.weatherRain = state.weather.rain;
+  }
   renderAlpha=alpha;renderCamera=interpolation.cameraX(state,alpha);
   const w = view.width;
   const h = view.height;
   const waterHeight = h - view.waterLine;
 
-  const air = daylightAt(state.timeOfDay, state.phase === 'RED_NIGHT');
+  const air = weatherAir(daylightAt(state.timeOfDay, state.phase === 'RED_NIGHT'), state.weather);
   renderWorldAboveWater(sctx, time, air);
 
+  // Fill shifted reflection edges each frame; transparent accumulation moved even while paused.
+  ctx.fillStyle = color(blend([15, 31, 40], air.zenith, .27));
+  ctx.fillRect(0, 0, w, h);
   ctx.save();
   if (state.screenShake > 0 && !settings.reduce_motion) {
     ctx.translate((Math.random() - 0.5) * state.screenShake, (Math.random() - 0.5) * state.screenShake);
@@ -392,6 +409,7 @@ function renderFrame(time,alpha=1) {
     ctx.fillRect(Math.round(x), view.waterLine + 2 + (i * 13 % Math.max(1, waterHeight - 3)), 5 + i % 7, 1);
   }
 
+  drawWeatherFront(ctx, state, renderCamera, w, view.waterLine - 22, view.waterLine, h, air, settings.reduce_motion);
   ctx.restore();
 }
 

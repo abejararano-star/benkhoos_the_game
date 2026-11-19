@@ -1,17 +1,18 @@
-import { ensureCrossings } from './crossings.js?v=b5596998e672';
-import { NIGHT_START } from './daylight.js?v=b5596998e672';
-import { restoreCommunity } from './community.js?v=b5596998e672';
-import { ensureEcology, seedEcology } from './ecology.js?v=b5596998e672';
-import { seedFrontier } from './exploration.js?v=b5596998e672';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=b5596998e672';
-import { ensurePerson } from './people.js?v=b5596998e672';
-import { restoreAmara } from './amara.js?v=b5596998e672';
-import { ensureSettlement } from './settlement.js?v=b5596998e672';
-import { ensureCampaign } from './campaign.js?v=b5596998e672';
-import { restoreHaciendas } from './haciendas.js?v=b5596998e672';
-import { restoreColonialTowers } from './colonial-ai.js?v=b5596998e672';
-import { restoreStory } from './story.js?v=b5596998e672';
-import { restoreFestivity } from './festivity.js?v=b5596998e672';
+import { ensureCrossings } from './crossings.js?v=ee79ef434f2b';
+import { NIGHT_START } from './daylight.js?v=ee79ef434f2b';
+import { restoreCommunity } from './community.js?v=ee79ef434f2b';
+import { ensureEcology, seedEcology } from './ecology.js?v=ee79ef434f2b';
+import { seedFrontier } from './exploration.js?v=ee79ef434f2b';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=ee79ef434f2b';
+import { ensurePerson } from './people.js?v=ee79ef434f2b';
+import { restoreAmara } from './amara.js?v=ee79ef434f2b';
+import { ensureSettlement } from './settlement.js?v=ee79ef434f2b';
+import { ensureCampaign } from './campaign.js?v=ee79ef434f2b';
+import { restoreHaciendas } from './haciendas.js?v=ee79ef434f2b';
+import { restoreColonialTowers } from './colonial-ai.js?v=ee79ef434f2b';
+import { restoreStory } from './story.js?v=ee79ef434f2b';
+import { restoreFestivity } from './festivity.js?v=ee79ef434f2b';
+import { restoreWeather } from './weather.js?v=ee79ef434f2b';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -148,6 +149,7 @@ export function restoreSave(save, defaults) {
   next.units.forEach(ensurePerson);
   restoreAmara(next);
   restoreFestivity(next);
+  restoreWeather(next);
   for (const unit of next.units) {
     if (unit.wound !== undefined) unit.wound = number(unit.wound, 0, 0, 3);
     if (unit.recoveredCoins !== undefined) unit.recoveredCoins = Math.floor(number(unit.recoveredCoins, 0, 0, 4));

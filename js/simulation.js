@@ -1,26 +1,27 @@
-import { stepCrossings } from './crossings.js?v=b5596998e672';
-import { NIGHT_START } from './daylight.js?v=b5596998e672';
-import { recoverCoins } from './coins.js?v=b5596998e672';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=b5596998e672';
-import { collectEquipment } from './equipment.js?v=b5596998e672';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=b5596998e672';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=b5596998e672';
-import { updateCommunity, joinEncounter } from './community.js?v=b5596998e672';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=b5596998e672';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=b5596998e672';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=b5596998e672';
-import { advanceParticle, emitEffect } from './effects.js?v=b5596998e672';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=b5596998e672';
-import { ensureCampaign, finaleWon } from './campaign.js?v=b5596998e672';
-import { OUTPOSTS, expeditionFormation } from './story.js?v=b5596998e672';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=b5596998e672';
-import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=b5596998e672';
-import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=b5596998e672';
-import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=b5596998e672';
-import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=b5596998e672';
-import { colonialShooter } from './frontier.js?v=b5596998e672';
-import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=b5596998e672';
-import { updateFestivity, joinFestivity } from './festivity.js?v=b5596998e672';
+import { stepCrossings } from './crossings.js?v=ee79ef434f2b';
+import { NIGHT_START } from './daylight.js?v=ee79ef434f2b';
+import { recoverCoins } from './coins.js?v=ee79ef434f2b';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=ee79ef434f2b';
+import { collectEquipment } from './equipment.js?v=ee79ef434f2b';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=ee79ef434f2b';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=ee79ef434f2b';
+import { updateCommunity, joinEncounter } from './community.js?v=ee79ef434f2b';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=ee79ef434f2b';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=ee79ef434f2b';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=ee79ef434f2b';
+import { advanceParticle, emitEffect } from './effects.js?v=ee79ef434f2b';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=ee79ef434f2b';
+import { ensureCampaign, finaleWon } from './campaign.js?v=ee79ef434f2b';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=ee79ef434f2b';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=ee79ef434f2b';
+import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=ee79ef434f2b';
+import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=ee79ef434f2b';
+import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=ee79ef434f2b';
+import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=ee79ef434f2b';
+import { colonialShooter } from './frontier.js?v=ee79ef434f2b';
+import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=ee79ef434f2b';
+import { updateFestivity, joinFestivity } from './festivity.js?v=ee79ef434f2b';
+import { advanceWeather } from './weather.js?v=ee79ef434f2b';
 
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
@@ -122,7 +123,8 @@ return function updateSimulation(dt) {
     b.stepDust = (b.stepDust ?? 0) + dt;
     if (b.stepDust > .18) {
       b.stepDust = 0;
-      emitEffect(state, b.inStream ? 'water' : 'dust', b.x, WATER_LINE_Y - 3, -b.facing, b.inStream ? .5 : .2);
+      const wetGround = b.inStream || state.weather.wetness > .4 && !state.weather.playerSheltered;
+      emitEffect(state, wetGround ? 'water' : 'dust', b.x, WATER_LINE_Y - 3, -b.facing, b.inStream ? .5 : wetGround ? .15 : .2);
     }
   }
   if (b.attackTimer > 0 && b.weaponMode === 'SPEAR' && torchIsLit(state)) {
@@ -301,6 +303,7 @@ return function updateSimulation(dt) {
     showBanner('EL PALENQUE ESTÁ DE LUTO', unit.name);
     updateHUD();
   }
+  advanceWeather(state, dt);
   updateFestivity(state, dt, { busy: Object.values(keys).some(Boolean) || state.touchHoldPay });
   audio.update(dt, state.phase, state.festivity, b.x);
   updateCommunity(state, dt, x => {

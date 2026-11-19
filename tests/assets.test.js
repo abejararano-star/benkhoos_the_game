@@ -31,6 +31,27 @@ test('the PC interface has unique ids and all local dependencies exist',()=>{
     for(const [,url] of code.matchAll(/from ['"]([^'"]+)['"]/g))assert.ok(fs.existsSync(path.resolve(root,'js',url.split(/[?#]/)[0])),file+' -> '+url);
   }
 });
+test('wet sprite frames are reused and stay within the rendering memory budget', async () => {
+  const atlas = JSON.parse(fs.readFileSync(path.join(root, 'assets/atlas/atlas.json'), 'utf8'));
+  class ImageMock { set src(value) { queueMicrotask(() => this.onload()); } }
+  let created = 0;
+  const context = { drawImage() {}, fillRect() {} };
+  const sandbox = { window: {}, Image: ImageMock, console: { log() {}, warn() {} },
+    document: { createElement() { created++; return { getContext: () => context }; } },
+    fetch: async () => ({ ok: true, json: async () => atlas }) };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'js/sprite_manager.js'), 'utf8'), sandbox);
+  const manager = sandbox.window.SpriteManager;
+  for (let i = 0; i < 20 && !manager.ready; i++) await Promise.resolve();
+  const family = atlas.sprites.actor_hero, frame = family.anims.idle[0];
+  const first = manager.wetFrame(family.sheet, frame, .2, .8);
+  assert.equal(manager.wetFrame(family.sheet, frame, .2, .8), first);
+  assert.equal(created, 1);
+  assert.equal(manager.wetFrame(family.sheet, frame, .2, 0), null);
+  for (let i = 0; i < 420; i++) manager.wetFrame(family.sheet, frame, .15 + i / 500, .8);
+  assert.ok(manager.wetFrames.size <= 384);
+  assert.ok(manager.wetFrameBytes <= 8 * 1024 * 1024);
+});
+
 test('every role and enemy draws from the real atlas, with stable foot anchors',async()=>{
   const atlas=JSON.parse(fs.readFileSync(path.join(root,'assets/atlas/atlas.json'),'utf8'));
   const logs=[];
