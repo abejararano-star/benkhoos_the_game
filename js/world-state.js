@@ -1,11 +1,12 @@
-import { ensureCrossings } from './crossings.js?v=9c0121bc3842';
-import { initialCommunity } from './community.js?v=9c0121bc3842';
-import { initialStory, majorHaciendas } from './story.js?v=9c0121bc3842';
-import { initialEcology } from './ecology.js?v=9c0121bc3842';
-import { initialExploration } from './exploration.js?v=9c0121bc3842';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=9c0121bc3842';
-import { initialSettlement } from './settlement.js?v=9c0121bc3842';
-import { initialAmara } from './amara.js?v=9c0121bc3842';
+import { ensureCrossings } from './crossings.js?v=bf41c5a26f23';
+import { initialCommunity } from './community.js?v=bf41c5a26f23';
+import { initialStory, majorHaciendas } from './story.js?v=bf41c5a26f23';
+import { initialEcology } from './ecology.js?v=bf41c5a26f23';
+import { initialExploration } from './exploration.js?v=bf41c5a26f23';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=bf41c5a26f23';
+import { initialSettlement } from './settlement.js?v=bf41c5a26f23';
+import { initialAmara } from './amara.js?v=bf41c5a26f23';
+import { initialFestivity } from './festivity.js?v=bf41c5a26f23';
 export function createInitialState() {
 const state = {
   status: "playing",
@@ -45,6 +46,7 @@ const state = {
 
   story: initialStory(),
   amara: initialAmara(),
+  festivity: initialFestivity(),
 
   benkos: {
     x: -20,

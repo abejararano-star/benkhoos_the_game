@@ -1,4 +1,4 @@
-import { createAnimal } from './ecology.js?v=9c0121bc3842';
+import { createAnimal } from './ecology.js?v=bf41c5a26f23';
 
 export const ALTAR_X = -1880;
 export const TRAIL_SIGNS = [-1565, -1815, -4360];
@@ -98,7 +98,7 @@ export function revealTrailCache(state) {
 
 export function torchIsLit(state) {
   const player = state.benkos;
-  return !player.waterFall && player.interaction?.kind !== 'fish' &&
+  return !player.waterFall && !player.festivalDance && player.interaction?.kind !== 'fish' &&
     (player.torchManual || (state.phase !== 'DAY_EXPLORE' && !player.torchOff));
 }
 

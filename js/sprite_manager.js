@@ -344,6 +344,10 @@ class BenkosSpriteManager {
     if (player.hurtTimer > 0) {
       return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0, 0, 1 - player.hurtTimer / .4, torchPose);
     }
+    if (player.festivalDance && !mounted && this.has('festival_benkos')) {
+      return this.draw(ctx, 'festival_benkos', ['dance'], x, y, facing, height,
+        this.reduceMotion ? 0 : player.festivalClock ?? animationTime, 6);
+    }
     if (player.attackTimer > 0) {
       const animation = player.weaponMode === 'SPEAR' ? 'spear' : 'sword';
       const progress = this.attackProgress(player, mounted ? 3 : 6, mounted ? 1 : 3, .15);
@@ -459,6 +463,7 @@ class BenkosSpriteManager {
       const pose = womanAtWork ? { tilt: -.1, stretch: .96 } : null;
       return this.draw(ctx, cls, ['hurt', 'idle'], x, y, facing, height, 0, 0, 1 - unit.hurtTimer / .4, pose);
     }
+    if (unit.activity === 'DANCE' && !unit.vx) return this.drawVillageDance(ctx, cls, x, y, facing, height, unit.festivalClock ?? t);
     if (unit.socialPose && unit.activity === 'SOCIAL' && !unit.vx) {
       return this.drawSocial(ctx, cls, x, y, facing, height, unit);
     }
@@ -510,11 +515,20 @@ class BenkosSpriteManager {
       return this.draw(ctx, cls, ['release'], x, y, facing, height, 0, 0, 1 - unit.liberateAnimTimer / 1.2);
     }
     if (unit.hurtTimer > 0) return this.draw(ctx, cls, ['hurt'], x, y, facing, height, 0);
+    if (unit.activity === 'DANCE' && !unit.vx && this.has('festival_amara')) {
+      return this.draw(ctx, 'festival_amara', ['dance'], x, y, facing, height, this.reduceMotion ? 0 : unit.festivalClock ?? clock, 6);
+    }
     if (gait?.moving ?? Math.abs(unit.vx || 0) > 8) {
       return this.draw(ctx, cls, ['walk'], x, y, facing, height, clock, 8, gait?.phase);
     }
     const animation = unit.activity === 'LEAD' ? 'lead' : unit.activity === 'FLIRT' ? 'flirt' : 'idle';
     return this.draw(ctx, cls, [animation], x, y, facing, height, this.reduceMotion ? 0 : clock, 1.4);
+  }
+
+  drawVillageDance(ctx, cls, x, y, facing, height, clock) {
+    const beat = this.reduceMotion ? 0 : clock * Math.PI * 2;
+    const pose = { tilt: Math.sin(beat) * .07, stretch: 1 - Math.abs(Math.sin(beat)) * .035 };
+    return this.draw(ctx, cls, ['idle'], x + Math.round(Math.sin(beat) * 2), y, facing, height, 0, 0, 0, pose);
   }
 
   drawMessenger(ctx, x, y, messenger, time) {

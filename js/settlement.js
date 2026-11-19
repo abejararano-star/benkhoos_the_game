@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=9c0121bc3842';
-import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=9c0121bc3842';
+import { ALTAR_X } from './exploration.js?v=bf41c5a26f23';
+import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=bf41c5a26f23';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -17,9 +17,9 @@ export const TOWER_HEIGHT = TOWER_TIERS.map(tower => tower.height);
 const WORK_REACH = 18;
 
 export function initialSettlement() {
-  return { level: 1, homes: [{ id: 'home_west', x: -890, level: 1 }, { id: 'home_inner', x: -150, level: 1 },
-    { id: 'home_east', x: 890, level: 1 }],
-    towers: [-1, 1].map(side => ({ id: side < 0 ? 'tower_west' : 'tower_east', x: side * (CAMP_EDGE - 75), side, level: 0 })),
+  return { level: 1, homes: [{ id: 'home_west', x: -910, level: 1 }, { id: 'home_inner', x: -135, level: 1 },
+    { id: 'home_east', x: 910, level: 1 }],
+    towers: [-1, 1].map(side => ({ id: side < 0 ? 'tower_west' : 'tower_east', x: side * (CAMP_EDGE - 32), side, level: 0 })),
     deposits: {}, projects: [], completed: 0 };
 }
 

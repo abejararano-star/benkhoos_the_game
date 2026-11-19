@@ -44,5 +44,7 @@ export const ENEMY_CATALOG = Object.freeze({
 
 export const STATION_X = Object.freeze({
   LENADOR: -795, AGRICULTOR: -685, MINERO: -575, CAZADOR: -465, ESPADACHIN: -355, CABALLERO_ALIADO: -245,
-  CONSTRUCTOR: 150, ARQUERO: 300, GUERRERO: 455, CURANDERO: 610, BRUJO: 760
+  CONSTRUCTOR: 365, ARQUERO: 475, GUERRERO: 585, CURANDERO: 695, BRUJO: 805
 });
+export const PLAZA = Object.freeze({ left: 87, right: 318, fireX: 105, dayX: 153, nightX: 143,
+  watchLeft: 215, watchRight: 290, seats: Object.freeze([210, 235, 260, 285]) });

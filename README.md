@@ -65,6 +65,10 @@ Pulsa **F** o haz clic en una persona para conocerla. Puedes proponer otro ofici
 
 Los leñadores talan árboles marcados. Los civiles interrumpen sus tareas y buscan refugio al ver enemigos; los cazadores y arqueros toman distancia para disparar. La infantería defiende la línea y los malheridos se retiran. Hay reacciones de daño, recuperación, cansancio, descanso y comentarios según el temperamento; las personas solidarias ayudan a vecinos heridos cercanos.
 
+La plaza queda despejada entre la casa del consejo y los puestos orientales. Dos músicos decorativos tocan tambor y maracas: al mediodía de los días 1, 4, 7… y junto a la fogata las noches de los días 2, 5, 8… Fuera de esos turnos, un pregonero cuenta los rescates, enemigos vencidos y obras de la partida. El sonido de la percusión disminuye al alejarse. Las alarmas y noches rojas suspenden las reuniones.
+
+Hasta cuatro habitantes que estén libres pueden bailar o escuchar el pregón. Respetan las obras, cosechas, heridas, encargos y guardias. Para bailar con Amara, una vez que dirija las cuadrillas, ve a pie al lado derecho de la plaza, mira hacia los músicos y quédate quieto unos segundos. Amara se acerca si está disponible. Si ya es pareja de Benkos, ocasionalmente le da un beso. Moverse, atacar o recibir daño interrumpe el baile.
+
 ## Los caminos de la libertad · edición 13
 
 La campaña se desarrolla en tres capítulos. En el primero, libera las haciendas próximas. En el segundo, pulsa **E** frente a la casa central para convocar al consejo y organizar expediciones al Paso de Jegua y la Boca de Marea. Puedes llevar hasta tres aliados. Vence a la guarnición, rompe el portón y vuelve a la Matuna con las personas rescatadas. Si las pierdes a todas, puedes volver a intentarlo cuando el puesto se ocupe de nuevo. En el tercer capítulo, el consejo elige a quién proteger y por dónde se librará la última defensa.

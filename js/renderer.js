@@ -1,23 +1,24 @@
-import { crossingFeet } from './crossings.js?v=9c0121bc3842';
-import { animalInStream } from './ecology.js?v=9c0121bc3842';
-import { jaguarPose } from './jaguar.js?v=9c0121bc3842';
-import { torchIsLit } from './exploration.js?v=9c0121bc3842';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=9c0121bc3842';
-import { blend, color, daylightAt } from './daylight.js?v=9c0121bc3842';
-import { drawSky } from './sky.js?v=9c0121bc3842';
-import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=9c0121bc3842';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=9c0121bc3842';
-import { createLighting } from './lighting.js?v=9c0121bc3842';
-import { RenderInterpolation } from './visual-motion.js?v=9c0121bc3842';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=9c0121bc3842';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=9c0121bc3842';
-import { drawParticle } from './effects.js?v=9c0121bc3842';
-import { haciendaActive } from './haciendas.js?v=9c0121bc3842';
-import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=9c0121bc3842';
-import { COLONIAL_TOWERS } from './colonial-ai.js?v=9c0121bc3842';
-import { CITIES, OUTPOSTS } from './story.js?v=9c0121bc3842';
-import { WATER_LINE_Y } from './config.js?v=9c0121bc3842';
-import { roleAvailable } from './people.js?v=9c0121bc3842';
+import { crossingFeet } from './crossings.js?v=bf41c5a26f23';
+import { animalInStream } from './ecology.js?v=bf41c5a26f23';
+import { jaguarPose } from './jaguar.js?v=bf41c5a26f23';
+import { torchIsLit } from './exploration.js?v=bf41c5a26f23';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=bf41c5a26f23';
+import { blend, color, daylightAt } from './daylight.js?v=bf41c5a26f23';
+import { drawSky } from './sky.js?v=bf41c5a26f23';
+import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=bf41c5a26f23';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=bf41c5a26f23';
+import { createLighting } from './lighting.js?v=bf41c5a26f23';
+import { RenderInterpolation } from './visual-motion.js?v=bf41c5a26f23';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=bf41c5a26f23';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=bf41c5a26f23';
+import { drawParticle } from './effects.js?v=bf41c5a26f23';
+import { haciendaActive } from './haciendas.js?v=bf41c5a26f23';
+import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=bf41c5a26f23';
+import { COLONIAL_TOWERS } from './colonial-ai.js?v=bf41c5a26f23';
+import { CITIES, OUTPOSTS } from './story.js?v=bf41c5a26f23';
+import { WATER_LINE_Y } from './config.js?v=bf41c5a26f23';
+import { roleAvailable } from './people.js?v=bf41c5a26f23';
+import { drawPlaza, drawFestival, drawFestivalKiss } from './festival-renderer.js?v=bf41c5a26f23';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -127,7 +128,9 @@ function renderWorldAboveWater(g, time, air) {
   drawStreams(g,toScreenX,GROUND_SURFACE_Y,state.ecology.streams,time,settings.reduce_motion,w);
   drawCrossings(g, toScreenX, w, GROUND_SURFACE_Y, state, wind);
   drawVines(g, toScreenX, GROUND_SURFACE_Y, w, settings.reduce_motion ? 0 : time);
+  drawPlaza(g, toScreenX, GROUND_SURFACE_Y);
   drawVillage(g, toScreenX, GROUND_SURFACE_Y, air.shadow, time, state.settlement, state.armyTier, settings.reduce_motion);
+  drawFestival(g, toScreenX, GROUND_SURFACE_Y, w, state, settings.reduce_motion);
 
   state.trees.forEach((tr) => {
     const sx = toScreenX(tr.x);
@@ -253,7 +256,11 @@ function renderWorldAboveWater(g, time, air) {
     const x = toScreenX(tower.x);
     if (x > -90 && x < w + 90) drawColonialTower(g, x, GROUND_SURFACE_Y, tower, towerHealth(state, tower));
   }
+  const kissing = state.festivity.kiss > 0 && state.benkos.festivalDance && !state.benkos.hurtTimer &&
+    state.units.some(u => u.namedAmara && u.hp > 0 && !(u.hurtTimer > 0) && u.activity === 'DANCE') &&
+    window.SpriteManager?.has('festival_couple');
   state.units.forEach((u) => {
+    if (kissing && u.namedAmara) return;
     const sx = toScreenX(position(u));
     if (sx < -50 || sx > w + 50) return;
     const feet = GROUND_SURFACE_Y - (u.towerHeight || 0) + crossingFeet(state, u, position(u));
@@ -317,7 +324,8 @@ function renderWorldAboveWater(g, time, air) {
     g.stroke();
   }
 
-  drawBody(b, bsx, by, y => window.SpriteManager?.drawBenkos?.(g, bsx, y, b.facing, b, time, torchIsLit(state)));
+  if (kissing) drawFestivalKiss(g, window.SpriteManager, state, toScreenX, by, settings.reduce_motion);
+  else drawBody(b, bsx, by, y => window.SpriteManager?.drawBenkos?.(g, bsx, y, b.facing, b, time, torchIsLit(state)));
   if(b.inStream){g.strokeStyle='#84b9ae';g.lineWidth=1;g.beginPath();g.ellipse(bsx,by+2,12,2,0,0,Math.PI*2);g.stroke();}
   if (!b.waterFall) {
     g.fillStyle = '#e6c486';

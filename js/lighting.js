@@ -1,5 +1,6 @@
-import { blend, color, NIGHT_START, smooth } from './daylight.js?v=9c0121bc3842';
-import { ALTAR_X, TRAIL_TORCHES } from './exploration.js?v=9c0121bc3842';
+import { blend, color, NIGHT_START, smooth } from './daylight.js?v=bf41c5a26f23';
+import { ALTAR_X, TRAIL_TORCHES } from './exploration.js?v=bf41c5a26f23';
+import { PLAZA } from './config.js?v=bf41c5a26f23';
 
 function drawFlame(g, x, y, flicker, length) {
   g.fillStyle = '#583824'; g.fillRect(x - 1, y + 2, 3, length);
@@ -22,7 +23,7 @@ export function createLighting() {
     const torchGlow = state.benkos.torchManual ? 1 : smooth(NIGHT_START, .72, air.t) * (1 - smooth(.96, 1, air.t));
     if (handFlame) lights.push({ ...handFlame, radius: 107 + flicker, warmth: .20 * torchGlow, strength: torchGlow });
     if (glowAmount > 0) {
-      lights.push({ x: toScreen(70), y: ground - 9, radius: 72, warmth: glowAmount * .25, strength: glowAmount });
+      lights.push({ x: toScreen(PLAZA.fireX), y: ground - 9, radius: 98, warmth: glowAmount * .25, strength: glowAmount });
       if (state.exploration.altarFound) lights.push({ x: toScreen(ALTAR_X), y: ground - 18, radius: 58, warmth: glowAmount * .12, strength: glowAmount });
       for (const wall of state.walls) if (wall.level && wall.hp > 0) lights.push({ x: toScreen(wall.x), y: ground - 28, radius: 47, warmth: glowAmount * .12, strength: glowAmount });
     }

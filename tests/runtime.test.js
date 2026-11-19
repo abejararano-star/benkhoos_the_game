@@ -92,7 +92,8 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
   assert.equal(inspect().state.settlement.level, 1);
   assert.equal(inspect().state.coins, 18);
   assert.equal(inspect().state.settlement.projects[0].targetLevel, 2);
-  advance(5.1);assert.equal(inspect().state.settlement.level,2);
+  for (let second = 0; second < 10 && inspect().state.settlement.level < 2; second++) advance(1);
+  assert.equal(inspect().state.settlement.level,2);
   await loadState(s => {
     s.benkos.x = s.walls[0].x;
     s.enemies = [];
@@ -114,6 +115,8 @@ test('real runtime: campaign, controls, pause, progression, save/load, combat an
     archer.assignedSide = 1;
     archer.x = tower.x;
     archer.leisure = null;
+    archer.requestedRole = null;
+    archer.rackId = null;
   });
   key('KeyS');advance(1.22);key('KeyS',true);
   assert.equal(inspect().state.settlement.towers[1].level, 0);
@@ -403,7 +406,7 @@ test('Amara spends only the delegated reais, hires ordinary work and respects pl
   assert.equal(inspect().state.amara.budget, 9);
   elements.get('btnClosePeople').click();
   key('Escape');
-  advance(7);
+  for (let second = 0; second < 20 && inspect().state.amara.budget > 1; second++) advance(1);
   const state = inspect().state;
   assert.equal(state.units.find(unit => unit.id === 602).role, 'CONSTRUCTOR');
   assert.equal(state.amara.budget, 1);
@@ -482,4 +485,34 @@ test('the hanging bridge can be cut and repaired at a post and the river ends th
   advance(2);
   assert.equal(inspect().mode, 'defeat');
   assert.match(elements.get('resultDescription').textContent, /cayó al río/);
+});
+
+test('the live town gathers, Benkos dances and kisses Amara, and movement or attacks cancel immediately', async () => {
+  elements.get('btnNewGame').click();
+  elements.get('btnStorySkip').click();
+  await loadState(s => {
+    Object.assign(s, { sandbox: true, status: 'playing', day: 1, phase: 'DAY_EXPLORE', timeOfDay: .31,
+      enemies: [], wildlife: [], projectiles: [], droppedCoins: [] });
+    Object.assign(s.benkos, { x: 265, facing: -1, vx: 0, mounted: false });
+    s.campaign.orders = [];
+    s.units = [ensurePerson({ id: 901, role: 'ALDEANO', sex: 'F', x: 290, hp: 80, maxHp: 80, tier: 1, vx: 0 }),
+      ensurePerson({ id: 902, role: 'CONSTRUCTOR', x: 210, hp: 90, maxHp: 90, tier: 1, vx: 0 })];
+    s.amara = { ...s.amara, id: 901, leads: true, bond: 'partners' };
+    s.settlement.projects = [];
+  });
+  advance(4.2);
+  assert.equal(inspect().state.festivity.mode, 'MUSIC');
+  assert.equal(inspect().state.benkos.festivalDance, true);
+  assert.equal(inspect().state.units.find(u => u.namedAmara).activity, 'DANCE');
+  advance(12.2);
+  assert.ok(inspect().state.festivity.kiss > 0);
+  key('KeyD'); advance(.05); key('KeyD', true);
+  assert.equal(inspect().state.benkos.festivalDance, false);
+  assert.equal(inspect().state.festivity.kiss, 0);
+  await loadState(s => { s.benkos.x = 265; s.benkos.vx = 0; s.benkos.facing = -1; });
+  for (let second = 0; second < 10 && !inspect().state.benkos.festivalDance; second++) advance(1);
+  assert.equal(inspect().state.benkos.festivalDance, true);
+  key('Space'); advance(.05); key('Space', true);
+  assert.equal(inspect().state.benkos.festivalDance, false);
+  assert.equal(inspect().state.benkos.festivalKiss, 0);
 });

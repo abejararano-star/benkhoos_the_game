@@ -106,8 +106,23 @@ export class AfroColombianAudioEngine {
     else if (type === 'musket') { this.playTamboraBass(230, 0.12, 0.3); this.playGuacheShaker(0.22); }
     else if (type === 'trumpet') this.playTrumpetHorn(392, 0.55);
   }
-  update(dt, phase) {
+  playFestival(festival, playerX) {
+    const beat = Math.floor(festival.clock * 6);
+    if (this.festivalBeat === beat) return;
+    this.festivalBeat = beat;
+    const near = Math.max(0, 1 - Math.abs(playerX - festival.x) / 480);
+    if (!near) return;
+    const s = beat % 6;
+    if (s === 0 || s === 3) this.playTamboraBass(72, .17, .15 * near);
+    if (s === 2 || s === 5) this.playAlegreSlap(.10 * near);
+    this.playGuacheShaker((s % 2 ? .055 : .025) * near);
+  }
+  update(dt, phase, festival = null, playerX = Infinity) {
     if (!this.enabled || !this.ctx) return;
+    if (festival?.mode === 'MUSIC' && Math.abs(playerX - festival.x) < 480) {
+      this.playFestival(festival, playerX);
+      return;
+    }
     const stepInterval = phase === 'DAY_EXPLORE' ? 0.29 : (phase === 'RED_NIGHT' ? 0.13 : 0.17);
     this.accum += dt;
     if (this.accum >= stepInterval) {

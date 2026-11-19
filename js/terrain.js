@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=9c0121bc3842';
-import { landscapeSeed } from './sky.js?v=9c0121bc3842';
-import { CAMP_EDGE } from './config.js?v=9c0121bc3842';
-import { TOWER_HEIGHT } from './settlement.js?v=9c0121bc3842';
-import { CROSSINGS, deckOffset } from './crossings.js?v=9c0121bc3842';
+import { blend, color, mix, smooth } from './daylight.js?v=bf41c5a26f23';
+import { landscapeSeed } from './sky.js?v=bf41c5a26f23';
+import { CAMP_EDGE, PLAZA } from './config.js?v=bf41c5a26f23';
+import { TOWER_HEIGHT } from './settlement.js?v=bf41c5a26f23';
+import { CROSSINGS, deckOffset } from './crossings.js?v=bf41c5a26f23';
 
 let regionCanvas;
 
@@ -259,8 +259,8 @@ export function drawVillage(g,toScreen,ground,shadow,time,settlement,armyTier,re
     g.fillStyle=armyTier===3?'#d4ad62':'#adbaa5';g.fillRect(rack+4,ground-23,7,8);g.fillRect(rack+5,ground-15,5,2);
     g.fillStyle='#50574a';g.fillRect(rack+6,ground-20,3,4);
   }
-  if(sm?.draw?.(g,'landmark_fire',['idle'],toScreen(70),ground,1,16,0))return;
-  const x=toScreen(70);g.fillStyle='#5b402a';g.fillRect(x-7,ground-5,14,4);
+  if(sm?.draw?.(g,'landmark_fire',['idle'],toScreen(PLAZA.fireX),ground,1,16,reduceMotion?0:time,6))return;
+  const x=toScreen(PLAZA.fireX);g.fillStyle='#5b402a';g.fillRect(x-7,ground-5,14,4);
   g.fillStyle='#d29a50';g.fillRect(x-4,ground-12,8,7);g.fillStyle='#e9c77e';g.fillRect(x-2,ground-16-(reduceMotion?0:Math.round(Math.sin(time*4))),4,9);
 }
 
@@ -482,7 +482,7 @@ export function drawWatchtower(g, x, ground, tower) {
     return;
   }
   const deck = ground - TOWER_HEIGHT[tower.level];
-  if (window.SpriteManager?.draw?.(g, `watchtower_level_${tower.level}`, ['idle'], x, ground, 1, TOWER_HEIGHT[tower.level], 0)) return;
+  if (window.SpriteManager?.draw?.(g, `watchtower_level_${tower.level}`, ['idle'], x, ground, tower.side ?? 1, TOWER_HEIGHT[tower.level], 0)) return;
   g.strokeStyle = '#4d3326';
   g.lineWidth = 5;
   g.beginPath();

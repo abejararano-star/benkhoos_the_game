@@ -1,16 +1,17 @@
-import { ensureCrossings } from './crossings.js?v=9c0121bc3842';
-import { NIGHT_START } from './daylight.js?v=9c0121bc3842';
-import { restoreCommunity } from './community.js?v=9c0121bc3842';
-import { ensureEcology, seedEcology } from './ecology.js?v=9c0121bc3842';
-import { seedFrontier } from './exploration.js?v=9c0121bc3842';
-import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=9c0121bc3842';
-import { ensurePerson } from './people.js?v=9c0121bc3842';
-import { restoreAmara } from './amara.js?v=9c0121bc3842';
-import { ensureSettlement } from './settlement.js?v=9c0121bc3842';
-import { ensureCampaign } from './campaign.js?v=9c0121bc3842';
-import { restoreHaciendas } from './haciendas.js?v=9c0121bc3842';
-import { restoreColonialTowers } from './colonial-ai.js?v=9c0121bc3842';
-import { restoreStory } from './story.js?v=9c0121bc3842';
+import { ensureCrossings } from './crossings.js?v=bf41c5a26f23';
+import { NIGHT_START } from './daylight.js?v=bf41c5a26f23';
+import { restoreCommunity } from './community.js?v=bf41c5a26f23';
+import { ensureEcology, seedEcology } from './ecology.js?v=bf41c5a26f23';
+import { seedFrontier } from './exploration.js?v=bf41c5a26f23';
+import { ROLES, ENEMY_CATALOG, WORLD_MIN_X, WORLD_MAX_X, getUnitMaxHp } from './config.js?v=bf41c5a26f23';
+import { ensurePerson } from './people.js?v=bf41c5a26f23';
+import { restoreAmara } from './amara.js?v=bf41c5a26f23';
+import { ensureSettlement } from './settlement.js?v=bf41c5a26f23';
+import { ensureCampaign } from './campaign.js?v=bf41c5a26f23';
+import { restoreHaciendas } from './haciendas.js?v=bf41c5a26f23';
+import { restoreColonialTowers } from './colonial-ai.js?v=bf41c5a26f23';
+import { restoreStory } from './story.js?v=bf41c5a26f23';
+import { restoreFestivity } from './festivity.js?v=bf41c5a26f23';
 export const SAVE_VERSION = 3;
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (v, fallback, min = -Infinity, max = Infinity) =>
@@ -51,9 +52,11 @@ function restoreLayout(state, defaults) {
       else if (collection === 'toolRacks') state.toolRacks.push(clone(site));
     }
   }
-  for (const home of Array.isArray(state.settlement?.homes) ? state.settlement.homes : []) {
-    const site = defaults.settlement.homes.find(entry => entry.id === home?.id);
-    if (site && Number.isFinite(home.x)) move(home, site, 'home');
+  for (const [collection, kind] of [['homes', 'home'], ['towers', 'tower']]) {
+    for (const building of Array.isArray(state.settlement?.[collection]) ? state.settlement[collection] : []) {
+      const site = defaults.settlement[collection].find(entry => entry.id === building?.id);
+      if (site && Number.isFinite(building.x)) move(building, site, kind);
+    }
   }
 }
 
@@ -144,6 +147,7 @@ export function restoreSave(save, defaults) {
   if (next.units.some(u => !ROLES.includes(u.role)) || next.enemies.some(e => !ENEMY_CATALOG[e.type])) throw new Error('La partida contiene unidades desconocidas.');
   next.units.forEach(ensurePerson);
   restoreAmara(next);
+  restoreFestivity(next);
   for (const unit of next.units) {
     if (unit.wound !== undefined) unit.wound = number(unit.wound, 0, 0, 3);
     if (unit.recoveredCoins !== undefined) unit.recoveredCoins = Math.floor(number(unit.recoveredCoins, 0, 0, 4));
