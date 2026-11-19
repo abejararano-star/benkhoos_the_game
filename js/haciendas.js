@@ -1,6 +1,6 @@
-import { estateById, hasOutpost } from './story.js?v=bf41c5a26f23';
-import { deployGuards } from './frontier.js?v=bf41c5a26f23';
-import { nominateAmara } from './amara.js?v=bf41c5a26f23';
+import { estateById, hasOutpost } from './story.js?v=b5596998e672';
+import { deployGuards } from './frontier.js?v=b5596998e672';
+import { nominateAmara } from './amara.js?v=b5596998e672';
 
 const PRISONERS = [-23, 0, 23];
 const LARGE_PRISON = [-49, -30, -10, 10, 30, 49];

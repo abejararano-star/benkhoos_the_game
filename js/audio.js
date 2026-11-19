@@ -1,10 +1,11 @@
+import { ScenarioSoundtrack } from './soundtrack.js?v=b5596998e672';
+
 export class AfroColombianAudioEngine {
   constructor() {
     this.ctx = null;
     this.enabled = true;
     this.volume = 0.85;
-    this.step = 0;
-    this.accum = 0;
+    this.soundtrack = null;
   }
   init() {
     if (!this.enabled || this.volume <= 0) return;
@@ -12,11 +13,20 @@ export class AfroColombianAudioEngine {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) this.ctx = new AudioCtx();
     }
-    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx && !this.soundtrack) {
+      this.soundtrack = new ScenarioSoundtrack(this.ctx);
+      this.soundtrack.setVolume(this.volume);
+    }
+    if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume().catch(() => {});
   }
   setVolume(v) {
     this.volume = Math.max(0, Math.min(1, v));
+    this.soundtrack?.setVolume(this.volume);
   }
+  pauseSoundtrack() { this.soundtrack?.pause(); }
+  resetSoundtrack() { this.soundtrack?.reset(); }
+  updateSoundtrack(dt, state, playing) { this.soundtrack?.update(dt, state, playing && this.enabled); }
+  inspectSoundtrack() { return this.soundtrack?.inspect() ?? { playing: false, current: '', voices: [], buffered: [], errors: [] }; }
   playTamboraBass(freq = 75, duration = 0.16, vol = 0.22) {
     if (!this.enabled || !this.ctx || this.volume <= 0) return;
     const effVol = vol * this.volume;
@@ -122,22 +132,6 @@ export class AfroColombianAudioEngine {
     if (festival?.mode === 'MUSIC' && Math.abs(playerX - festival.x) < 480) {
       this.playFestival(festival, playerX);
       return;
-    }
-    const stepInterval = phase === 'DAY_EXPLORE' ? 0.29 : (phase === 'RED_NIGHT' ? 0.13 : 0.17);
-    this.accum += dt;
-    if (this.accum >= stepInterval) {
-      this.accum -= stepInterval;
-      const s = this.step % 8;
-      if (phase === 'DAY_EXPLORE') {
-        if (s === 0 || s === 4) this.playTamboraBass(68, 0.15, 0.10);
-        if (s === 2 || s === 6) this.playGuacheShaker(0.025);
-        if (s === 3 || s === 7) this.playAlegreSlap(0.06);
-      } else {
-        if (s === 0 || s === 3 || s === 6) this.playTamboraBass(88, 0.14, 0.2);
-        if (s === 2 || s === 4 || s === 7) this.playAlegreSlap(0.13);
-        if (s % 2 === 1) this.playGuacheShaker(0.045);
-      }
-      this.step++;
     }
   }
 }

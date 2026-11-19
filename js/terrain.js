@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=bf41c5a26f23';
-import { landscapeSeed } from './sky.js?v=bf41c5a26f23';
-import { CAMP_EDGE, PLAZA } from './config.js?v=bf41c5a26f23';
-import { TOWER_HEIGHT } from './settlement.js?v=bf41c5a26f23';
-import { CROSSINGS, deckOffset } from './crossings.js?v=bf41c5a26f23';
+import { blend, color, mix, smooth } from './daylight.js?v=b5596998e672';
+import { landscapeSeed } from './sky.js?v=b5596998e672';
+import { CAMP_EDGE, PLAZA } from './config.js?v=b5596998e672';
+import { TOWER_HEIGHT } from './settlement.js?v=b5596998e672';
+import { CROSSINGS, deckOffset } from './crossings.js?v=b5596998e672';
 
 let regionCanvas;
 

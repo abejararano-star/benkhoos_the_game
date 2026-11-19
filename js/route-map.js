@@ -1,9 +1,9 @@
-import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=bf41c5a26f23';
-import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=bf41c5a26f23';
-import { haciendaActive } from './haciendas.js?v=bf41c5a26f23';
-import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=bf41c5a26f23';
-import { CROSSINGS } from './crossings.js?v=bf41c5a26f23';
-import { COLONIAL_POSTS } from './frontier.js?v=bf41c5a26f23';
+import { WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=b5596998e672';
+import { ALTAR_X, TRAIL_CACHES } from './exploration.js?v=b5596998e672';
+import { haciendaActive } from './haciendas.js?v=b5596998e672';
+import { CITIES, OUTPOSTS, estateById, storyChapter } from './story.js?v=b5596998e672';
+import { CROSSINGS } from './crossings.js?v=b5596998e672';
+import { COLONIAL_POSTS } from './frontier.js?v=b5596998e672';
 
 export const mapX = x => 7 + 86 * Math.max(0, Math.min(1, (x - WORLD_MIN_X) / (WORLD_MAX_X - WORLD_MIN_X)));
 

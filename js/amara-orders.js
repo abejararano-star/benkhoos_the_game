@@ -1,6 +1,6 @@
-import { TOOL_COSTS } from './config.js?v=bf41c5a26f23';
-import { affinity, requestProfession, roleAvailable, speak } from './people.js?v=bf41c5a26f23';
-import { applyBuildingPayment, constructionAt, queueConstruction, upgradeInfo } from './settlement.js?v=bf41c5a26f23';
+import { TOOL_COSTS } from './config.js?v=b5596998e672';
+import { affinity, requestProfession, roleAvailable, speak } from './people.js?v=b5596998e672';
+import { applyBuildingPayment, constructionAt, queueConstruction, upgradeInfo } from './settlement.js?v=b5596998e672';
 
 const reserveCap = 99;
 export const readBudget = saved => Number.isSafeInteger(saved) ? Math.max(0, Math.min(reserveCap, saved)) : 0;

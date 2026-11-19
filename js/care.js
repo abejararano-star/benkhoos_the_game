@@ -1,4 +1,4 @@
-import { STATION_X } from './config.js?v=bf41c5a26f23';
+import { STATION_X } from './config.js?v=b5596998e672';
 
 export const CARE_ROLES = ['CURANDERO', 'BRUJO'];
 

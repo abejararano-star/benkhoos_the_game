@@ -53,6 +53,10 @@ En Windows puedes generar las voces de respaldo sin conexión con `powershell.ex
 
 La bolsa admite 24 reales. Los golpes mandan las monedas perdidas directamente al agua. Un golpe con la bolsa vacía termina la campaña con una secuencia de captura, encadenamiento y traslado al cadalso. La guillotina de esta derrota pertenece a la dramatización del juego. Las partidas se guardan al amanecer y manualmente. La guía, las decisiones y los menús detienen la simulación. La pérdida de foco pausa el juego y limpia las teclas.
 
+Las cuatro grabaciones de música aportadas el 19 de noviembre están extraídas en `assets/audio/music/`: **Mangrove Night Drift** acompaña la noche; **La Matuna Morning Canopy**, la exploración diurna fuera del palenque; **Maroon Kingdom Harmony**, la vida diurna de la Matuna; y **Forest Resistance**, el peligro cercano, las noches rojas y las expediciones. Los cambios usan fundidos de 2,4 segundos y los archivos tienen un empalme de repetición de 1,2 segundos, sin los silencios finales de las grabaciones. Comparten un volumen aproximado de −21 LUFS. La banda sonora baja cerca de músicos y pregoneros y se detiene en pausa, menús y escenas narradas. El ajuste de audio y su volumen controlan también estas pistas.
+
+`assets/audio/music/manifest.json` conserva títulos, grabaciones de origen, duraciones, niveles medidos y huellas de los archivos. Para volver a extraerlas, usa `python tools/import-ambient-audio.py --source-directory "CARPETA_DE_GRABACIONES" --ffmpeg "RUTA_A_FFMPEG"`. Las copias AAC originales quedan en `archive/audio-originals/`, fuera de Git; las cuatro pistas MP3 del juego sí se incluyen en el proyecto. Los efectos y las grabaciones del bardo se incorporarán cuando estén disponibles.
+
 ## Guardado
 
 La versión 3 del formato conserva el estado completo: tropas y daño, edificios, rangos, habilidades, haciendas, recursos, árboles, monturas, oleadas, cartas, mensajeros y progreso político. También guarda nombres, atributos, dones, experiencias por oficio, heridas, miedo, cansancio y cambios de profesión pendientes. Se mantiene una copia local y se usa la más reciente entre navegador y servidor. Las versiones 1 y 2 se migran al cargar; solo es posible recuperar los datos que la versión antigua llegó a guardar. Las partidas anteriores reciben los puestos de hachas y martillos sin sustituir su inventario existente. También reciben la casa central y materiales iniciales; los nuevos constructores se asignan desde F.
@@ -201,12 +205,14 @@ js/settlement.js          Materiales, evoluciones y trabajo de construcción
 js/renderer.js            Personajes, mundo y reflejo
 js/terrain.js             Paisaje, construcciones y señales de combate
 js/audio.js               Motor de tambores y efectos
+js/soundtrack.js          Música contextual, fundidos y mezcla de ambiente
 js/input.js, ui.js         Controles, pausa, menús y HUD
 js/save-system.js, db.js   Formato versionado y persistencia
 api/                      Adaptador PHP/MySQL
 migrations/               Cambios aditivos de base de datos
 assets/atlas/             Único atlas usado por el juego
 assets/ui/                Iconos y emblema SVG pixel art
+assets/audio/music/       Banda sonora extraída y manifiesto de procedencia
 art/source/               Hojas originales del proceso de exportación
 tests/                    Pruebas de reglas y del runtime completo
 ```

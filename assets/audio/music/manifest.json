@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "sample_rate": 44100,
+  "channels": 2,
+  "format": "MP3 128 kb/s",
+  "origin": "Four screen recordings supplied by the user on 2026-11-19",
+  "tracks": [
+    {
+      "id": "night",
+      "title": "Mangrove Night Drift",
+      "file": "mangrove-night-drift.mp3",
+      "source": "Grabación de pantalla 2026-11-19 131949.mp4",
+      "source_sha256": "46cd1a661b14cf20c6ab4f8121120768e2d7224fda0393c0b5864a56f30ef4be",
+      "sha256": "6fddbd0893ea7a185ea3706b7b5070da0d022c927344abd1a4e80f456a39d49b",
+      "source_duration": 59.48,
+      "kept_range": [
+        0.0,
+        58.136
+      ],
+      "loop_duration": 56.936,
+      "crossfade_seconds": 1.2,
+      "integrated_lufs": -21.3,
+      "true_peak_dbtp": -4.4,
+      "bytes": 912062
+    },
+    {
+      "id": "morning",
+      "title": "La Matuna Morning Canopy",
+      "file": "la-matuna-morning-canopy.mp3",
+      "source": "Grabación de pantalla 2026-11-19 132509.mp4",
+      "source_sha256": "c6690ebd645783a9b617b01c02824124abd21bba5ad6466da2809ceac4cbd2a1",
+      "sha256": "0700671167d2075b330fad745645d467b7adb8d6f774e03ab03d93a2496b09ba",
+      "source_duration": 58.73,
+      "kept_range": [
+        0.0,
+        58.579
+      ],
+      "loop_duration": 57.379,
+      "crossfade_seconds": 1.2,
+      "integrated_lufs": -21.35,
+      "true_peak_dbtp": -2.43,
+      "bytes": 919171
+    },
+    {
+      "id": "palenque",
+      "title": "Maroon Kingdom Harmony",
+      "file": "maroon-kingdom-harmony.mp3",
+      "source": "Grabación de pantalla 2026-11-19 132709.mp4",
+      "source_sha256": "b6f8575f5df0fbcd2a26dc71e5e77e39a56b1128af656af0e3237048f7a5a79b",
+      "sha256": "1157a57cd62cb3765819909afa5825ab1e5a7664d30a2e59a86b71df59e81c98",
+      "source_duration": 63.38,
+      "kept_range": [
+        1.556,
+        62.638
+      ],
+      "loop_duration": 59.882,
+      "crossfade_seconds": 1.2,
+      "integrated_lufs": -21.49,
+      "true_peak_dbtp": -5.86,
+      "bytes": 959293
+    },
+    {
+      "id": "resistance",
+      "title": "Forest Resistance",
+      "file": "forest-resistance.mp3",
+      "source": "Grabación de pantalla 2026-11-19 133229.mp4",
+      "source_sha256": "afa688c29fa98a84a2aa669f2a6d3bfa88421c20c36ab853a4a429145ac9c245",
+      "sha256": "a0bf5c3cbf93c5f07ce5b0f1c30c0f798f9056aef516ce77255706ee04edb6c1",
+      "source_duration": 59.84,
+      "kept_range": [
+        0.0,
+        57.882
+      ],
+      "loop_duration": 56.682,
+      "crossfade_seconds": 1.2,
+      "integrated_lufs": -21.46,
+      "true_peak_dbtp": -2.29,
+      "bytes": 907879
+    }
+  ]
+}

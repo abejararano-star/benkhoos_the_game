@@ -1,34 +1,34 @@
-import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=bf41c5a26f23';
-import { ensureCrop, needsCropCare } from './crops.js?v=bf41c5a26f23';
-import { NIGHT_START } from './daylight.js?v=bf41c5a26f23';
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=bf41c5a26f23';
-import { GROUND_COIN_LIFE } from './coins.js?v=bf41c5a26f23';
-import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=bf41c5a26f23';
-import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=bf41c5a26f23';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=bf41c5a26f23';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=bf41c5a26f23';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus } from './settlement.js?v=bf41c5a26f23';
-import { emitEffect } from './effects.js?v=bf41c5a26f23';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=bf41c5a26f23';
-import { AfroColombianAudioEngine } from './audio.js?v=bf41c5a26f23';
-import { createInitialState } from './world-state.js?v=bf41c5a26f23';
-import { makeSave, restoreSave } from './save-system.js?v=bf41c5a26f23';
-import { createRenderer } from './renderer.js?v=bf41c5a26f23';
-import { createSimulation } from './simulation.js?v=bf41c5a26f23';
-import { FixedStepper } from './clock.js?v=bf41c5a26f23';
-import { bindInput } from './input.js?v=bf41c5a26f23';
-import { createUI } from './ui.js?v=bf41c5a26f23';
-import { chooseDefenseSide } from './ai.js?v=bf41c5a26f23';
-import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=bf41c5a26f23';
-import { addWound } from './care.js?v=bf41c5a26f23';
-import { COLONIAL_TOWERS, damageColonialTower } from './colonial-ai.js?v=bf41c5a26f23';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=bf41c5a26f23';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=bf41c5a26f23';
-import { mediateEncounter } from './community.js?v=bf41c5a26f23';
-import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, canOccupyCity, establishOutpost, estateById, localHaciendas, occupyCity, onEstateLiberated, storyChapter } from './story.js?v=bf41c5a26f23';
-import { historyDeparture, historyEnding, PROLOGUE } from './chronicle.js?v=bf41c5a26f23';
-import { capturedEnding } from './capture.js?v=bf41c5a26f23';
-import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=bf41c5a26f23';
+import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=b5596998e672';
+import { ensureCrop, needsCropCare } from './crops.js?v=b5596998e672';
+import { NIGHT_START } from './daylight.js?v=b5596998e672';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=b5596998e672';
+import { GROUND_COIN_LIFE } from './coins.js?v=b5596998e672';
+import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=b5596998e672';
+import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=b5596998e672';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=b5596998e672';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=b5596998e672';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus } from './settlement.js?v=b5596998e672';
+import { emitEffect } from './effects.js?v=b5596998e672';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=b5596998e672';
+import { AfroColombianAudioEngine } from './audio.js?v=b5596998e672';
+import { createInitialState } from './world-state.js?v=b5596998e672';
+import { makeSave, restoreSave } from './save-system.js?v=b5596998e672';
+import { createRenderer } from './renderer.js?v=b5596998e672';
+import { createSimulation } from './simulation.js?v=b5596998e672';
+import { FixedStepper } from './clock.js?v=b5596998e672';
+import { bindInput } from './input.js?v=b5596998e672';
+import { createUI } from './ui.js?v=b5596998e672';
+import { chooseDefenseSide } from './ai.js?v=b5596998e672';
+import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=b5596998e672';
+import { addWound } from './care.js?v=b5596998e672';
+import { COLONIAL_TOWERS, damageColonialTower } from './colonial-ai.js?v=b5596998e672';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=b5596998e672';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=b5596998e672';
+import { mediateEncounter } from './community.js?v=b5596998e672';
+import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, canOccupyCity, establishOutpost, estateById, localHaciendas, occupyCity, onEstateLiberated, storyChapter } from './story.js?v=b5596998e672';
+import { historyDeparture, historyEnding, PROLOGUE } from './chronicle.js?v=b5596998e672';
+import { capturedEnding } from './capture.js?v=b5596998e672';
+import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=b5596998e672';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -48,7 +48,7 @@ const isPlaying = () => session.mode === 'playing' && state.status === 'playing'
 const ui = createUI({ state, session, settings, actions: {
   newGame, load: loadGameFromMySQL, save: () => saveGameToMySQL(), toggleArmor, useSkill,
   continueGame: () => session.hasCampaign && state.status === 'playing' ? ui.resume() : loadGameFromMySQL(),
-  clearInput: () => input?.clear(), fullscreen: toggleFullscreen,
+  clearInput: () => { input?.clear(); audio.pauseSoundtrack(); }, fullscreen: toggleFullscreen,
   settings: changeSettings, volume: v => audio.setVolume(v), politics: choosePolitics, storySound: sound => audio.playSfx(sound),
   leaderboard: () => window.BenkosDB.getLeaderboard(), debug: debugAction, inspectNpc, assignRole, autoRole, node:()=>getNearestInteractiveNode(state.benkos.x), worldPrices, orderKit: (unit, piece, rank) => orderEquipment(unit, piece, state, rank), build: (kind,id)=>requestBuilding(state,kind,id)
 }});
@@ -911,6 +911,7 @@ window.addEventListener('resize', resize); resize();
 
 function newGame() {
   if (saveTask || loading) return;
+  audio.resetSoundtrack();
   input?.clear();
   Object.assign(state, createInitialState()); nextEntityId = 1;
   session.hasCampaign = true;
@@ -1027,12 +1028,13 @@ async function saveGameToMySQL(automatic = false) {
 async function loadGameFromMySQL() {
   if(reviewMode){newGame();return;}
   if (loading || saveTask) return;
-  loading = true; input?.clear(); ui.busy(true);
+  loading = true; input?.clear(); audio.pauseSoundtrack(); audio.init(); ui.busy(true);
   try {
     const save = await window.BenkosDB.loadGame();
     if (!save) { showBanner('SIN PARTIDA GUARDADA', 'Comienza una nueva campaña para fundar la Matuna.'); return; }
     const restored = restoreSave(save, createInitialState());
     // Commit only after the complete snapshot has passed validation.
+    audio.resetSoundtrack();
     Object.assign(state, restored.state); nextEntityId = restored.nextEntityId;
     session.hasCampaign = true;
     stepper.reset();
@@ -1160,6 +1162,7 @@ function loop(now) {
     stepper.advance(elapsed, dt => { if(isPlaying()){renderFrame.capturePrevious();simulation(dt);} });
 
   } else stepper.reset();
+  audio.updateSoundtrack(elapsed, state, isPlaying());
   if (hudTime > .1) { updateHUD(); hudTime = 0; } else hudTime += elapsed;
   renderFrame(stepper.time,isPlaying()?stepper.alpha:1);
   ui.renderWorldOverlay?.(renderFrame.projection());
@@ -1167,5 +1170,6 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 window.gameApp = Object.freeze({ useSkill, save: () => saveGameToMySQL(), load: loadGameFromMySQL,
-  inspect: () => ({ mode: session.mode, state: JSON.parse(JSON.stringify(state)), spritesReady: window.SpriteManager.ready }) });
+  inspect: () => ({ mode: session.mode, state: JSON.parse(JSON.stringify(state)), spritesReady: window.SpriteManager.ready,
+    soundtrack: audio.inspectSoundtrack() }) });
 ui.menu(); updateHUD(); init(); requestAnimationFrame(loop);
