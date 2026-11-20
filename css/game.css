@@ -1101,3 +1101,5 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
   #gameUI .stats-row {gap:2px}
   #gameUI .objective {max-width:46vw}
 }
+#hudExitHint {position:fixed;bottom:8%;left:50%;transform:translateX(-50%);z-index:50;pointer-events:none;color:#f4ead4;background:#172920ed;padding:.45rem .8rem;font:14px monospace;text-align:center}
+#hudExitHint:empty {display:none}

@@ -10,6 +10,13 @@ function preference(key, value) {
 export function createHud({ state, session, actions, resume }) {
   const get = id => document.getElementById(id);
   const root = get('gameUI');
+  let lastPlayingMode, hintTimer;
+  function exitHint(message = '') {
+    clearTimeout(hintTimer);
+    const hint = get('hudExitHint');
+    hint.textContent = message;
+    if (message) hintTimer = setTimeout(() => { hint.textContent = ''; }, 3000);
+  }
   let mode = preference('hudMode');
   let held = false, objectiveUntil = 0, resourcesUntil = 0, threatUntil = 0;
   let objective = '', resources = '', context = '', since = 0, lastMotion = 0;
@@ -32,8 +39,8 @@ export function createHud({ state, session, actions, resume }) {
   });
   function photo() {
     actions.clearInput?.();
-    if (session.mode === 'photo') { resume(); delete root.dataset.photo; }
-    else { resume(); session.mode = 'photo'; root.dataset.photo = 'true'; }
+    if (session.mode === 'photo') { resume(); delete root.dataset.photo; lastPlayingMode = undefined; exitHint(); }
+    else { resume(); session.mode = 'photo'; root.dataset.photo = 'true'; exitHint('Modo foto · Pulsa P o Esc para volver'); }
   }
   get('btnPhoto').addEventListener('click', photo);
   function tab(campaign) {
@@ -45,6 +52,8 @@ export function createHud({ state, session, actions, resume }) {
   get('btnTabSettings').addEventListener('click', () => tab(false));
   get('btnTabCampaign').addEventListener('click', () => tab(true));
   function campaignStart(fresh) {
+    lastPlayingMode = undefined;
+    exitHint();
     root.classList.toggle('first-visit', fresh && preference('learnedControls') !== 'yes');
     if (fresh) preference('learnedControls', 'yes');
     objective = resources = previousSide = context = '';
@@ -65,6 +74,10 @@ export function createHud({ state, session, actions, resume }) {
   }
   function update(node, route, night, chapter) {
     if (session.mode !== 'playing') return;
+    if (mode !== lastPlayingMode) {
+      exitHint(mode === 'clean' ? 'Modo limpio · Pulsa H para recuperar la interfaz' : '');
+      lastPlayingMode = mode;
+    }
     const now = performance.now(), b = state.benkos;
     const goal = get('objectiveText').textContent;
     if (goal !== objective) { objective = goal; objectiveUntil = now + 6000; }

@@ -1,4 +1,4 @@
-import { WATER_LINE_Y } from './config.js?v=70b671881237';
+import { WATER_LINE_Y } from './config.js?v=6e8525fead6a';
 
 const profiles = {
   blood: { colors: ['#711e26', '#a53539', '#c75c53'], count: 8, speed: 93, gravity: 225, life: .48, size: 2 },

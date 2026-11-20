@@ -1,26 +1,26 @@
-import { needsCropCare } from './crops.js?v=70b671881237';
-import { AMARA_NAME, amaraNearby } from './amara.js?v=70b671881237';
-import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=70b671881237';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=70b671881237';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=70b671881237';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=70b671881237';
-import { describeTraits } from './daily-life.js?v=70b671881237';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=70b671881237';
-import { canMediate, relationshipsFor } from './community.js?v=70b671881237';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=70b671881237';
-import { ecologyHint } from './ecology.js?v=70b671881237';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=70b671881237';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, SPECIALISTS, FELIDS } from './config.js?v=70b671881237';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=70b671881237';
-import { arrivalHint } from './campaign.js?v=70b671881237';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=70b671881237';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=70b671881237';
-import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=70b671881237';
-import { createStoryMedia } from './story-media.js?v=70b671881237';
-import { CAPTURE_DURATION, drawCapture } from './capture.js?v=70b671881237';
-import { drawWatchtower } from './terrain.js?v=70b671881237';
+import { needsCropCare } from './crops.js?v=6e8525fead6a';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=6e8525fead6a';
+import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=6e8525fead6a';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=6e8525fead6a';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=6e8525fead6a';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=6e8525fead6a';
+import { describeTraits } from './daily-life.js?v=6e8525fead6a';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=6e8525fead6a';
+import { canMediate, relationshipsFor } from './community.js?v=6e8525fead6a';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=6e8525fead6a';
+import { ecologyHint } from './ecology.js?v=6e8525fead6a';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=6e8525fead6a';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, SPECIALISTS, FELIDS } from './config.js?v=6e8525fead6a';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=6e8525fead6a';
+import { arrivalHint } from './campaign.js?v=6e8525fead6a';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=6e8525fead6a';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=6e8525fead6a';
+import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=6e8525fead6a';
+import { createStoryMedia } from './story-media.js?v=6e8525fead6a';
+import { CAPTURE_DURATION, drawCapture } from './capture.js?v=6e8525fead6a';
+import { drawWatchtower } from './terrain.js?v=6e8525fead6a';
 
-import { createHud } from './hud.js?v=70b671881237';
+import { createHud } from './hud.js?v=6e8525fead6a';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);

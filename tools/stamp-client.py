@@ -11,7 +11,9 @@ html_path=ROOT/'index.html'
 html=re.sub(r'((?:src|href)="(?:js/[^"?]+\.js|css/[^"?]+\.css))(?:\?v=[^"]*)?(\")',r'\1\2',html_path.read_text(encoding='utf-8'))
 digest=hashlib.sha256()
 for p,content in contents.items():digest.update(p.name.encode());digest.update(content.encode())
-digest.update(html.encode());digest.update((ROOT/'css/game.css').read_bytes());digest.update((ROOT/'assets/atlas/atlas.json').read_bytes())
+digest.update(html.encode())
+for path in ('css/game.css', 'assets/atlas/atlas.json'):
+    digest.update((ROOT/path).read_text(encoding='utf-8').encode())
 build=digest.hexdigest()[:12]
 for p,content in contents.items():p.write_text(pattern.sub(lambda m:m[1]+m[2]+'?v='+build+m[3],content),encoding='utf-8')
 html=re.sub(r'((?:src|href)="(?:js/[^"?]+\.js|css/[^"?]+\.css))(\")',lambda m:m[1]+'?v='+build+m[2],html)

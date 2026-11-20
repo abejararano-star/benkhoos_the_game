@@ -1,13 +1,13 @@
-import { ensureCrossings } from './crossings.js?v=70b671881237';
-import { initialCommunity } from './community.js?v=70b671881237';
-import { initialStory, majorHaciendas } from './story.js?v=70b671881237';
-import { initialEcology } from './ecology.js?v=70b671881237';
-import { initialExploration } from './exploration.js?v=70b671881237';
-import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=70b671881237';
-import { initialSettlement } from './settlement.js?v=70b671881237';
-import { initialAmara } from './amara.js?v=70b671881237';
-import { initialFestivity } from './festivity.js?v=70b671881237';
-import { initialWeather } from './weather.js?v=70b671881237';
+import { ensureCrossings } from './crossings.js?v=6e8525fead6a';
+import { initialCommunity } from './community.js?v=6e8525fead6a';
+import { initialStory, majorHaciendas } from './story.js?v=6e8525fead6a';
+import { initialEcology } from './ecology.js?v=6e8525fead6a';
+import { initialExploration } from './exploration.js?v=6e8525fead6a';
+import { BALANCE, SKILLS, TOOL_COSTS, WATER_LINE_Y, STATION_X, CAMP_EDGE } from './config.js?v=6e8525fead6a';
+import { initialSettlement } from './settlement.js?v=6e8525fead6a';
+import { initialAmara } from './amara.js?v=6e8525fead6a';
+import { initialFestivity } from './festivity.js?v=6e8525fead6a';
+import { initialWeather } from './weather.js?v=6e8525fead6a';
 export function createInitialState() {
 const state = {
   status: "playing",

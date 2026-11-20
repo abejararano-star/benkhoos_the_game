@@ -48,6 +48,9 @@ En Windows puedes generar las voces de respaldo sin conexión con `powershell.ex
 | G | Armería, vista previa y encargos para combatientes |
 | F / clic sobre una persona | Ficha, dones, experiencia y cambio de oficio |
 | Tab / Escape | Ejército / pausa |
+| Q | Mantener para leer el objetivo completo |
+| H | Alternar entre las vistas Mínimo, Completo y Limpio |
+| P | Activar el modo foto. P o Escape para volver al juego |
 | F5 / F9 | Guardar / cargar |
 | F11 | Pantalla completa |
 

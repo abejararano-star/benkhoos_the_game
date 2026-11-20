@@ -1,7 +1,7 @@
-import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X, SPECIALISTS, MELEE_ROLES, RANGED_ROLES } from './config.js?v=70b671881237';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=70b671881237';
-import { ensureTraits, griefEffect } from './daily-life.js?v=70b671881237';
-import { addWound, healerAtCamp, recoverHealth } from './care.js?v=70b671881237';
+import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X, SPECIALISTS, MELEE_ROLES, RANGED_ROLES } from './config.js?v=6e8525fead6a';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=6e8525fead6a';
+import { ensureTraits, griefEffect } from './daily-life.js?v=6e8525fead6a';
+import { addWound, healerAtCamp, recoverHealth } from './care.js?v=6e8525fead6a';
 
 export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón', CURANDERO:'Curandero', BRUJO:'Brujo', ...Object.fromEntries(Object.entries(SPECIALISTS).map(([role, spec]) => [role, spec.name])) });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });

@@ -1,6 +1,6 @@
-import { BOW_ROLES, WATER_LINE_Y } from './config.js?v=70b671881237';
-import { TOWER_TIERS } from './settlement.js?v=70b671881237';
-import { strikeWildlife, threatensMilitia } from './combat.js?v=70b671881237';
+import { BOW_ROLES, WATER_LINE_Y } from './config.js?v=6e8525fead6a';
+import { TOWER_TIERS } from './settlement.js?v=6e8525fead6a';
+import { strikeWildlife, threatensMilitia } from './combat.js?v=6e8525fead6a';
 
 export function towerAssignments(state, formation) {
   const assignments = new Map();
