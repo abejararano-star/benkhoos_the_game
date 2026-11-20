@@ -1,5 +1,6 @@
-import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=ee79ef434f2b';
-import { updateJaguar } from './jaguar.js?v=ee79ef434f2b';
+import { WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, FELIDS } from './config.js?v=ea931d367785';
+import { collectEquipment } from './equipment.js?v=ea931d367785';
+import { updateJaguar } from './jaguar.js?v=ea931d367785';
 
 export const SPECIES=Object.freeze({
   CAPYBARA:{name:'Chigüiro',hp:28,speed:27,food:2,huntable:true},
@@ -9,10 +10,11 @@ export const SPECIES=Object.freeze({
   MACAW:{name:'Guacamaya',hp:18,speed:48,food:0,flying:true},
   TURTLE:{name:'Tortuga de río',hp:40,speed:12,food:0},
   JAGUAR:{name:'Jaguar',hp:95,speed:62,food:0,predator:true},
+  PANTHER:{name:'Pantera',hp:100,speed:66,food:0,predator:true},
   SNAKE:{name:'Culebra',hp:12,speed:38,food:0}
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const BREEDING = { CAPYBARA: [75, 8], DEER: [95, 7], BOAR: [100, 5], JAGUAR: [145, 4] };
+const BREEDING = { CAPYBARA: [75, 8], DEER: [95, 7], BOAR: [100, 5], JAGUAR: [145, 4], PANTHER:[155,3] };
 export const ANIMAL_MATURITY = 80;
 export const shallowWaterAt = (streams, x) => streams.some(creek => !creek.bridge && creek.x <= 0 && Math.abs(creek.x - x) < 23);
 export const animalInStream = (animal, streams, x = animal.x) =>
@@ -29,6 +31,14 @@ export function ensureAnimal(a){
   a.maxHp??=spec.hp;a.hp??=spec.hp;if(!Number.isFinite(a.hp)||!Number.isFinite(a.maxHp)||a.maxHp<=0)throw Error('Salud de animal inválida.');a.homeX??=a.x;a.facing??=1;a.vx??=0;
   a.fear??=0;a.trust??=0;a.feedCooldown??=0;a.aggression??=0;a.attackCooldown??=0;a.animTime??=0;
   a.moveTimer??=0;a.state??='IDLE';a.nettedTimer??=0;a.y??=WATER_LINE_Y;
+  if(a.bonded&&FELIDS.includes(a.species)){
+    a.name??=a.species==='PANTHER'?'Pantera de la Matuna':'Jaguar de la Matuna';
+    a.equipment??={weapon:0,armor:0};
+    for(const piece of ['weapon','armor'])if(![0,1,2].includes(a.equipment[piece]))a.equipment[piece]=0;
+    const order=a.kitOrder;
+    if(order&&(!['weapon','armor'].includes(order.piece)||![1,2].includes(order.rank)||order.rank<=a.equipment[order.piece]||
+      order.cost!==(order.piece==='armor'?4:3)+order.rank*3))a.kitOrder=null;
+  }
   return a;
 }
 export function ensureEcology(state){
@@ -78,7 +88,7 @@ function breedWildlife(state, nextId) {
 }
 export function seedEcology(state,nextId){
   ensureEcology(state);if(state.ecology.seeded)return;
-  const seeds=[['CAPYBARA',-560],['CAPYBARA',560],['DEER',-1070],['DEER',1040],['BOAR',1140],['MONKEY',-690],['MACAW',640],['MACAW',-1140],['TURTLE',-870],['TURTLE',800],['JAGUAR',1310]];
+  const seeds=[['CAPYBARA',-560],['CAPYBARA',560],['DEER',-1070],['DEER',1040],['BOAR',1140],['MONKEY',-690],['MACAW',640],['MACAW',-1140],['TURTLE',-870],['TURTLE',800],['JAGUAR',1310],['PANTHER',-3890]];
   for(const [species,x]of seeds)if(!state.wildlife.some(a=>a.species===species&&Math.abs(a.homeX-x)<55))state.wildlife.push(createAnimal(nextId(),species,x,{trapped:species==='TURTLE'&&x<0}));
   state.ecology.seeded=true;
 }
@@ -102,11 +112,11 @@ export function ecologyHint(state){
   }
   const a=item.target,name=SPECIES[a.species].name;
   if (a.species === 'SNAKE') return 'Culebra · Deja espacio al cruzar';
-  if (a.species === 'JAGUAR' && !a.bonded && a.trust && state.benkos.jaguarTimer > 0 && a.jaguarAction?.kind !== 'POUNCE') {
+  if (FELIDS.includes(a.species) && !a.bonded && a.trust && state.benkos.jaguarTimer > 0 && a.jaguarAction?.kind !== 'POUNCE') {
     return 'E · Crear un vínculo con el Espíritu del Jaguar';
   }
   if (a.jaguarAction?.kind === 'POUNCE') return 'Jaguar · Esquiva el salto';
-  return a.trapped?`E · Liberar ${name.toLowerCase()} de la trampa`:a.species==='MACAW'&&a.trust?`E · Escuchar a la guacamaya`:`E · Alimentar ${name.toLowerCase()} · ${a.species==='JAGUAR'?2:1} alimento`;
+  return a.trapped?`E · Liberar ${name.toLowerCase()} de la trampa`:a.species==='MACAW'&&a.trust?`E · Escuchar a la guacamaya`:`E · Alimentar ${name.toLowerCase()} · ${FELIDS.includes(a.species)?2:1} alimento`;
 }
 export function interactEcology(state,{fish=false}={}){
   if(state.benkos.interaction)return {handled:true,message:'Ya estás pescando.'};
@@ -130,9 +140,9 @@ export function interactEcology(state,{fish=false}={}){
   const a=item.target,spec=SPECIES[a.species];
   if (a.species === 'SNAKE') return { handled: true, message: 'Dale espacio a la culebra. Con la antorcha se aparta.' };
   if (a.jaguarAction?.kind === 'POUNCE') return { handled: true, message: 'Esquiva el salto antes de acercarte.' };
-  if (a.species === 'JAGUAR' && !a.bonded && a.trust > 0 && b.jaguarTimer > 0 && state.skills.some(skill => skill.id === 'jaguar' && skill.unlocked)) {
-    if (state.wildlife.some(animal => animal.bonded && animal.hp > 0)) return { handled: true, message: 'El espíritu mantiene un vínculo con un solo jaguar.' };
-    if (a.nettedTimer > 0 || a.trapped || a.bornAt !== undefined || a.waterFall) return { handled: true, message: 'Acércate a un jaguar adulto que pueda moverse libremente.' };
+  if (FELIDS.includes(a.species) && !a.bonded && a.trust > 0 && b.jaguarTimer > 0 && state.skills.some(skill => skill.id === 'jaguar' && skill.unlocked)) {
+    if (state.wildlife.filter(animal => animal.bonded && animal.hp > 0).length >= 2) return { handled: true, message: 'El espíritu puede vincular dos felinos. Cuida a tus compañeros.' };
+    if (a.nettedTimer > 0 || a.trapped || a.bornAt !== undefined || a.waterFall) return { handled: true, message: 'Acércate a un felino adulto que pueda moverse libremente.' };
     a.bonded = true;
     a.trust = 5;
     a.jaguarAction = null;
@@ -141,15 +151,15 @@ export function interactEcology(state,{fish=false}={}){
     a.aggression = 0;
     a.fear = 0;
     a.state = 'FOLLOW';
-    return { handled: true, message: 'El jaguar reconoce tu espíritu. Te seguirá y defenderá.' };
+    return { handled: true, message: `${spec.name} reconoce tu espíritu. Te seguirá y defenderá.` };
   }
   if(a.trapped){a.trapped=false;a.rescued=true;a.trust=1;state.score+=25;state.morale=Math.min(125,state.morale+2);return {handled:true,message:`${spec.name} libre · +25 puntos`};}
   if(a.species==='MACAW'&&a.trust>0){const order=state.campaign?.orders?.[0];const enemy=state.enemies[0];return {handled:true,message:order?`La guacamaya mira al ${order.side<0?'occidente':'oriente'}: una expedición está en camino.`:enemy?`La guacamaya avisa de movimiento al ${enemy.x<0?'occidente':'oriente'}.`:'La guacamaya no distingue enemigos por los senderos.'};}
   if(a.feedCooldown>0)return {handled:true,message:`${spec.name} ya ha comido. Acércate con calma.`};
-  const cost=a.species==='JAGUAR'?2:1;
+  const cost=FELIDS.includes(a.species)?2:1;
   if(state.resources.food<cost)return {handled:true,message:`Necesitas ${cost} de alimento. Los agricultores y cazadores abastecen el palenque.`};
   state.resources.food-=cost;a.trust=Math.min(5,a.trust+(a.species==='MACAW'?2:1));a.feedCooldown=15;a.aggression=0;a.fear=0;a.state='EAT';a.eatTimer=2;
-  if (a.species === 'JAGUAR') { a.jaguarAction = null; a.fleeTime = 0; }
+  if (FELIDS.includes(a.species)) { a.jaguarAction = null; a.fleeTime = 0; }
   let coins=0;if(a.species==='MONKEY'&&a.lastGiftDay!==state.day&&state.coins<state.maxCoins){coins=1;state.coins++;a.lastGiftDay=state.day;}
   return {handled:true,message:coins?'El mono te entrega una moneda que encontró.':a.trust>=2?`${spec.name} confía en ti. Te acompañará si avanzas con calma.`:`${spec.name} acepta el alimento. Su confianza aumenta.`};
 }
@@ -168,6 +178,11 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},damageAlly=()=>{},no
   }
   for(let i=state.wildlife.length-1;i>=0;i--){
     const a=ensureAnimal(state.wildlife[i]),spec=SPECIES[a.species];a.animTime+=dt;
+    if (a.bonded && a.hp > 0 && !a.waterFall && a.kitOrder) {
+      a.equipment ??= {weapon:0,armor:0};
+      a.kitOrder.remaining = Math.max(0,(a.kitOrder.remaining??3)-dt);
+      if (collectEquipment(a,state,dt,animal=>SPECIES[animal.species].hp*(1+(animal.equipment.armor??0)*.18))) continue;
+    }
     a.feedCooldown=Math.max(0,a.feedCooldown-dt);a.attackCooldown=Math.max(0,a.attackCooldown-dt);a.aggression=Math.max(0,a.aggression-dt);
     if(a.waterFall && a.hp > 0) continue;
     if(a.hp<=0){
@@ -186,9 +201,9 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},damageAlly=()=>{},no
     updateAnimalWater(a, e.streams);
     if(a.trapped||a.nettedTimer>0){a.nettedTimer=Math.max(0,a.nettedTimer-dt);a.vx=0;a.state='TRAPPED';continue;}
     if(a.eatTimer>0){a.eatTimer-=dt;a.vx=0;a.state='EAT';continue;}
-    const prey = a.species === 'JAGUAR' && !a.trust && a.bornAt === undefined && e.time - (a.lastMeal ?? 0) > 28
+    const prey = FELIDS.includes(a.species) && !a.trust && a.bornAt === undefined && e.time - (a.lastMeal ?? 0) > 28
       ? state.wildlife.find(animal => isHuntable(animal) && !animal.waterFall && Math.abs(animal.x - a.x) < 100) : null;
-    if (a.species === 'JAGUAR' && updateJaguar(a, state, dt, spec.speed, { damagePlayer, damageAlly, notice, torchLit, hurt, prey })) {
+    if (FELIDS.includes(a.species) && updateJaguar(a, state, dt, spec.speed, { damagePlayer, damageAlly, notice, torchLit, hurt, prey })) {
       a.x = clamp(a.x, WORLD_MIN_X + 50, WORLD_MAX_X - 50);
       continue;
     }
@@ -198,7 +213,7 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},damageAlly=()=>{},no
       return candidate.hp > 0 && !(candidate.appearTimer > 0) && gap < (closest ? Math.abs(closest.x - a.x) : 120) ? candidate : closest;
     }, null);
     const danger = !!enemy;
-    const threatened=a.species!=='JAGUAR'&&(danger||dist<100&&(Math.abs(b.vx)>115||b.attackTimer>0));
+    const threatened=!FELIDS.includes(a.species)&&(danger||dist<100&&(Math.abs(b.vx)>115||b.attackTimer>0));
     if(a.trust>0)a.aggression=0;
     const hunter = spec.huntable && state.wildlife.find(animal => animal.hp > 0 &&
       animal.jaguarAction?.prey && animal.jaguarAction.targetId === a.id && Math.abs(animal.x - a.x) < 65);
@@ -218,10 +233,10 @@ export function updateEcology(state,dt,{damagePlayer=()=>{},damageAlly=()=>{},no
         a.warningTime = 0;
         damagePlayer(8, a.facing);
       }
-    }else if(spec.predator&&a.species!=='JAGUAR'&&a.trust===0&&a.aggression>0){
+    }else if(spec.predator&&!FELIDS.includes(a.species)&&a.trust===0&&a.aggression>0){
       a.state='CHARGE';a.vx=Math.sign(dx)*spec.speed*1.35;a.facing=Math.sign(dx)||1;
       if(dist<24&&a.attackCooldown<=0){a.attackCooldown=1.8;damagePlayer(10,a.facing);}
-    }else if(threatened&&a.trust<2||a.species!=='JAGUAR'&&a.fear>30){a.state='FLEE';a.vx=-(Math.sign(dx)||1)*spec.speed*1.5;a.facing=Math.sign(a.vx);a.fear=Math.max(0,a.fear-dt*25);}
+    }else if(threatened&&a.trust<2||!FELIDS.includes(a.species)&&a.fear>30){a.state='FLEE';a.vx=-(Math.sign(dx)||1)*spec.speed*1.5;a.facing=Math.sign(a.vx);a.fear=Math.max(0,a.fear-dt*25);}
     else if(a.bonded||a.trust>=2&&dist<350){
       const target=b.x-b.facing*(48+(Number(a.id)%3)*22);
       const speed = a.bonded ? Math.max(spec.speed * 1.6, Math.abs(b.vx) + (dist > 120 ? 32 : 0)) : spec.speed * 1.3;

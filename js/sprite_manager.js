@@ -240,11 +240,17 @@ class BenkosSpriteManager {
   }
   drawAnimal(ctx,x,y,a,time,jaguarPose){
     if (a.species === 'SNAKE') return this.drawSnake(ctx, x, y, a);
-    const cls='animal_'+(a.species||'CAPYBARA');
-    const adultHeight={CAPYBARA:19,DEER:31,BOAR:23,MONKEY:23,MACAW:23,TURTLE:12,JAGUAR:28}[a.species]||19;
+    const special=['JAGUAR','PANTHER'].includes(a.species)&&(a.species==='PANTHER'||a.equipment?.armor>0);
+    const cls='animal_'+(a.species||'CAPYBARA')+(special&&a.equipment?.armor>0?'_armored':'');
+    const adultHeight={CAPYBARA:19,DEER:31,BOAR:23,MONKEY:23,MACAW:23,TURTLE:12,JAGUAR:28,PANTHER:28}[a.species]||19;
     const height = a.bornAt === undefined ? adultHeight : adultHeight * (.62 + Math.min(.37, (a.animTime ?? 0) * .00475));
     if (a.waterFall) return this.drawDrowning(ctx, cls, x, y, a.facing, height, a.waterFall.time);
     const t=a.animTime??time,gait=this.motion?.sample(a,t,a.species==='JAGUAR' ? (a.state==='FLEE' ? 20 : 23) : undefined);
+    if(special&&this.has(cls)){
+      const action={CROUCH:'crouch',POUNCE:'pounce',SWIPE:'swipe',RECOVER:'recover',EAT:'eat'}[a.state]??(Math.abs(a.vx)>3?'walk':'idle');
+      return this.draw(ctx,cls,[action,'idle'],x,y-(jaguarPose?.lift??0),a.facing,height,t,5,
+        ['pounce','swipe','recover'].includes(action)?jaguarPose?.progress:action==='walk'?gait?.phase:null);
+    }
     if (jaguarPose && this.has('animal_jaguar_motion') && this.has('animal_jaguar_combat')) {
       const combat = { CROUCH:'crouch', POUNCE:'pounce', SWIPE:'swipe', RECOVER:'recover', EAT:'eat' }[a.state];
       const action = a.hurtTimer > 0 && a.state !== 'POUNCE' && a.state !== 'FLEE' ? 'hurt' : combat;
@@ -262,6 +268,7 @@ class BenkosSpriteManager {
   }
 
   personClass(role, tier = 1, weapon = 1) {
+    if(['ESCUDERO','LANCERO','ARQUERO_COMPUESTO','JAVALINERO'].includes(role))return 'actor_'+role;
     const name = {
       FUGITIVO: 'captive', ALDEANO: 'civil', LENADOR: 'woodcutter', AGRICULTOR: 'farmer',
       MINERO: 'miner', CAZADOR: 'hunter', CONSTRUCTOR: 'builder', ARQUERO: 'archer',
@@ -480,6 +487,7 @@ class BenkosSpriteManager {
 
   drawAllyPose(ctx, x, y, facing, unit, time) {
     if (unit.namedAmara && this.has('actor_amara')) return this.drawAmara(ctx, x, y, facing, unit, time);
+    if (['ESCUDERO','LANCERO','ARQUERO_COMPUESTO','JAVALINERO'].includes(unit.role)) return this.drawSpecialist(ctx,x,y,facing,unit,time);
     const identity = 'actor_identity_' + (unit.sex === 'F' ? 'f' : 'm');
     const personalSprite = ['FUGITIVO', 'ALDEANO', 'CURANDERO', 'BRUJO'].includes(unit.role) && this.has(identity);
     const workRole = { ARQUERO: 'archer', GUERRERO: 'guard', ESPADACHIN: 'sword', CAMPEON_REAL: 'sword',
@@ -539,6 +547,49 @@ class BenkosSpriteManager {
     return this.drawIdle(ctx, cls, x, y, facing, height, t, unit, rest ? 'rest' : 'idle');
   }
 
+  drawSpecialist(ctx,x,y,facing,unit,time) {
+    const cls='actor_'+unit.role+(unit.sex==='F'?'_f':''), clock=unit.animSeed??time;
+    if(unit.waterFall)return this.drawDrowning(ctx,cls,x,y,facing,45,unit.waterFall.time);
+    const gait=this.motion?.sample(unit,clock);
+    const action=unit.hurtTimer>0?'hurt':unit.attackAnimTimer>0?'action':gait?.moving||Math.abs(unit.vx)>3?'walk':'idle';
+    const drawn=this.draw(ctx,cls,[action,'idle'],x,y,facing,45,clock,7,action==='walk'?gait?.phase:
+      action==='action'?this.attackProgress(unit,3,1,.17):null);
+    if(['ARQUERO_COMPUESTO','JAVALINERO'].includes(unit.role)){
+      ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(facing,1);
+      const attack=unit.attackAnimTimer>0, rank=unit.equipment?.weapon??1;
+      const wood=rank===3?'#bca26a':rank===2?'#a98049':'#896038';
+      if(unit.role==='JAVALINERO'){
+        const lift=attack?-8:0, hand=attack?13:9;
+        ctx.fillStyle='#64432f';ctx.fillRect(2,-28,5,8);ctx.fillRect(5,-25+lift,hand-3,4);
+        ctx.fillStyle='#b18755';ctx.fillRect(hand,-25+lift,3,3);
+        ctx.fillStyle='#483625';ctx.fillRect(hand-11,-24+lift,34,2);
+        ctx.fillStyle=wood;ctx.fillRect(hand-11,-25+lift,34,1);
+        ctx.fillStyle='#b8bcaa';ctx.fillRect(hand+20,-26+lift,8,2);ctx.fillRect(hand+25,-25+lift,6,1);
+        ctx.fillStyle='#dfd1a1';ctx.fillRect(hand+17,-26+lift,3,4);
+      }else{
+        if(unit.sex!=='F'){
+          ctx.fillStyle='#64432f';ctx.fillRect(2,-30,5,9);ctx.fillRect(5,-26,10,4);
+          ctx.fillStyle='#b18755';ctx.fillRect(13,-27,3,4);
+        }
+        ctx.lineWidth=2;ctx.strokeStyle='#3d3024';ctx.beginPath();ctx.moveTo(13,-42);ctx.lineTo(18,-35);ctx.lineTo(20,-28);ctx.lineTo(18,-20);ctx.lineTo(13,-13);ctx.stroke();
+        ctx.lineWidth=1;ctx.strokeStyle=wood;ctx.beginPath();ctx.moveTo(13,-42);ctx.lineTo(18,-35);ctx.lineTo(20,-28);ctx.lineTo(18,-20);ctx.lineTo(13,-13);ctx.stroke();
+        ctx.strokeStyle='#d0c499';ctx.beginPath();ctx.moveTo(13,-42);ctx.lineTo(attack?6:12,-27);ctx.lineTo(13,-13);ctx.stroke();
+        for(const row of [-37,-19]){ctx.fillStyle='#d3bc78';ctx.fillRect(16,row,3,2);}
+        ctx.fillStyle='#83613c';ctx.fillRect(attack?6:12,-28,20,1);ctx.fillStyle='#c3c6b5';ctx.fillRect(attack?23:29,-29,4,2);
+      }
+      ctx.restore();
+    }
+    if(unit.role==='ESCUDERO'){
+      ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(facing,1);
+      const colors=['#8b6b42','#b99c61','#c9c9ac'],rim=colors[Math.max(0,(unit.equipment?.armor??1)-1)];
+      ctx.fillStyle=unit.shieldFlash>0?'#e4d89d':rim;ctx.fillRect(8,-29,13,17);ctx.fillRect(6,-26,17,11);
+      ctx.fillStyle='#5e422c';ctx.fillRect(9,-27,11,13);
+      ctx.fillStyle='#8e6842';for(let row=0;row<3;row++)ctx.fillRect(10,-26+row*4,9,2);
+      ctx.fillStyle=rim;ctx.fillRect(13,-23,4,5);ctx.fillRect(7,-23,2,2);ctx.fillRect(20,-23,2,2);ctx.restore();
+    }
+    return drawn;
+  }
+
   drawAmara(ctx, x, y, facing, unit, time) {
     const cls = 'actor_amara', height = 46;
     const clock = unit.animSeed ?? time;
@@ -574,6 +625,21 @@ class BenkosSpriteManager {
   }
 
   drawEnemy(ctx, x, y, facing, enemy, time) {
+    if(enemy.type==='CANONERO')return this.drawCannon(ctx,x,y,facing,enemy,time);
+    if(enemy.type==='MOSQUETERO'){
+      const thrust=enemy.bayonet&&enemy.attackAnimTimer>0?3:0;
+      this.drawEnemyPose(ctx,x+facing*thrust,y,facing,enemy,time);
+      if(!enemy.waterFall&&!enemy.hurtTimer){
+        ctx.save();ctx.translate(Math.round(x+facing*thrust),Math.round(y));ctx.scale(facing,1);
+        ctx.fillStyle='#5d6860';ctx.fillRect(21,-24,10,2);ctx.fillStyle='#c6c8b0';ctx.fillRect(24,-25,9,1);
+        ctx.fillRect(30,-24,5,1);ctx.restore();
+      }
+      return true;
+    }
+    return this.drawEnemyPose(ctx,x,y,facing,enemy,time);
+  }
+
+  drawEnemyPose(ctx, x, y, facing, enemy, time) {
     const cls = this.enemyClass(enemy);
     const height = this.enemyHeight(enemy);
     if (enemy.waterFall) return this.drawDrowning(ctx, cls, x, y, facing, height, enemy.waterFall.time);
@@ -591,6 +657,23 @@ class BenkosSpriteManager {
     }
     if (gait?.moving ?? !!enemy.isMoving) return this.draw(ctx, cls, [enemy.type === 'CABALLERO' ? 'run' : 'walk'], x, y, facing, height, t, 8, gait?.phase);
     return this.drawIdle(ctx, cls, x, y, facing, height, t, enemy);
+  }
+
+  drawCannon(ctx,x,y,facing,enemy,time) {
+    const moving=Math.abs(enemy.x-(this.cannonLastX?.get(enemy)??enemy.x))>.01;
+    this.cannonLastX??=new WeakMap();this.cannonLastX.set(enemy,enemy.x);
+    this.draw(ctx,'actor_SOLDADO_ESPANOL',[moving?'walk':'idle'],x-facing*13,y,facing,42,enemy.animTime??time,6);
+    ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(facing,1);
+    ctx.fillStyle='#493626';ctx.fillRect(-12,-16,33,7);ctx.fillStyle='#a07545';ctx.fillRect(-10,-15,30,3);
+    const recoil=enemy.muzzleFlash>0?-3:0;
+    ctx.fillStyle='#4b594b';ctx.fillRect(-8+recoil,-29,37,8);ctx.fillRect(24+recoil,-31,5,12);
+    ctx.fillStyle='#9d966b';ctx.fillRect(-7+recoil,-28,34,2);ctx.fillStyle='#c2b484';ctx.fillRect(-1+recoil,-29,3,9);
+    ctx.fillStyle='#252b26';ctx.fillRect(27+recoil,-28,3,6);
+    for(const wx of [-6,17]){
+      for(let row=-7;row<=7;row++){const half=Math.floor(Math.sqrt(49-row*row));ctx.fillStyle=row<0?'#b58d51':'#71502f';ctx.fillRect(wx-half,-8+row,half*2+1,1);}
+      ctx.fillStyle='#362e23';ctx.fillRect(wx-4,-11,9,7);ctx.fillStyle='#c0a46b';ctx.fillRect(wx-1,-15,2,14);ctx.fillRect(wx-7,-9,14,2);
+      ctx.fillStyle='#595c45';ctx.fillRect(wx-2,-10,4,4);
+    }ctx.restore();return true;
   }
 
   drawCorpse(ctx, x, y, corpse) {

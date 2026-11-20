@@ -1,27 +1,28 @@
-import { stepCrossings } from './crossings.js?v=ee79ef434f2b';
-import { NIGHT_START } from './daylight.js?v=ee79ef434f2b';
-import { recoverCoins } from './coins.js?v=ee79ef434f2b';
-import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=ee79ef434f2b';
-import { collectEquipment } from './equipment.js?v=ee79ef434f2b';
-import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=ee79ef434f2b';
-import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=ee79ef434f2b';
-import { updateCommunity, joinEncounter } from './community.js?v=ee79ef434f2b';
-import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=ee79ef434f2b';
-import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=ee79ef434f2b';
-import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=ee79ef434f2b';
-import { advanceParticle, emitEffect } from './effects.js?v=ee79ef434f2b';
-import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=ee79ef434f2b';
-import { ensureCampaign, finaleWon } from './campaign.js?v=ee79ef434f2b';
-import { OUTPOSTS, expeditionFormation } from './story.js?v=ee79ef434f2b';
-import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=ee79ef434f2b';
-import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=ee79ef434f2b';
-import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=ee79ef434f2b';
-import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=ee79ef434f2b';
-import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=ee79ef434f2b';
-import { colonialShooter } from './frontier.js?v=ee79ef434f2b';
-import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=ee79ef434f2b';
-import { updateFestivity, joinFestivity } from './festivity.js?v=ee79ef434f2b';
-import { advanceWeather } from './weather.js?v=ee79ef434f2b';
+import { stepCrossings } from './crossings.js?v=ea931d367785';
+import { NIGHT_START } from './daylight.js?v=ea931d367785';
+import { recoverCoins } from './coins.js?v=ea931d367785';
+import { discoverAltar, revealTrailCache, torchIsLit } from './exploration.js?v=ea931d367785';
+import { collectEquipment } from './equipment.js?v=ea931d367785';
+import { advanceCrops, canTendCrop, tendCrop } from './crops.js?v=ea931d367785';
+import { recordLoss, updateGrief, patrolOffset, takeLeisure } from './daily-life.js?v=ea931d367785';
+import { updateCommunity, joinEncounter } from './community.js?v=ea931d367785';
+import { updateEcology, isHuntable, shallowWaterAt } from './ecology.js?v=ea931d367785';
+import { advancePlayerAttack, advanceAllyAction, strikeEnemy, strikeWildlife, threatensMilitia } from './combat.js?v=ea931d367785';
+import { advanceConstruction, workConstruction, homeRecovery, TOWER_TIERS } from './settlement.js?v=ea931d367785';
+import { advanceParticle, emitEffect } from './effects.js?v=ea931d367785';
+import { ensurePerson, updatePerson, reactToDamage, proficiency, completeProfession, mountedEscortPosts, personMaxHp } from './people.js?v=ea931d367785';
+import { ensureCampaign, finaleWon } from './campaign.js?v=ea931d367785';
+import { OUTPOSTS, expeditionFormation } from './story.js?v=ea931d367785';
+import { BALANCE, ALLY_COMBAT, WATER_LINE_Y, WORLD_MIN_X, WORLD_MAX_X, BOW_ROLES, MELEE_ROLES } from './config.js?v=ea931d367785';
+import { towerAssignments, towerCrew, stepTowerWeapons, stepCannon, explodeCannon } from './siege.js?v=ea931d367785';
+import { nearest, chooseToolRack, chooseWorksite, defenseLines } from './ai.js?v=ea931d367785';
+import { amaraCrew, amaraSupport, updateAmara } from './amara.js?v=ea931d367785';
+import { CARE_ROLES, provideCare, recoverHealth, staffCareStation } from './care.js?v=ea931d367785';
+import { managePalenque, returnAmaraBudget } from './amara-orders.js?v=ea931d367785';
+import { colonialShooter } from './frontier.js?v=ea931d367785';
+import { enemyReturnsToPost, enemyTarget, enemyTower, resetEnemyAim, screenedRetreat } from './colonial-ai.js?v=ea931d367785';
+import { updateFestivity, joinFestivity } from './festivity.js?v=ea931d367785';
+import { advanceWeather } from './weather.js?v=ea931d367785';
 
 export function createSimulation(api) {
 const { state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife, showBanner,
@@ -34,7 +35,7 @@ function damageWall(wall, damage, y, direction) {
 }
 function militiaTarget(unit, enemies, range, withinPost = () => true) {
   const enemy = nearest(unit, enemies, en => en.hp > 0 && !en.waterFall && !(en.appearTimer > 0) &&
-    (!en.towerHeight || unit.role === 'ARQUERO') &&
+    (!en.towerHeight || BOW_ROLES.includes(unit.role)) &&
     Math.abs(en.x - unit.x) < range && withinPost(en));
   return nearest(unit, state.wildlife, animal => threatensMilitia(animal) && withinPost(animal) &&
     Math.abs(animal.x - unit.x) < Math.min(range, enemy ? Math.abs(enemy.x - unit.x) : 125)) ?? enemy;
@@ -317,13 +318,7 @@ return function updateSimulation(dt) {
   const leadership = amaraCrew(state);
   const mountedEscort = mountedEscortPosts(state);
   const defense = defenseLines(state, formation, mountedEscort);
-  const sentries = new Map();
-  for (const tower of state.settlement.towers) {
-    if (!tower.level) continue;
-    const archer = state.units.find(unit => unit.role === 'ARQUERO' && unit.assignedSide === tower.side &&
-      unit.hp >= unit.maxHp * .32 && !unit.requestedRole && !unit.kitOrder && !unit.waterFall && !formation?.has(unit.id));
-    if (archer) sentries.set(archer.id, tower);
-  }
+  const sentries = towerAssignments(state, formation);
   const reservedJobs = new Set();
   const coveringRescue = state.story.expedition?.stage === 'return';
   const safeOutposts = coveringRescue ? OUTPOSTS.filter(post => state.story.outposts.includes(post.id) &&
@@ -334,11 +329,14 @@ return function updateSimulation(dt) {
     const tower = sentries.get(u.id);
     const onWatch = !!tower && Math.abs(tower.x - u.x) <= 3;
     u.towerHeight = onWatch ? TOWER_TIERS[tower.level].height : 0;
+    if (tower) u.towerId = tower.id; else delete u.towerId;
+    if(tower)u.towerSlot=tower.slot;else delete u.towerSlot;
     delete u.constructionJob;
     ensurePerson(u);
     if (u.kitOrder?.remaining > 0) u.kitOrder.remaining = Math.max(0, u.kitOrder.remaining - dt);
     updateGrief(u, dt);
     u.animSeed = (u.animSeed ?? 0) + dt;
+    u.shieldFlash = Math.max(0,(u.shieldFlash??0)-dt);
     advanceAllyAction(u,state,dt,enemy=>{emitEffect(state,'blood',enemy.x,WATER_LINE_Y-20,u.facing,.65);audio.playSfx('slash');});
     if (u.attackCooldown > 0) u.attackCooldown -= dt;
     if (u.attackAnimTimer > 0) u.attackAnimTimer -= dt;
@@ -585,11 +583,12 @@ return function updateSimulation(dt) {
         u.vx = 0;
         u.facing = u.assignedSide;
       }
-    } else if (u.role === 'ARQUERO') {
+    } else if (BOW_ROLES.includes(u.role) || u.role === 'JAVALINERO') {
       const line = defense.walls.get(u.assignedSide) ?? state.benkos.x;
       const postX = expeditionX ?? tower?.x ?? (defense.posts.get(u.id) ?? line) + patrolOffset(u, state);
       const watch = TOWER_TIERS[u.towerHeight ? tower.level : 0];
-      const enemyTarget = militiaTarget(u, activeEnemies, watch.range);
+      const range = u.towerHeight ? watch.range : u.role === 'ARQUERO_COMPUESTO' ? 255 : u.role === 'JAVALINERO' ? 155 : watch.range;
+      const enemyTarget = militiaTarget(u, activeEnemies, range);
       const threat = !tower && !enemyTarget && militiaTarget(u, activeEnemies, 315, enemy => Math.abs(enemy.x - postX) <= 315);
       const firingX = threat ? threat.x + Math.sign(u.x - threat.x) * 170 : postX;
       if (u.pendingShot) {
@@ -608,8 +607,13 @@ return function updateSimulation(dt) {
         if (expeditionX === null) u.facing = u.assignedSide;
       }
       if (u.towerHeight) { u.activity = 'GUARD'; u.mood = 'Vigilando desde la torre'; }
+      const crew = tower && watch.siege ? towerCrew(state, tower) : [];
+      const operating = watch.siege && tower.ammo > 0 && crew.length >= watch.crew &&
+        crew.slice(0,watch.crew).some(person=>person.id===u.id) &&
+        (!enemyTarget || Math.abs(enemyTarget.x-u.x) > (watch.siege==='ballista'?75:48));
+      if (operating) { u.activity='SIEGE'; continue; }
       if (u.attackCooldown <= 0 && enemyTarget && !u.pendingShot) {
-        u.attackCooldown = (weaponRank === 3 ? .85 : 1.1) * watch.cooldown;
+        u.attackCooldown = (u.role==='JAVALINERO'?2.0:u.role==='ARQUERO_COMPUESTO'?1.45:weaponRank === 3 ? .85 : 1.1) * watch.cooldown;
         u.attackDuration=.5;u.attackAnimTimer=.5;u.activity='ATTACK';
         u.facing = Math.sign(enemyTarget.x - u.x) || 1;
         const flight = Math.max(.10, (Math.abs(enemyTarget.x - u.x) - 12) / 245);
@@ -618,10 +622,12 @@ return function updateSimulation(dt) {
           ...(enemyTarget.species && { animalId: enemyTarget.id, life: Math.max(1.15, flight + .35) }),
           x:u.x,y: WATER_LINE_Y - 19 - u.towerHeight, vx: u.facing * 245,
           vy: rise ? -rise / flight - 22.5 * flight : -20, gravity: 45,
-          dmg: 15 * moraleMult * tierMult * watch.damage, fromPlayerSide: true, color: weaponRank === 3 ? '#fde047' : '#4ade80'
+          dmg: (u.role==='JAVALINERO'?31:u.role==='ARQUERO_COMPUESTO'?23:15) * moraleMult * tierMult * watch.damage,
+          javelin:u.role==='JAVALINERO',armorPierce:u.role==='JAVALINERO'?.35:u.role==='ARQUERO_COMPUESTO'?.2:0,
+          fromPlayerSide: true, color: weaponRank === 3 ? '#fde047' : '#4ade80'
         };
       }
-    } else if (u.role === 'GUERRERO' || u.role === 'ESPADACHIN' || u.role === 'CABALLERO_ALIADO' || u.role === 'CAMPEON_REAL') {
+    } else if (MELEE_ROLES.includes(u.role)) {
       const moveSpd = ALLY_COMBAT[u.role].speed;
       const defenseX = defense.walls.get(u.assignedSide) ?? (u.assignedSide || 1) * 320;
       const guardX = expeditionX ?? (defense.posts.get(u.id) ?? defenseX) + patrolOffset(u, state);
@@ -635,7 +641,7 @@ return function updateSimulation(dt) {
       if (u.pendingStrike) {
         u.vx = 0;
         u.activity = 'ATTACK';
-      } else if (Math.abs(targetX-u.x) > (nearEnemy ? 26 : expeditionX === null ? 3 : 14)) {
+      } else if (Math.abs(targetX-u.x) > (nearEnemy ? u.role==='LANCERO'?48:26 : expeditionX === null ? 3 : 14)) {
         u.facing = Math.sign(targetX - u.x) || 1;
         u.vx = u.facing * speed;
         u.x += u.vx * dt;
@@ -647,20 +653,21 @@ return function updateSimulation(dt) {
         u.vx = 0;
       }
 
-      if (u.attackCooldown <= 0 && !u.pendingStrike && nearEnemy && Math.abs(nearEnemy.x - u.x) <= 42) {
+      if (u.attackCooldown <= 0 && !u.pendingStrike && nearEnemy && Math.abs(nearEnemy.x - u.x) <= (u.role==='LANCERO'?62:42)) {
         u.facing = Math.sign(nearEnemy.x - u.x) || u.facing;
         u.attackCooldown = ALLY_COMBAT[u.role].cooldown;
         u.attackDuration=.46;u.attackAnimTimer=.46;u.activity='ATTACK';
         u.vx = 0;
         u.weaponSubMode = u.weaponSubMode === 'SPEAR' ? 'SWORD' : 'SPEAR';
         const baseHit = ALLY_COMBAT[u.role].damage;
-        const antiCav = (u.role === 'GUERRERO' && nearEnemy.type === 'CABALLERO') ? 1.8 : 1.0;
+        const antiCav = nearEnemy.type==='CABALLERO' ? u.role==='LANCERO'?2.2:u.role==='GUERRERO'?1.8:1 : 1;
         const totalDmg = baseHit * moraleMult * tierMult * antiCav;
-        u.pendingStrike={targetId:nearEnemy.id,wildlife:!!nearEnemy.species,damage:totalDmg,reach:52,facing:u.facing,eta:.17};
+        u.pendingStrike={targetId:nearEnemy.id,wildlife:!!nearEnemy.species,damage:totalDmg,reach:ALLY_COMBAT[u.role].reach??52,facing:u.facing,eta:.17};
       }
     }
   }
 
+  stepTowerWeapons(state,dt,tower=>{audio.playSfx('ballista');emitEffect(state,'wood',tower.x,WATER_LINE_Y-TOWER_TIERS[tower.level].height-10,0,.2);});
   provideCare(state, dt, patient => {
     addFloatingText(patient.x, WATER_LINE_Y - 54, 'Heridas vendadas', '#d8e7a5');
     updateHUD();
@@ -781,8 +788,14 @@ return function updateSimulation(dt) {
       continue;
     }
 
-    const colonialRanged = colonialShooter(en);
-    const range = tower?.range ?? en.range;
+    if(en.type==='CANONERO') {
+      stepCannon(en,state,dt,cannon=>{audio.playSfx('cannon');emitEffect(state,'smoke',cannon.x+cannon.facing*25,WATER_LINE_Y-20,cannon.facing,1.2);});
+      continue;
+    }
+    const bayonet = en.type==='MOSQUETERO' && Math.abs((enemyTarget(en,b,defenders,false)?.x??b.x)-en.x)<39;
+    en.bayonet = bayonet;
+    const colonialRanged = colonialShooter(en) && !bayonet;
+    const range = bayonet ? 37 : tower?.range ?? en.range;
     const target = enemyTarget(en, b, defenders, colonialRanged);
     const animal = !tower && !en.isBoss && en.aimId === undefined && nearest(en, state.wildlife, candidate => threatensMilitia(candidate, true) &&
       Math.abs(candidate.x - en.x) < Math.min(Math.max(100, en.range), Math.abs((target?.x ?? b.x) - en.x)) &&
@@ -824,7 +837,7 @@ return function updateSimulation(dt) {
       continue;
     }
     if (canAttack && en.attackCooldown <= 0 && !en.attackReady && !en.windupTimer) {
-      en.windupTimer = en.type === 'ARCABUCERO' ? .8 : en.type === 'CABALLERO' || en.isBoss ? .65 : .4;
+      en.windupTimer = en.type === 'MOSQUETERO' && !bayonet ? .95 : en.type === 'ARCABUCERO' ? .8 : en.type === 'CABALLERO' || en.isBoss ? .65 : .4;
       en.windupTotal = en.windupTimer;
       en.aimId = target === b ? 0 : target.id;
       en.aimFacing = dirToTarget;
@@ -871,12 +884,12 @@ return function updateSimulation(dt) {
 
     if (colonialRanged && gap <= reach && !blockingWall) {
       if (en.attackReady) {
-        const musket = en.type === 'ARCABUCERO';
+        const musket = ['ARCABUCERO','MOSQUETERO'].includes(en.type);
         const speed = musket ? 255 : 210;
         const offset = musket ? 12 : 10;
         const flight = Math.max(.05, (gap - offset) / speed);
         const gravity = musket ? 0 : 45;
-        en.attackCooldown = (musket ? 2.4 : 1.8) * (tower?.cooldown ?? 1);
+        en.attackCooldown = (en.type==='MOSQUETERO'?3.4:musket ? 2.4 : 1.8) * (tower?.cooldown ?? 1);
         resetEnemyAim(en);
         en.attackAnimTimer = .38;
         if (musket) {
@@ -896,7 +909,7 @@ return function updateSimulation(dt) {
         resetEnemyAim(en);
         audio.playSfx('slash');
         if (en.isBoss) en.vx = en.facing * (en.phase === 2 ? 115 : 95);
-        hitBenkosKingdomStyle(en.dmg, en.facing);
+        hitBenkosKingdomStyle(bayonet?17:en.dmg, en.facing);
       }
     } else if (blockingWall) {
       if (en.attackReady) {
@@ -912,7 +925,7 @@ return function updateSimulation(dt) {
         en.attackCooldown = 1.15;
         resetEnemyAim(en);
         en.attackAnimTimer = 0.35;
-        reactToDamage(target, en.dmg, en.facing);
+        reactToDamage(target, bayonet?17:en.dmg, en.facing);
         audio.playSfx('slash');
         emitEffect(state, target.equipment?.armor > 1 ? 'spark' : 'blood', target.x, WATER_LINE_Y - 20, en.facing, .7);
         addFloatingText(target.x, WATER_LINE_Y - 38, `-${Math.round(en.dmg)}`, '#f87171');
@@ -950,10 +963,21 @@ return function updateSimulation(dt) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.vy += (p.gravity ?? (p.vy === 0 ? 0 : 45)) * dt;
+    if(p.life!==undefined)p.life-=dt;
 
     let hit = false;
+    if(p.explosive) {
+      const collision = p.y>=WATER_LINE_Y-2 || state.walls.some(w=>w.level&&w.hp>0&&Math.abs(w.x-p.x)<16&&p.y>WATER_LINE_Y-90) ||
+        [...state.units,...state.wildlife].some(u=>u.hp>0&&!u.waterFall&&Math.abs(u.x-p.x)<16&&Math.abs(p.y-(WATER_LINE_Y-18-(u.towerHeight??0)))<20) ||
+        Math.abs(b.x-p.x)<14&&Math.abs(p.y-(WATER_LINE_Y-20))<24 ||
+        state.settlement.towers.some(t=>t.level&&t.integrity>0&&Math.abs(t.x-p.x)<24&&p.y>WATER_LINE_Y-TOWER_TIERS[t.level].height-25);
+      if(collision) {
+        explodeCannon(state,p,hitBenkosKingdomStyle,reactToDamage);audio.playSfx('cannon');
+        emitEffect(state,'smoke',p.x,p.y,0,2);emitEffect(state,'spark',p.x,p.y,0,1.5);state.screenShake=Math.max(state.screenShake,4);
+        state.projectiles.splice(i,1);continue;
+      }
+    }
     if (p.animalId !== undefined) {
-      p.life -= dt;
       const animal = state.wildlife.find(candidate => candidate.id === p.animalId);
       if (animal && !(p.fromPlayerSide && animal.bonded) && Math.abs(p.x - animal.x) < 14 && Math.abs(p.y - animal.y) < 29) {
         hit = strikeWildlife(animal, p.dmg, { colonial: !p.fromPlayerSide, hunterId: p.hunterId, net: p.isNet });
@@ -965,14 +989,14 @@ return function updateSimulation(dt) {
     } else if (p.fromPlayerSide) {
       for (let j = 0; j < state.enemies.length; j++) {
         const en = state.enemies[j];
-        if(en.hp>0&&!en.waterFall&&en.appearTimer<=0&&Math.abs(p.x-en.x)<16&& Math.abs(p.y - (WATER_LINE_Y - 18 - (en.towerHeight ?? 0))) < 26) {
-          strikeEnemy(en,p.dmg,Math.sign(p.vx));
+        if(en.hp>0&&!en.waterFall&&en.appearTimer<=0&&!(p.hitIds??[]).includes(en.id)&&Math.abs(p.x-en.x)<16&& Math.abs(p.y - (WATER_LINE_Y - 18 - (en.towerHeight ?? 0))) < 26) {
+          strikeEnemy(en,p.dmg,Math.sign(p.vx),p.armorPierce??0);
           if (p.isNet) {
             en.nettedTimer = en.isBoss ? 1.4 : 3.2;
             addFloatingText(en.x, WATER_LINE_Y - 46, ' ¡Atrapado en Red!', '#fde047');
           }
           if (!p.isNet) emitEffect(state, 'blood', en.x, p.y, Math.sign(p.vx), .65);
-          hit = true;
+          if(p.pierce>0){p.pierce--; (p.hitIds??=[]).push(en.id);} else hit = true;
           break;
         }
       }
@@ -988,7 +1012,7 @@ return function updateSimulation(dt) {
           }
         }
       }
-    } else {
+    } else if(!p.explosive) {
       // Proyectil enemigo: verifica impacto en muralla defensiva
       const hitWall = state.walls.find(w => w.level > 0 && w.hp > 0 && Math.abs(p.x - w.x) < 16);
       if (hitWall) {

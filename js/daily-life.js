@@ -1,4 +1,4 @@
-const DUTY_ROLES = ['GUERRERO', 'ESPADACHIN', 'ARQUERO', 'CABALLERO_ALIADO', 'CAMPEON_REAL', 'CAZADOR'];
+const DUTY_ROLES = ['GUERRERO', 'ESPADACHIN', 'ARQUERO', 'CABALLERO_ALIADO', 'CAMPEON_REAL', 'CAZADOR', 'ESCUDERO', 'LANCERO', 'ARQUERO_COMPUESTO', 'JAVALINERO'];
 const FEMININE_NAMES = new Set(['Amara', 'Juana', 'Nala', 'Inés', 'Amina', 'Sira', 'María', 'Lucía', 'Ana', 'Binta', 'Dalia', 'Zuri']);
 const TRAITS = ['intelligence', 'dedication', 'impulse', 'courage', 'curiosity', 'charm', 'appearance'];
 

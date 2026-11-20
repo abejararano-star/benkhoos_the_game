@@ -1,4 +1,4 @@
-import { affinity, roleAvailable } from './people.js?v=ee79ef434f2b';
+import { affinity, roleAvailable } from './people.js?v=ea931d367785';
 export function nearest(entity, candidates, predicate = () => true) {
   let best = null, distance = Infinity;
   for (const item of candidates) {
@@ -8,7 +8,7 @@ export function nearest(entity, candidates, predicate = () => true) {
   return best;
 }
 
-const defenseOrder = ['GUERRERO', 'ESPADACHIN', 'CAMPEON_REAL', 'CABALLERO_ALIADO', 'ARQUERO'];
+const defenseOrder = ['ESCUDERO', 'LANCERO', 'GUERRERO', 'ESPADACHIN', 'CAMPEON_REAL', 'CABALLERO_ALIADO', 'JAVALINERO', 'ARQUERO', 'ARQUERO_COMPUESTO'];
 const defendingSquad = (units, side) => units.filter(u => u.hp > 0 && u.assignedSide === side && defenseOrder.includes(u.role))
   .sort((a, b) => defenseOrder.indexOf(a.role) - defenseOrder.indexOf(b.role) || a.id - b.id);
 
@@ -36,7 +36,7 @@ export function defenseLines(state, expedition, escort) {
 }
 
 export function chooseDefenseSide(x, units) {
-  const defenders = units.filter(u => ['GUERRERO','ARQUERO','CAZADOR','ESPADACHIN','CABALLERO_ALIADO'].includes(u.role));
+  const defenders = units.filter(u => ['GUERRERO','ARQUERO','CAZADOR','ESPADACHIN','CABALLERO_ALIADO','ESCUDERO','LANCERO','ARQUERO_COMPUESTO','JAVALINERO'].includes(u.role));
   const left = defenders.filter(u => u.assignedSide === -1).length;
   const right = defenders.length - left;
   return left === right ? (x < 0 ? -1 : 1) : left < right ? -1 : 1;

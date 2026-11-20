@@ -1,23 +1,24 @@
-import { needsCropCare } from './crops.js?v=ee79ef434f2b';
-import { AMARA_NAME, amaraNearby } from './amara.js?v=ee79ef434f2b';
-import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=ee79ef434f2b';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=ee79ef434f2b';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=ee79ef434f2b';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=ee79ef434f2b';
-import { describeTraits } from './daily-life.js?v=ee79ef434f2b';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=ee79ef434f2b';
-import { canMediate, relationshipsFor } from './community.js?v=ee79ef434f2b';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=ee79ef434f2b';
-import { ecologyHint } from './ecology.js?v=ee79ef434f2b';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=ee79ef434f2b';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=ee79ef434f2b';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=ee79ef434f2b';
-import { arrivalHint } from './campaign.js?v=ee79ef434f2b';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=ee79ef434f2b';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=ee79ef434f2b';
-import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=ee79ef434f2b';
-import { createStoryMedia } from './story-media.js?v=ee79ef434f2b';
-import { CAPTURE_DURATION, drawCapture } from './capture.js?v=ee79ef434f2b';
+import { needsCropCare } from './crops.js?v=ea931d367785';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=ea931d367785';
+import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=ea931d367785';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=ea931d367785';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=ea931d367785';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=ea931d367785';
+import { describeTraits } from './daily-life.js?v=ea931d367785';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=ea931d367785';
+import { canMediate, relationshipsFor } from './community.js?v=ea931d367785';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=ea931d367785';
+import { ecologyHint } from './ecology.js?v=ea931d367785';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=ea931d367785';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, SPECIALISTS, FELIDS } from './config.js?v=ea931d367785';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=ea931d367785';
+import { arrivalHint } from './campaign.js?v=ea931d367785';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=ea931d367785';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=ea931d367785';
+import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=ea931d367785';
+import { createStoryMedia } from './story-media.js?v=ea931d367785';
+import { CAPTURE_DURATION, drawCapture } from './capture.js?v=ea931d367785';
+import { drawWatchtower } from './terrain.js?v=ea931d367785';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
@@ -525,24 +526,25 @@ export function createUI({ state, session, settings, actions }) {
     for(const [key,el]of worldLabels)if(!active.has(key))el.style.display='none';
   }
   function towerBenefits(level) {
-    const { range, damage, cooldown } = TOWER_TIERS[level];
-    return `${range} pasos de alcance · +${Math.round((damage - 1) * 100)}% daño · ${Math.round((1 - cooldown) * 100)}% menos espera entre tiros`;
+    const { range, damage, cooldown, capacity, crew, siege } = TOWER_TIERS[level];
+    return `${capacity} plazas · ${range} pasos de alcance · ${siege ? `dotación mínima ${crew} · munición de virotes` : `+${Math.round((damage - 1) * 100)}% daño · ${Math.round((1 - cooldown) * 100)}% menos espera entre tiros`}`;
   }
   function previewBuilding(){
     const kind = $('previewKind').value || 'hq';
     const picker = $('previewLevel');
-    const level = Math.min(Number(picker.value) || 1, kind === 'tower' ? 3 : 5);
+    const level = Math.min(Number(picker.value) || 1, 5);
     picker.value = String(level);
     for (const [index, option] of Array.from(picker.options ?? []).entries()) {
-      option.disabled = kind === 'tower' && index > 2;
-      option.textContent = kind === 'tower' && index < 3 ? TOWER_TIERS[index + 1].name : MATERIALS[index];
+      option.disabled = false;
+      option.textContent = kind === 'tower' ? TOWER_TIERS[index + 1].name : MATERIALS[index];
     }
     const g = $('buildingPreview').getContext('2d');
     g.clearRect(0,0,560,240);const sky=g.createLinearGradient(0,0,0,240);sky.addColorStop(0,'#253f39');sky.addColorStop(1,'#677758');g.fillStyle=sky;g.fillRect(0,0,560,240);
     g.fillStyle='#192f23';g.fillRect(0,216,560,24);g.fillStyle='#8c8461';g.fillRect(20,216,520,2);
     const sprite = kind === 'altar' ? altarSprite(level) : kind === 'tower' ? `watchtower_level_${level}` : `building_${kind}_${level}`;
-    window.SpriteManager?.draw?.(g, sprite, ['idle'], 280, 218, 1,
-      kind === 'hq' ? 228 : kind === 'tower' ? TOWER_TIERS[level].height * 1.3 : 210, 0);
+    if(kind==='tower'){
+      g.save();g.translate(280,218);g.scale(1.3,1.3);drawWatchtower(g,0,0,{level,side:1,integrity:100});g.restore();
+    }else window.SpriteManager?.draw?.(g, sprite, ['idle'], 280, 218, 1,kind === 'hq' ? 228 : 210, 0);
     text('previewCaption', kind === 'tower' ? `${TOWER_TIERS[level].name} · ${towerBenefits(level)}` :
       kind === 'altar' ? `Altar de nivel ${level} · ${state.skills[level - 1].name}` : `Nivel ${level} · ${MATERIALS[level-1]}${kind==='hq'?' · '+HQ_NAMES[level-1]:''}`);
     text('evolutionPath', `Casa del Cuartel ${state.settlement.level} → Tótem ${state.armyTier} · Santuario ${state.altarTier}: poderes`);
@@ -571,9 +573,19 @@ export function createUI({ state, session, settings, actions }) {
         balance.textContent = `${info.paid} de ${info.coins} reales aportados`;
         card.append(balance);
       }
-      btn.textContent=job?'En construcción':info.next?'Aportar 1 real':'Evolución máxima';btn.disabled=!!info.reason || state.coins<1;btn.title=info.reason||`Construir con ${materials[info.next-1]}`;
+      btn.textContent=job?'En construcción':info.repair?'Reparar · aportar 1 real':info.next?'Aportar 1 real':'Evolución máxima';btn.disabled=!!info.reason || state.coins<1;btn.title=info.reason||`Construir con ${materials[info.next-1]}`;
       btn.addEventListener('click',()=>{const result=actions.build(kind,id);text('buildingFeedback',result.message);renderBuildings(id);update();});card.append(btn);
       if(info.reason&&info.next){const why=document.createElement('small');why.textContent=info.reason;card.append(why);}cards.append(card);
+      if(kind==='tower'&&info.target.level){
+        const status=document.createElement('p');
+        const crew=state.units.filter(u=>u.towerId===id&&u.towerHeight>0).length;
+        status.textContent=`Dotación ${crew}/${TOWER_TIERS[info.target.level].capacity} · Integridad ${Math.ceil(info.target.integrity??100)}%`+
+          (TOWER_TIERS[info.target.level].ammo?` · Virotes ${info.target.ammo??0}/${TOWER_TIERS[info.target.level].ammo}`:'');card.append(status);
+        if(TOWER_TIERS[info.target.level].ammo){const reload=document.createElement('button');reload.textContent='Reponer virotes · 3 reales + 2 madera';
+          reload.disabled=(info.target.ammo??0)>=TOWER_TIERS[info.target.level].ammo||state.coins<3||state.resources.wood<2;
+          reload.addEventListener('click',()=>{const result=actions.refillTower(id);text('buildingFeedback',result.message);renderBuildings(id);update();});card.append(reload);}
+        if(info.repair)btn.textContent='Reparar · aportar 1 real';
+      }
       if (focusId === id && !btn.disabled) btn.focus?.();
     }
   }
@@ -581,25 +593,33 @@ export function createUI({ state, session, settings, actions }) {
   on('btnSettlement',openSettlement);on('btnSettlementPause',openSettlement);on('btnCloseSettlement',resume);on('btnResumeConstruction',resume);
   $('previewKind').addEventListener('change',previewBuilding);$('previewLevel').addEventListener('change',previewBuilding);
   function armoryUnit() {
-    return state.units.find(unit => unit.id === Number($('armoryPerson').value) && unit.hp > 0 && INFANTRY.includes(unit.role));
+    return [...state.units,...state.wildlife.filter(a=>a.bonded&&FELIDS.includes(a.species))].find(unit => unit.id === Number($('armoryPerson').value) && unit.hp > 0 && (unit.bonded||INFANTRY.includes(unit.role)));
   }
   function renderArmory() {
     const unit = armoryUnit();
-    const rank = Number($('armoryRank').value);
+    const picker=$('armoryRank'), limit=unit?.species?2:state.armyTier;
+    const rank=Math.max(1,Math.min(Number(picker.value)||limit,limit));
+    picker.replaceChildren();
+    for(let value=1;value<=limit;value++){
+      const option=document.createElement('option');option.value=value;option.textContent=RANK_NAMES[value-1];picker.append(option);
+    }
+    picker.value=String(rank);
     const model = unit ?? { role: 'GUERRERO', equipment: { weapon: 1, armor: 1 } };
-    text('armoryStatus', `Rango desbloqueado: ${RANK_NAMES[state.armyTier - 1]} · ${state.coins} reales en la bolsa`);
+    text('armoryStatus', `${unit?.species?'Equipo felino · Casa del Cuartel '+state.settlement.level:'Rango desbloqueado: '+RANK_NAMES[state.armyTier - 1]} · ${state.coins} reales en la bolsa`);
     for (const [piece, key] of [['weapon', 'Weapon'], ['armor', 'Armor']]) {
       const offer = equipmentOffer(model, piece, state, rank);
       const preview = $('armory' + key + 'Preview').getContext('2d');
       preview.clearRect(0, 0, 184, 145);
       const appearance = { ...model.equipment, [piece]: rank };
-      const sprite = window.SpriteManager?.personClass?.(model.role, appearance.armor, appearance.weapon);
-      if (sprite) window.SpriteManager.draw(preview, sprite, ['idle'], 92, 139, 1, 128, 0);
+      preview.save();preview.translate(92,139);preview.scale(2.5,2.5);
+      if(model.species)window.SpriteManager?.drawAnimal?.(preview,0,0,{...model,equipment:appearance,vx:0,state:'IDLE'},0);
+      else window.SpriteManager?.drawAlly?.(preview,0,0,1,{...model,equipment:appearance,vx:0,activity:'IDLE'},0);
+      preview.restore();
       text('armory' + key + 'Title', `${offer.item} · ${RANK_NAMES[rank - 1]}`);
       const pending = unit?.kitOrder;
       const note = !unit ? 'Hace falta un arquero, lancero o espadachín.' : pending ?
         `Encargo pendiente: ${pending.item} ${RANK_NAMES[pending.rank - 1]}${pending.remaining > 0 ? ' · en la forja' : ' · listo para recoger'}.` :
-        offer.reason || `Equipo actual: ${RANK_NAMES[unit.equipment[piece] - 1]}.`;
+        offer.reason || `Equipo actual: ${RANK_NAMES[unit.equipment[piece] - 1]??'Sin equipo'}.`;
       text('armory' + key + 'Note', note);
       const button = $('btnArmory' + key);
       button.disabled = !unit || !!offer.reason;
@@ -611,10 +631,11 @@ export function createUI({ state, session, settings, actions }) {
     const people = $('armoryPerson');
     const ranks = $('armoryRank');
     people.replaceChildren(); ranks.replaceChildren();
-    const eligible = state.units.filter(unit => unit.hp > 0 && INFANTRY.includes(unit.role));
+    const eligible = [...state.units.filter(unit => unit.hp > 0 && INFANTRY.includes(unit.role)),
+      ...state.wildlife.filter(a=>a.bonded&&a.hp>0&&FELIDS.includes(a.species))];
     for (const unit of eligible) {
       const option = document.createElement('option');
-      option.value = unit.id; option.textContent = `${unit.name} · ${ROLE_NAMES[unit.role]}`; people.append(option);
+      option.value = unit.id; option.textContent = unit.species?`${unit.species==='PANTHER'?'Pantera':'Jaguar'} aliado · equipo felino`:`${unit.name} · ${ROLE_NAMES[unit.role]}`; people.append(option);
     }
     people.value = eligible[0]?.id ?? '';
     for (let rank = 1; rank <= state.armyTier; rank++) {
@@ -688,7 +709,7 @@ export function createUI({ state, session, settings, actions }) {
       row.append(name);row.append(bar);row.append(value);attributes.append(row);
     }
     const role=$('personNewRole');role.replaceChildren();
-    for(const key of WORK_ROLES){const option=document.createElement('option');option.value=key;option.textContent=`${ROLE_NAMES[key]} · afinidad ${affinity(u,key).toFixed(1)}/5`;option.disabled=!roleAvailable(key,state.armyTier);role.append(option);}
+    for(const key of WORK_ROLES){const option=document.createElement('option');option.value=key;option.textContent=`${ROLE_NAMES[key]} · afinidad ${affinity(u,key).toFixed(1)}/5${SPECIALISTS[key]?` · ${SPECIALISTS[key].fee} reales + equipo`:''}`;option.disabled=!roleAvailable(key,state.armyTier);role.append(option);}
     role.value=u.requestedRole??u.preferredRole;
     $('btnAssignProfession').disabled=u.namedAmara || ['FUGITIVO','CAMPEON_REAL'].includes(u.role);
     $('btnMountedEscort').classList.toggle('hidden', u.role !== 'CABALLERO_ALIADO');

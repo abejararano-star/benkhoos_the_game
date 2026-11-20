@@ -30,6 +30,7 @@ def main():
     from import_trail import import_trail
     from import_camp_detail import import_camp_detail
     from import_festivity import import_festivity
+    from import_arsenal import import_arsenal
 
     parser = argparse.ArgumentParser(description='Build the canonical Benkhoos sprite atlas.')
     parser.add_argument('--output', type=Path, default=ROOT / 'assets' / 'atlas')
@@ -39,6 +40,7 @@ def main():
     sprites = {}
     for importer in [import_expansion, import_pixel_v7, import_pixel_v8, import_actors, import_trail, import_camp_detail, import_festivity]:
         sprites.update(importer(output))
+    sprites.update(import_arsenal(output, sprites))
     digest = hashlib.sha256()
     for sheet in sorted({sprite['sheet'] for sprite in sprites.values()}):
         digest.update((output / (sheet + '.png')).read_bytes())

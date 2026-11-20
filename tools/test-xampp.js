@@ -29,9 +29,13 @@ try {
   s.farms[0].stage = 'GROW';
   s.farms[0].tending = 0;
   s.units.push({id:46,role:'CONSTRUCTOR',tier:1,hp:90,maxHp:90,x:0,y:268});ensurePerson(s.units[2]);
+  for(const [i,role] of ['ESCUDERO','LANCERO','ARQUERO_COMPUESTO','JAVALINERO'].entries())
+    s.units.push(ensurePerson({id:200+i,role,sex:i%2?'F':'M',tier:2,hp:80,maxHp:100,x:80+i*20,y:268}));
   s.units[1].carryingSack=true;s.units[1].cargoWood=6;s.resources={wood:11,stone:7,food:9};
   s.wildlife=[createAnimal(70,'MACAW',640,{trust:2})];s.ecology.seeded=true;s.ecology.streams[0].fishStock=1;
   let wildlifeId=71;seedFrontier(s,()=>wildlifeId++);
+  s.wildlife.push(createAnimal(210,'PANTHER',-50,{bonded:true,trust:5,equipment:{weapon:2,armor:2},hp:102,maxHp:136}));
+  Object.assign(s.settlement.towers[1],{level:5,ammo:17,integrity:76,siegeCooldown:2.4});
   s.exploration.altarFound=true;s.exploration.opened=['ceiba_cache'];s.benkos.torchOff=true;
   s.units[1].recoveredCoins=2;
   s.droppedCoins.push({id:77,x:-403,y:268,vx:0,vy:0,life:120,recoverable:true,pickupDelay:0});
@@ -40,7 +44,7 @@ try {
   s.campaign.letters.push({id:'message',day:1,title:'Un mensajero',text:'La patrulla viene del camino este.',read:false});
   s.story.plan='guides';s.story.treaty='signed';s.story.completed=['hacienda_jegua'];
   s.story.expedition={site:'hacienda_marea',stage:'assault',party:[44],rescued:[]};
-  const payload={jugador_nombre:player,...makeSave(s,80)};
+  const payload={jugador_nombre:player,...makeSave(s,300)};
   const first=await request('save.php',payload);assert.equal(first.status,200);assert.equal(first.data.success,true);
   const id=first.data.partida_id;assert.ok(id>0);
   const loaded=await request(`load.php?jugador=${player}&partida_id=${id}`);

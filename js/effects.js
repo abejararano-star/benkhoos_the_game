@@ -1,4 +1,4 @@
-import { WATER_LINE_Y } from './config.js?v=ee79ef434f2b';
+import { WATER_LINE_Y } from './config.js?v=ea931d367785';
 
 const profiles = {
   blood: { colors: ['#711e26', '#a53539', '#c75c53'], count: 8, speed: 93, gravity: 225, life: .48, size: 2 },
@@ -7,6 +7,7 @@ const profiles = {
   dust: { colors: ['#6d5942', '#ac9470', '#c5ad83'], count: 7, speed: 45, gravity: -9, life: .95, size: 7 },
   spark: { colors: ['#e1813f', '#efbc69', '#fff0b5'], count: 7, speed: 120, gravity: 115, life: .31, size: 2 },
   water: { colors: ['#83beb8', '#a4d8ca', '#dae9d7'], count: 7, speed: 71, gravity: 195, life: .36, size: 2 }
+  ,smoke: { colors:['#6e746a','#9b9c87','#cbc6ac'],count:9,speed:28,gravity:-8,life:1.3,size:9 }
 };
 
 export function emitEffect(state, kind, x, y, direction = 0, strength = 1) {
@@ -36,7 +37,7 @@ export function advanceParticle(particle, dt) {
 
 export function drawParticle(ctx, particle, x, y) {
   const age = 1 - particle.life / (particle.maxLife ?? .35);
-  const dust = particle.kind === 'dust';
+  const dust = particle.kind === 'dust' || particle.kind === 'smoke';
   const size = dust ? Math.ceil(particle.size * (1 + age * .8)) : particle.size;
   ctx.globalAlpha = dust ? Math.max(0, (1 - age) * .26) : Math.min(1, Math.max(0, particle.life * 6));
   ctx.fillStyle = particle.color;

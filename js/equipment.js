@@ -1,6 +1,7 @@
-import { HQ_X } from './settlement.js?v=ee79ef434f2b';
+import { HQ_X } from './settlement.js?v=ea931d367785';
+import { FELIDS } from './config.js?v=ea931d367785';
 
-export const INFANTRY = ['GUERRERO', 'ARQUERO', 'ESPADACHIN'];
+export const INFANTRY = ['GUERRERO', 'ARQUERO', 'ESPADACHIN', 'ESCUDERO', 'LANCERO', 'ARQUERO_COMPUESTO', 'JAVALINERO'];
 export const RANK_NAMES = ['Básico', 'Élite', 'Real'];
 export const ROYAL_ARMOR_COST = 8;
 
@@ -24,11 +25,19 @@ export function armyRequirement(state) {
 }
 
 export function equipmentOffer(unit, piece, state, requestedRank) {
+  if (unit?.bonded && FELIDS.includes(unit.species)) {
+    unit.equipment ??= {weapon:0,armor:0};
+    const rank = requestedRank ?? unit.equipment[piece] + 1, cost = (piece==='armor'?4:3) + rank*3;
+    const reason = !['weapon','armor'].includes(piece) || ![1,2].includes(rank) ? 'Equipo felino de nivel máximo.' :
+      rank<=unit.equipment[piece]?'Ya tiene este equipo.':unit.kitOrder?'Tiene un encargo pendiente.':
+      state.settlement.level<rank+2?`Requiere Casa del Cuartel ${rank+2}.`:state.coins<cost?'Faltan reales.':'';
+    return {piece,rank,cost,item:piece==='armor'?'Armadura felina':'Garras reforzadas',reason};
+  }
   if (!INFANTRY.includes(unit?.role) || !['weapon', 'armor'].includes(piece)) return null;
   ensureEquipment(unit);
   const rank = requestedRank ?? unit.equipment[piece] + 1;
   const cost = (piece === 'weapon' ? 2 : 3) + rank;
-  const item = piece === 'armor' ? 'Armadura' : { GUERRERO: 'Lanza', ARQUERO: 'Arco', ESPADACHIN: 'Espada' }[unit.role];
+  const item = piece === 'armor' ? 'Armadura' : { GUERRERO: 'Lanza', ARQUERO: 'Arco', ESPADACHIN: 'Espada', ESCUDERO:'Escudo reforzado', LANCERO:'Lanza larga', ARQUERO_COMPUESTO:'Arco compuesto', JAVALINERO:'Jabalinas' }[unit.role];
   let reason = '';
   if (!Number.isInteger(rank) || rank > 3) reason = 'Equipo de rango máximo.';
   else if (rank <= unit.equipment[piece]) reason = 'Ya tiene equipo de este rango o superior.';

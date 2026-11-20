@@ -1,4 +1,4 @@
-import { inStrikeRange, strikeEnemy } from './combat.js?v=ee79ef434f2b';
+import { inStrikeRange, strikeEnemy } from './combat.js?v=ea931d367785';
 
 const DURATION = { CROUCH: .28, POUNCE: .36, SWIPE: .4, RECOVER: .32 };
 
@@ -54,7 +54,7 @@ function advanceAttack(a, state, dt, damagePlayer, damageAlly, notice) {
         a.lastMeal = state.ecology.time;
         current.meal = true;
       }
-    } else if (strikeEnemy(target, (a.trust >= 2 ? 24 : 17) + (kind === 'POUNCE' ? 4 : 0), a.facing)) {
+    } else if (strikeEnemy(target, (a.trust >= 2 ? 24 : 17) + (kind === 'POUNCE' ? 4 : 0) + (a.equipment?.weapon ?? 0) * 8, a.facing)) {
       notice(target.x, kind === 'POUNCE' ? 'Salto del jaguar' : 'Zarpazo del jaguar');
     }
   }
@@ -80,7 +80,7 @@ export function updateJaguar(a, state, dt, speed, { damagePlayer, damageAlly, no
   const enemy = enemies.reduce((closest, candidate) =>
     !closest || Math.abs(candidate.x - a.x) < Math.abs(closest.x - a.x) ? candidate : closest, null);
   const ally = !a.trust && state.units.filter(unit => unit.hp > 0 && !unit.waterFall &&
-    ['GUERRERO', 'ESPADACHIN', 'ARQUERO', 'CABALLERO_ALIADO', 'CAZADOR', 'CAMPEON_REAL'].includes(unit.role) &&
+    ['GUERRERO', 'ESPADACHIN', 'ARQUERO', 'CABALLERO_ALIADO', 'CAZADOR', 'CAMPEON_REAL', 'ESCUDERO', 'LANCERO', 'ARQUERO_COMPUESTO', 'JAVALINERO'].includes(unit.role) &&
     Math.abs(unit.x - a.x) < (a.aggression > 0 ? 92 : 48)).reduce((closest, candidate) =>
       !closest || Math.abs(candidate.x - a.x) < Math.abs(closest.x - a.x) ? candidate : closest, null);
   const playerNear = !a.trust && !b.waterFall && dist < (a.aggression > 0 ? 92 : 58);

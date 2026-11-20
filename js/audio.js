@@ -1,4 +1,4 @@
-import { ScenarioSoundtrack } from './soundtrack.js?v=ee79ef434f2b';
+import { ScenarioSoundtrack } from './soundtrack.js?v=ea931d367785';
 
 export class AfroColombianAudioEngine {
   constructor() {
@@ -144,6 +144,8 @@ export class AfroColombianAudioEngine {
     this.init();
     if (!this.enabled || !this.ctx) return;
     if (type === 'coinPickup') this.playSlotDing(2);
+    else if(type==='cannon'){this.playTamboraBass(55,.48,.48);this.playGuacheShaker(.20);}
+    else if(type==='ballista'){this.playTamboraBass(145,.12,.16);this.playGuacheShaker(.06);}
     else if (type === 'chainBreak') { this.playSlotDing(4); this.playGuacheShaker(0.15); }
     else if (type === 'pickaxe') { this.playSlotDing(1); }
     else if (type === 'splash') { this.playGuacheShaker(0.14); this.playTamboraBass(120, 0.12, 0.15); }

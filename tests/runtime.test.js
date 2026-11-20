@@ -287,6 +287,67 @@ test('tower levels improve the real sentry attack and keep the archer at deck he
   }
 });
 
+test('heavy towers fire in the actual simulation and resume individual bows when ammunition runs out', async () => {
+  for(const level of [4,5]){
+    await loadState(s=>{
+      Object.assign(s,{status:'playing',sandbox:true,phase:'DAY_EXPLORE',timeOfDay:.25,hitStopTimer:0,
+        projectiles:[],wildlife:[],walls:[],droppedCoins:[]});
+      s.benkos.x=0;s.story.expedition=null;s.campaign.orders=[];s.story.finale='';s.story.finalWon=false;
+      const t=s.settlement.towers[1];Object.assign(t,{level,ammo:TOWER_TIERS[level].ammo,integrity:100,siegeCooldown:0,burst:null});
+      s.units=Array.from({length:TOWER_TIERS[level].crew},(_,i)=>ensurePerson({id:800+i,role:'ARQUERO',
+        x:t.x+[-27,-9,12][i],hp:80,maxHp:80,tier:1,assignedSide:1,attackCooldown:0}));
+      s.enemies=[{...ENEMY_CATALOG.SOLDADO_ESPANOL,id:850,type:'SOLDADO_ESPANOL',x:t.x+220,y:268,
+        hp:600,maxHp:600,speed:0,vx:0,facing:-1,appearTimer:0,attackCooldown:100,stolenCoins:0,guardSite:'test',guardX:t.x+220}];
+    });
+    advance(1.3);
+    assert.ok(inspect().state.enemies[0].hp<600, JSON.stringify({units:inspect().state.units,tower:inspect().state.settlement.towers[1],p:inspect().state.projectiles,e:inspect().state.enemies}));
+    assert.equal(inspect().state.settlement.towers[1].ammo,TOWER_TIERS[level].ammo-(level===4?1:4));
+    assert.ok(inspect().state.units.filter(u=>u.role==='ARQUERO').every(u=>u.towerHeight===TOWER_TIERS[level].height));
+    await loadState(s=>{s.settlement.towers[1].ammo=0;s.projectiles=[];});
+    advance(.12);assert.ok(inspect().state.units.some(u=>u.pendingShot));
+  }
+});
+
+test('mosketeers use bullets at distance and bayonets nearby, while cannons hit fortifications',async()=>{
+  const stage=async(type,gap)=>loadState(s=>{
+    Object.assign(s,{status:'playing',sandbox:true,phase:'DAY_EXPLORE',timeOfDay:.25,hitStopTimer:0,
+      projectiles:[],wildlife:[],units:[],droppedCoins:[],coins:24});
+    s.benkos.x=0;s.benkos.hurtTimer=0;s.benkos.waterFall=null;s.benkos.vx=0;
+    s.story.expedition=null;s.campaign.orders=[];s.story.finale='';s.story.finalWon=false;
+    s.settlement.towers.forEach(t=>t.level=0);s.walls=[];
+    s.enemies=[{...ENEMY_CATALOG[type],id:860,type,x:gap,y:268,maxHp:ENEMY_CATALOG[type].hp,
+      speed:0,vx:0,facing:-1,appearTimer:0,attackCooldown:0,stolenCoins:0}];
+  });
+  await stage('MOSQUETERO',150);advance(1.1);
+  assert.ok(inspect().state.projectiles.some(p=>!p.fromPlayerSide&&!p.explosive));
+  assert.equal(inspect().state.enemies[0].bayonet,false);
+  await stage('MOSQUETERO',25);advance(.5);
+  assert.equal(inspect().state.enemies[0].bayonet,true);assert.ok(inspect().state.coins<24);
+  assert.equal(inspect().state.projectiles.length,0);
+  await stage('CANONERO',300);
+  await loadState(s=>{s.walls=[{id:'wall_outer_R',dir:1,x:1060,level:3,hp:300,maxHp:300}];
+    s.benkos.x=1200;s.enemies[0].x=1600;});
+  advance(3);assert.ok(inspect().state.walls[0].hp<300,JSON.stringify({walls:inspect().state.walls,e:inspect().state.enemies,p:inspect().state.projectiles}));
+});
+
+test('the four specializations pursue and damage a real target with their own weapon behavior',async()=>{
+  for(const [role,gap,type] of [['ESCUDERO',80,'SOLDADO_ESPANOL'],['LANCERO',55,'CABALLERO'],
+    ['ARQUERO_COMPUESTO',235,'SOLDADO_ESPANOL'],['JAVALINERO',135,'SOLDADO_ESPANOL']]){
+    await loadState(s=>{
+      Object.assign(s,{status:'playing',sandbox:true,phase:'DAY_EXPLORE',timeOfDay:.25,hitStopTimer:0,
+        projectiles:[],wildlife:[],walls:[],droppedCoins:[]});
+      s.benkos.x=-200;s.campaign.orders=[];s.story.expedition=null;s.story.finale='';s.story.finalWon=false;
+      s.settlement.towers.forEach(t=>t.level=0);
+      s.units=[ensurePerson({id:870,role,x:300,y:268,hp:155,maxHp:155,tier:1,assignedSide:1,facing:1,attackCooldown:0})];
+      s.enemies=[{...ENEMY_CATALOG[type],id:871,type,x:300+gap,y:268,hp:500,maxHp:500,
+        speed:0,vx:0,facing:-1,appearTimer:0,attackCooldown:100,stolenCoins:0,animTime:0}];
+    });
+    advance(2.3);
+    assert.ok(inspect().state.enemies[0].hp<500,role+' never landed a hit');
+    assert.equal(inspect().state.units[0].role,role);
+  }
+});
+
 test('paying the last coin stocks a tool rack immediately with no builder or project', async () => {
   await loadState(s => {
     const rack = s.toolRacks.find(tool => tool.id === 'rack_hammer');

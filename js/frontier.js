@@ -11,9 +11,9 @@ export const ROAD_GATES = COLONIAL_POSTS.slice(0, 2);
 const ROSTERS = {
   1: ['CAMPESINO', 'SOLDADO_ESPANOL'],
   2: ['PIQUERO', 'SOLDADO_ESPANOL', 'ARQUERO_COLONIAL', 'BANDOLERO'],
-  3: ['PIQUERO', 'SOLDADO_ESPANOL', 'ARCABUCERO', 'ARQUERO_COLONIAL', 'PIQUERO', 'CABALLERO']
+  3: ['PIQUERO', 'SOLDADO_ESPANOL', 'ARCABUCERO', 'ARQUERO_COLONIAL', 'MOSQUETERO', 'CANONERO']
 };
-export const colonialShooter = unit => unit.type === 'ARQUERO_COLONIAL' || unit.type === 'ARCABUCERO';
+export const colonialShooter = unit => unit.type === 'ARQUERO_COLONIAL' || ['ARCABUCERO','MOSQUETERO'].includes(unit.type);
 
 export function fortTowers(site) {
   const offsets = site.grade >= 4 ? [-132, 123] : site.grade >= 2 ? [78] : [];

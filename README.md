@@ -169,6 +169,28 @@ El Heraldo tiene un aviso previo de 35 segundos; el gobernador final parte despu
 
 Una nueva campaña genera un nuevo registro de servidor; cargar una campaña permite actualizar el mismo registro. El guardado informa si se realizó en MySQL o solo en el navegador. La aplicación es una instalación **local de un solo jugador**: la API no incorpora cuentas ni autenticación para ofrecerla como servicio público.
 
+## Torres, especialistas y pólvora
+
+Las torres tienen cinco evoluciones. En **B → Obras** se pagan sus mejoras y un constructor debe terminarlas. La Casa del Cuartel necesita el nivel correspondiente.
+
+| Nivel | Defensa | Plazas | Alcance | Munición |
+| --- | --- | --- | --- | --- |
+| I | Atalaya | 1 arquero | 250 | Arco individual |
+| II | Piedra y madera | 2 arqueros | 290 | Arcos individuales |
+| III | Torre almenada | 3 arqueros | 330 | Arcos individuales |
+| IV | Gran ballesta | 3, requiere 2 operadores | 410 | 8 virotes; perfora hasta 3 enemigos |
+| V | Repetidora mecánica | 4, requiere 3 operadores | 365 | 24 virotes; ráfagas de 4 |
+
+Los operadores son arqueros reales de la población; los demás cubren la torre con sus arcos. Sin dotación suficiente o munición, usan el arco individual. **B** permite reponer virotes por **3 reales y 2 de madera**. Los cañones dañan la integridad de las torres: al llegar a cero, la dotación baja y necesita una reparación con constructor (**3 reales, 2 de madera, 6 s**). Reparar no repone munición.
+
+Desde rango Élite, en **F → Oficio** se eligen especializaciones. El escudero (3 reales) reduce el daño frontal y protege la primera línea; el lancero de formación (2) usa mayor alcance y daño contra caballería; el arquero compuesto (4) alcanza 255 pasos y atraviesa parte de la armadura; el jabalinero (2) lanza a 155 pasos, con más daño por golpe y menos cadencia. Recogen una pieza de los puestos existentes de lanzas, arcos o caza. **G** mejora sus armas y armaduras. Mantienen nombre, sexo, personalidad y proporción de salud al cambiar de oficio.
+
+Los mosqueteros del gobernador disparan tras apuntar y recargan entre tiros; a corta distancia usan bayoneta. Los cañones muestran una preparación de 1,5 s, disparan proyectiles visibles con explosión de área y recargan durante 6,8 s. Son lentos y vulnerables al combate cercano. Ambos aparecen en las ciudades y avanzadas de mayor grado; las incursiones incorporan mosqueteros desde el día 6 y cañones desde el 9.
+
+Con el poder del jaguar desbloqueado, alimenta un jaguar o una pantera y pulsa **E** junto al adulto mientras el poder está activo. Puedes vincular hasta **dos felinos**. En **G**, selecciona al compañero para encargar armadura o garras: niveles I y II requieren Casa del Cuartel III y IV, respectivamente. Las armaduras cuestan 7/10 reales; las garras 6/9. La armadura aumenta salud y reduce daño; las garras aumentan el zarpazo. Recogen físicamente el equipo tras la forja, cuando el camino es seguro. El vínculo, la salud y las mejoras sobreviven al guardado.
+
+El arte nuevo de la ballesta y los felinos se conserva en art/source/*_v28.png con sus prompts. La repetidora añade un cargador y mecanismo dibujados sobre la torre; los especialistas y mosqueteros adaptan familias de sprites existentes. El cañón usa un operador existente y una pieza de artillería dibujada en el motor.
+
 ## Desarrollo y verificación
 
 No hay dependencias de JavaScript ni CDN. Con Node 20 o posterior:

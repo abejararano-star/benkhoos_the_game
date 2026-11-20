@@ -11,7 +11,7 @@ function step(state, frames, hooks) {
   for (let frame = 0; frame < frames; frame++) updateEcology(state, 1 / 60, hooks);
 }
 
-test('migration seeds seven species without duplicate animals or identifiers',()=>{
+test('migration seeds the wildlife species without duplicate animals or identifiers',()=>{
   const s=world();s.wildlife=[createAnimal(1,'CAPYBARA',-560)];let id=2;seedEcology(s,()=>id++);
   const count=s.wildlife.length;seedEcology(s,()=>id++);assert.equal(s.wildlife.length,count);
   assert.equal(new Set(s.wildlife.map(a=>a.id)).size,count);assert.equal(new Set(s.wildlife.map(a=>a.species)).size,Object.keys(SPECIES).filter(key=>key!=='SNAKE').length);
@@ -176,7 +176,7 @@ test('a wild pair can have a juvenile that persists and grows up', () => {
   assert.equal(restored.bornAt, undefined);
   assert.equal(restored.maxHp, SPECIES.DEER.hp);
 });
-test('the altar can bond one fed jaguar which follows Benkos beyond ordinary trust range', () => {
+test('the altar bonds at most two felines which follow Benkos beyond ordinary trust range', () => {
   const state = world('JAGUAR');
   const jaguar = state.wildlife[0];
   interactEcology(state);
@@ -187,7 +187,11 @@ test('the altar can bond one fed jaguar which follows Benkos beyond ordinary tru
   assert.equal(jaguar.bonded, true);
   const other = createAnimal(12, 'JAGUAR', 2, { trust: 1 });
   state.wildlife.push(other);
-  assert.match(interactEcology(state).message, /un solo jaguar/);
+  assert.match(interactEcology(state).message, /seguirá/);
+  assert.equal(other.bonded, true);
+  jaguar.x = other.x = 100;
+  state.wildlife.push(createAnimal(13, 'PANTHER', 2, {trust:1}));
+  assert.match(interactEcology(state).message, /dos felinos/);
   state.benkos.x = 620;
   state.benkos.vx = 180;
   step(state, 10);

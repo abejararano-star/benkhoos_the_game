@@ -1,5 +1,5 @@
-import { CITIES, storyChapter } from './story.js?v=ee79ef434f2b';
-import { advanceGarrisons, departurePost, orderPost, ROAD_GATES, strengthenPostGuard } from './frontier.js?v=ee79ef434f2b';
+import { CITIES, storyChapter } from './story.js?v=ea931d367785';
+import { advanceGarrisons, departurePost, orderPost, ROAD_GATES, strengthenPostGuard } from './frontier.js?v=ea931d367785';
 export { ROAD_GATES };
 export function ensureCampaign(state){
   state.messengers??=[];
@@ -20,6 +20,8 @@ export function raidRoster(day){
   if(day>=4)roster.push('PIQUERO');
   if(day>=5)roster.push('ARCABUCERO','BANDOLERO');
   if(day>=7)roster.push('CABALLERO');
+  if(day>=6)roster.push('MOSQUETERO');
+  if(day>=9)roster.push('CANONERO');
   return roster;
 }
 export function dispatchRaid(state,mult=1){

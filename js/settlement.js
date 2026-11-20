@@ -1,5 +1,5 @@
-import { ALTAR_X } from './exploration.js?v=ee79ef434f2b';
-import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=ee79ef434f2b';
+import { ALTAR_X } from './exploration.js?v=ea931d367785';
+import { CAMP_EDGE, TOOL_COSTS } from './config.js?v=ea931d367785';
 
 const UPGRADE_COSTS = [null, null, [6, 4, 0, 5], [8, 8, 3, 6], [12, 12, 8, 8], [16, 18, 14, 10]];
 export const MATERIALS = ['Palma y bejuco', 'Madera de ceiba', 'Bahareque y cal', 'Piedra y teja', 'Cantería tallada'];
@@ -8,10 +8,12 @@ export const ALTAR_HEIGHT = [0, 53, 57, 65, 73, 83];
 export const altarSprite = level => level === 1 ? 'landmark_altar' : `altar_${level}`;
 export const HQ_X = 0;
 export const TOWER_TIERS = Object.freeze([
-  { name: 'Puesto sin construir', height: 0, range: 200, damage: 1, cooldown: 1 },
-  { name: 'Atalaya de madera', height: 51, range: 250, damage: 1.10, cooldown: .96 },
-  { name: 'Torre de piedra y madera', height: 66, range: 290, damage: 1.27, cooldown: .87 },
-  { name: 'Torre almenada', height: 82, range: 330, damage: 1.48, cooldown: .76 }
+  { name: 'Puesto sin construir', height: 0, range: 200, damage: 1, cooldown: 1, capacity: 0 },
+  { name: 'Atalaya de madera', height: 51, range: 250, damage: 1.10, cooldown: .96, capacity: 1 },
+  { name: 'Torre de piedra y madera', height: 66, range: 290, damage: 1.27, cooldown: .87, capacity: 2 },
+  { name: 'Torre almenada', height: 82, range: 330, damage: 1.48, cooldown: .76, capacity: 3 },
+  { name: 'Gran ballesta', height: 94, range: 410, damage: 1.55, cooldown: .80, capacity: 3, crew: 2, ammo: 8, siege: 'ballista' },
+  { name: 'Repetidora mecánica', height: 104, range: 365, damage: 1.55, cooldown: .75, capacity: 4, crew: 3, ammo: 24, siege: 'repeater' }
 ]);
 export const TOWER_HEIGHT = TOWER_TIERS.map(tower => tower.height);
 const WORK_REACH = 18;
@@ -19,7 +21,8 @@ const WORK_REACH = 18;
 export function initialSettlement() {
   return { level: 1, homes: [{ id: 'home_west', x: -910, level: 1 }, { id: 'home_inner', x: -135, level: 1 },
     { id: 'home_east', x: 910, level: 1 }],
-    towers: [-1, 1].map(side => ({ id: side < 0 ? 'tower_west' : 'tower_east', x: side * (CAMP_EDGE - 32), side, level: 0 })),
+    towers: [-1, 1].map(side => ({ id: side < 0 ? 'tower_west' : 'tower_east', x: side * (CAMP_EDGE - 32), side, level: 0,
+      integrity: 100, ammo: 0, siegeCooldown: 0, siegeFlash: 0 })),
     deposits: {}, projects: [], completed: 0 };
 }
 
@@ -51,7 +54,14 @@ export function ensureSettlement(state) {
   const savedTowers = Array.isArray(s.towers) ? s.towers : [];
   s.towers = initialSettlement().towers.map(tower => {
     const saved = savedTowers.find(entry => entry?.id === tower.id);
-    return { ...tower, level: Number.isInteger(saved?.level) ? Math.max(0, Math.min(3, saved.level)) : 0 };
+    const level = Number.isInteger(saved?.level) ? Math.max(0, Math.min(5, saved.level)) : 0;
+    return { ...tower, level, integrity: Number.isFinite(saved?.integrity) ? Math.max(0, Math.min(100, saved.integrity)) : 100,
+      ammo: Number.isInteger(saved?.ammo) ? Math.max(0, Math.min(TOWER_TIERS[level].ammo ?? 0, saved.ammo)) : TOWER_TIERS[level].ammo ?? 0,
+      siegeCooldown: Number.isFinite(saved?.siegeCooldown) ? Math.max(0,Math.min(4.2,saved.siegeCooldown)) : 0,
+      siegeFlash: 0,
+      ...(saved?.burst !== undefined ? {burst: TOWER_TIERS[level].siege && saved.burst && Number.isInteger(saved.burst.left) &&
+        saved.burst.left > 0 && saved.burst.left <= 4 && Number.isFinite(saved.burst.next) ?
+        {left:saved.burst.left,next:Math.max(0,Math.min(.13,saved.burst.next))} : null} : {}) };
   });
   for (const key of ['wood', 'stone', 'food']) state.resources[key] = Math.max(0, Math.min(100000, Math.floor(Number(state.resources[key]) || 0)));
   s.completed = Math.max(0, Number(s.completed) || 0);
@@ -85,10 +95,10 @@ export function ensureSettlement(state) {
   if (new Set(s.projects.map(job => job.targetId)).size !== s.projects.length) throw Error('Obras duplicadas.');
   for (const job of s.projects) {
     const target = buildingTarget(state, job.kind, job.targetId);
-    const max = job.kind === 'farm' ? 2 : job.kind === 'tower' ? 3 : 5;
+    const max = job.kind === 'farm' ? 2 : 5;
     const validLevel = job.kind === 'rack' ? job.targetLevel === null :
       Number.isInteger(job.targetLevel) && job.targetLevel <= max && job.targetLevel === target?.level + (job.repair ? 0 : 1);
-    if (!target || target.id !== job.targetId || job.x !== target.x || !validLevel || (job.repair && job.kind !== 'wall')) throw Error('Destino de construcción inválido.');
+    if (!target || target.id !== job.targetId || job.x !== target.x || !validLevel || (job.repair && !['wall', 'tower'].includes(job.kind))) throw Error('Destino de construcción inválido.');
     delete job.working;
   }
   s.projects = s.projects.filter(job => {
@@ -111,11 +121,21 @@ export function ensureSettlement(state) {
 
 export const constructionAt = (state, id) => state.settlement.projects.find(job => job.targetId === id);
 
+export function refillTower(state, id) {
+  const tower = state.settlement.towers.find(t => t.id === id), capacity = TOWER_TIERS[tower?.level]?.ammo ?? 0;
+  if (!capacity) return { success: false, message: 'Esta torre utiliza arcos individuales.' };
+  if (tower.ammo >= capacity) return { success: false, message: 'Munición completa.' };
+  if (state.coins < 3 || state.resources.wood < 2) return { success: false, message: 'Requiere 3 reales y 2 de madera.' };
+  state.coins -= 3; state.resources.wood -= 2; tower.ammo = capacity;
+  return { success: true, message: 'Virotes repuestos en la torre.' };
+}
+
 export function upgradeInfo(state, kind, id) {
   const target = buildingTarget(state, kind, id);
   if (!target) return { reason: 'No existe este edificio.' };
-  const next = target.level + 1;
-  const costs = kind === 'tower' ? [null, [5, 3, 0, 5], [7, 4, 2, 6], [9, 4, 5, 8]][next] : UPGRADE_COSTS[next];
+  const repair = kind === 'tower' && target.level > 0 && target.integrity < 100;
+  const next = target.level + (repair ? 0 : 1);
+  const costs = repair ? [3, 2, 0, 6] : kind === 'tower' ? [null, [5, 3, 0, 5], [7, 4, 2, 6], [9, 4, 5, 8], [14, 10, 10, 18], [18, 14, 14, 24]][next] : UPGRADE_COSTS[next];
   const job = constructionAt(state, target.id);
   if (job) return { target, job, reason: 'Obra en marcha.' };
   if (!costs) return { target, reason: 'Evolución máxima alcanzada.' };
@@ -125,7 +145,7 @@ export function upgradeInfo(state, kind, id) {
   let reason = '';
   if ((kind === 'home' || kind === 'tower') && next > state.settlement.level) reason = `Requiere Casa del Cuartel de nivel ${next}.`;
   else if (state.resources.wood < wood || state.resources.stone < stone) reason = 'Faltan materiales para iniciar la obra.';
-  return { target, next, coins, paid, wood, stone, duration, reason };
+  return { target, next, coins, paid, wood, stone, duration, reason, repair };
 }
 
 export function queueConstruction(state, kind, target, targetLevel, duration, repair = false) {
@@ -152,7 +172,7 @@ export function applyBuildingPayment(state, kind, info, amount) {
   delete state.settlement.deposits[info.target.id];
   state.resources.wood -= info.wood;
   state.resources.stone -= info.stone;
-  queueConstruction(state, kind, info.target, info.next, info.duration);
+  queueConstruction(state, kind, info.target, info.next, info.duration, info.repair);
   return { success: true, paid, message: `Obra pagada. Requiere ${info.duration} s de trabajo de un constructor.` };
 }
 
@@ -183,6 +203,10 @@ export function advanceConstruction(state, dt, onComplete, workRate = () => 1) {
       if (job.kind === 'wall') {
         if (!job.repair) target.maxHp = 150 + target.level * 90;
         target.hp = target.maxHp;
+      }
+      if (job.kind === 'tower') {
+        target.integrity = 100;
+        if (!job.repair) target.ammo = TOWER_TIERS[target.level].ammo ?? 0;
       }
     }
     settlement.projects.splice(index, 1);

@@ -1,9 +1,9 @@
-import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X } from './config.js?v=ee79ef434f2b';
-import { ensureEquipment, INFANTRY } from './equipment.js?v=ee79ef434f2b';
-import { ensureTraits, griefEffect } from './daily-life.js?v=ee79ef434f2b';
-import { addWound, healerAtCamp, recoverHealth } from './care.js?v=ee79ef434f2b';
+import { CAMP_EDGE, getUnitMaxHp, STATION_X, WORLD_MIN_X, WORLD_MAX_X, SPECIALISTS, MELEE_ROLES, RANGED_ROLES } from './config.js?v=ea931d367785';
+import { ensureEquipment, INFANTRY } from './equipment.js?v=ea931d367785';
+import { ensureTraits, griefEffect } from './daily-life.js?v=ea931d367785';
+import { addWound, healerAtCamp, recoverHealth } from './care.js?v=ea931d367785';
 
-export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón', CURANDERO:'Curandero', BRUJO:'Brujo' });
+export const ROLE_NAMES = Object.freeze({ FUGITIVO:'Persona cautiva', ALDEANO:'Habitante libre', CONSTRUCTOR:'Constructor', LENADOR:'Leñador', AGRICULTOR:'Agricultor', MINERO:'Minero', CAZADOR:'Cazador', ARQUERO:'Arquero', GUERRERO:'Lancero', ESPADACHIN:'Espadachín', CABALLERO_ALIADO:'Caballería', CAMPEON_REAL:'Campeón', CURANDERO:'Curandero', BRUJO:'Brujo', ...Object.fromEntries(Object.entries(SPECIALISTS).map(([role, spec]) => [role, spec.name])) });
 export const ATTRIBUTES = Object.freeze({ strength:'Fuerza', endurance:'Resistencia', perception:'Percepción', dexterity:'Destreza', cultivation:'Cultivo' });
 export const GIFT_NAMES = Object.freeze({ strength:'Brazos de ceiba', endurance:'Pulso incansable', perception:'Ojo del monte', dexterity:'Manos certeras', cultivation:'Manos de tierra' });
 export const TEMPERAMENTS = Object.freeze({ BRAVE:'Valiente', CAUTIOUS:'Prudente', CARING:'Solidario', CALM:'Sereno', RESTLESS:'Inquieto' });
@@ -12,8 +12,8 @@ export const BUILD_NAMES = Object.freeze({
   ROBUST: ['Fornido', 'Fornida'], CURVED: ['De formas redondeadas', 'De formas redondeadas']
 });
 const STATURE_NAMES = ['Estatura baja', 'Estatura media', 'Estatura alta'];
-export const WORK_ROLES = ['LENADOR','AGRICULTOR','MINERO','CAZADOR','ARQUERO','GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CONSTRUCTOR','CURANDERO','BRUJO'];
-export const MILITARY = ['GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CAMPEON_REAL'];
+export const WORK_ROLES = ['LENADOR','AGRICULTOR','MINERO','CAZADOR','ARQUERO','GUERRERO','ESPADACHIN','CABALLERO_ALIADO','CONSTRUCTOR','CURANDERO','BRUJO', ...Object.keys(SPECIALISTS)];
+export const MILITARY = MELEE_ROLES;
 const names=['Amara','Badu','Juana','Mateo','Nala','Kofi','Inés','Domingo','Amina','Manuel','Sira','Tomás','Adama','María','Lemba','Lucía','Samba','Ana','Binta','Gaspar','Dalia','Antonio','Zuri','Baltasar'];
 const femaleNames = new Set(['Amara', 'Juana', 'Nala', 'Inés', 'Amina', 'Sira', 'Adama', 'María', 'Lucía', 'Ana', 'Binta', 'Dalia', 'Zuri']);
 const nameSex = name => femaleNames.has(name) ? 'F' : 'M';
@@ -96,7 +96,10 @@ export function proficiency(unit,role=unit.role){
 export function speak(unit,line){if(unit.speechCooldown>0)return;unit.speech=line;unit.speechTimer=3;unit.speechCooldown=11;}
 export function reactToDamage(unit,damage,direction=1,projectile=false){
   ensurePerson(unit);
-  const defender = MILITARY.includes(unit.role) || unit.role === 'ARQUERO';
+  if (unit.role === 'ESCUDERO' && direction === -unit.facing && !unit.pendingStrike) {
+    damage *= projectile?.splash ? .78 : projectile ? .38 : .72; unit.shieldFlash = .18;
+  }
+  const defender = MILITARY.includes(unit.role) || RANGED_ROLES.includes(unit.role);
   unit.hp-=damage;unit.hurtTimer=defender ? .2 : .4;unit.hurtDirection=direction;
   if (projectile || damage >= unit.maxHp * .15 || unit.hp < unit.maxHp * .7) {
     addWound(unit, damage >= unit.maxHp * .22 ? 1.5 : 1);
@@ -106,7 +109,7 @@ export function reactToDamage(unit,damage,direction=1,projectile=false){
   unit.activity='HURT';unit.vx=direction*55;
   speak(unit,MILITARY.includes(unit.role)?'¡Mantengan la línea!':unit.role==='CAZADOR'?'¡Al monte, rápido!':'¡Necesito refugio!');
 }
-export function roleAvailable(role,tier){return WORK_ROLES.includes(role)&&(!['ESPADACHIN','CABALLERO_ALIADO'].includes(role)||tier>=2);}
+export function roleAvailable(role,tier){return WORK_ROLES.includes(role)&&(!['ESPADACHIN','CABALLERO_ALIADO',...Object.keys(SPECIALISTS)].includes(role)||tier>=2);}
 export function requestProfession(unit,role,state){
   ensurePerson(unit);
   if (unit.namedAmara) return { success: false, message: 'Habla con Amara para acordar dónde ayudará.' };
@@ -114,19 +117,26 @@ export function requestProfession(unit,role,state){
   if (unit.kitOrder) return { success: false, message: 'Recogerá primero el equipo que ya encargó.' };
   if (unit.recoveredCoins > 0) return { success: false, message: 'Primero llevará los reales recuperados al cofre.' };
   if(!roleAvailable(role,state.armyTier))return {success:false,message:'El oficio requiere el rango Élite.'};
+  if (unit.requestedRole === role) return { success: true, message: 'Ya está preparando este oficio.' };
   if(role===unit.role){unit.requestedRole=null;return {success:true,message:'Ya ejerce este oficio.'};}
-  const rack=state.toolRacks.find(r=>r.role===role);
+  const specialization = SPECIALISTS[role];
+  const rack=state.toolRacks.find(r=>r.role===(specialization?.base??role));
   if(!rack)return {success:false,message:'No existe un puesto de ese oficio.'};
+  if (specialization && (state.coins < specialization.fee || rack.stock < 1)) return { success:false,
+    message:`La especialización requiere ${specialization.fee} reales y una pieza disponible en ${rack.label}.` };
+  if (specialization) state.coins -= specialization.fee;
   unit.requestedRole=role;unit.rackId=rack.id;unit.worksiteId=null;
   return {success:true,message: rack.stock>0?`${unit.name} irá al puesto para aprender ${ROLE_NAMES[role].toLowerCase()}.`:'Esperará equipo. Invierte en el puesto correspondiente manteniendo S.'};
 }
 export function completeProfession(unit,rack,state){
   if(rack.stock<=0||!roleAvailable(rack.role,state.armyTier))return false;
-  const old=state.toolRacks.find(r=>r.role===unit.role);
+  const role = unit.requestedRole ?? rack.role;
+  if (!roleAvailable(role,state.armyTier) || (SPECIALISTS[role]?.base??role)!==rack.role) return false;
+  const old=state.toolRacks.find(r=>r.role===(SPECIALISTS[unit.role]?.base??unit.role));
   if(old&&old.stock<old.maxStock)old.stock++;
   const health=clamp(unit.hp/unit.maxHp,0,1);
   const armor = INFANTRY.includes(unit.role) ? unit.equipment?.armor ?? 1 : 1;
-  rack.stock--;unit.role=rack.role;unit.tier=1;
+  rack.stock--;unit.role=role;unit.tier=1;
   unit.equipment = INFANTRY.includes(unit.role) ? { weapon: 1, armor } : null;
   ensureEquipment(unit);
   unit.maxHp=personMaxHp(unit);unit.hp=Math.max(1,Math.round(unit.maxHp*health));
@@ -147,7 +157,7 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false,en
     enemy = candidate;
     distance = gap;
   }
-  const military=MILITARY.includes(unit.role), ranged=['ARQUERO','CAZADOR'].includes(unit.role);
+  const military=MILITARY.includes(unit.role), ranged=RANGED_ROLES.includes(unit.role);
   unit.fear=clamp(unit.fear+dt*(distance<140?Math.max(2, (unit.temperament==='BRAVE'?5:13)-(unit.traits.courage-3)*2):-9),0,100);
   if(unit.hurtTimer>0){
     unit.hurtTimer=Math.max(0,unit.hurtTimer-dt);unit.activity='HURT';
@@ -156,7 +166,7 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false,en
   }
   const critical=unit.hp/unit.maxHp<(unit.temperament==='BRAVE'?.18:.32);
   const dangerRadius=critical?220:ranged?55:military?60:165;
-  const defender = military || unit.role === 'ARQUERO';
+  const defender = military || RANGED_ROLES.includes(unit.role);
   const flee=(distance<dangerRadius||unit.activity==='FLEE'&&distance<240)&&(!military&&!ranged||critical||!defender&&unit.fear>85);
   if(flee){
     unit.activity='FLEE';unit.mood='Buscando refugio';unit.fear=Math.max(unit.fear,35);
@@ -186,7 +196,7 @@ export function updatePerson(unit,state,dt,recoveryMultiplier=1,onWatch=false,en
     return true;
   }
   if(unit.requestedRole&&!unit.carryingSack){
-    const rack=state.toolRacks.find(r=>r.role===unit.requestedRole);
+    const rack=state.toolRacks.find(r=>r.role===(SPECIALISTS[unit.requestedRole]?.base??unit.requestedRole));
     if(rack&&distance>180){
       unit.activity='TRAINING';unit.mood=rack.stock?'Cambiando de oficio':'Esperando herramientas';
       const dx=rack.x-unit.x;

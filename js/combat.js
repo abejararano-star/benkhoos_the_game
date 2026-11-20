@@ -36,8 +36,9 @@ export function inStrikeRange(attacker,target,reach,facing=attacker.facing){
   const dx=(target.x-attacker.x)*(facing||1);return dx>=-5&&dx<=reach;
 }
 
-export function strikeEnemy(enemy,damage,direction=1){
+export function strikeEnemy(enemy,damage,direction=1,pierce=0){
   if(enemy.hp<=0||enemy.appearTimer>0)return false;
+  damage *= 1 - (enemy.armor ?? 0) * (1 - pierce);
   enemy.hp-=damage;enemy.hurtTimer=enemy.isBoss?.16:.24;
   enemy.stunTimer=Math.max(enemy.stunTimer??0,enemy.isBoss?.05:.14);
   enemy.vx=direction*(enemy.isBoss?30:75);enemy.windupTimer=0;enemy.attackReady=false;
@@ -48,7 +49,7 @@ export function strikeEnemy(enemy,damage,direction=1){
 
 export function threatensMilitia(animal, colonial = false) {
   if (animal.hp <= 0 || animal.waterFall || animal.trapped || animal.nettedTimer > 0) return false;
-  if (animal.species === 'JAGUAR') {
+  if (animal.species === 'JAGUAR' || animal.species === 'PANTHER') {
     if (animal.bonded || animal.trust > 0) return colonial;
     const attack = animal.jaguarAction;
     return !attack?.prey && (['STALK', 'CROUCH', 'POUNCE', 'SWIPE'].includes(animal.state) || animal.aggression > 0);
@@ -61,7 +62,7 @@ export function threatensMilitia(animal, colonial = false) {
 export function strikeWildlife(animal, damage, { colonial = false, hunterId = null, net = false } = {}) {
   if (!animal || animal.hp <= 0 || animal.waterFall || animal.trapped) return false;
   animal.lastHp = animal.hp;
-  animal.hp -= damage;
+  animal.hp -= damage * (1 - (animal.equipment?.armor ?? 0) * .16);
   animal.lastHunterId = hunterId;
   if (colonial && animal.hp <= 0) animal.combatDeath = true;
   if (net && animal.hp > 0) {

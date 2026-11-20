@@ -1,9 +1,9 @@
 // Native pixel scenery shares the ochre/forest palette of the character atlases.
-import { blend, color, mix, smooth } from './daylight.js?v=ee79ef434f2b';
-import { landscapeSeed } from './sky.js?v=ee79ef434f2b';
-import { CAMP_EDGE, PLAZA } from './config.js?v=ee79ef434f2b';
-import { TOWER_HEIGHT } from './settlement.js?v=ee79ef434f2b';
-import { CROSSINGS, deckOffset } from './crossings.js?v=ee79ef434f2b';
+import { blend, color, mix, smooth } from './daylight.js?v=ea931d367785';
+import { landscapeSeed } from './sky.js?v=ea931d367785';
+import { CAMP_EDGE, PLAZA } from './config.js?v=ea931d367785';
+import { TOWER_HEIGHT } from './settlement.js?v=ea931d367785';
+import { CROSSINGS, deckOffset } from './crossings.js?v=ea931d367785';
 
 let regionCanvas;
 
@@ -265,11 +265,12 @@ export function drawVillage(g,toScreen,ground,shadow,time,settlement,armyTier,re
 }
 
 export function drawConstructionSites(g, toScreen, ground, width, state) {
-  const sizes = { hq: [118, 108], home: [78, 64], wall: [36, 48], tower: [44, 86], farm: [57, 32], rack: [45, 55], altar: [49, 64] };
+  const sizes = { hq: [118, 108], home: [78, 64], wall: [36, 48], tower: [62, 86], farm: [57, 32], rack: [45, 55], altar: [49, 64] };
   for (const job of state.settlement.projects) {
     const x = toScreen(job.x);
     if (x < -80 || x > width + 80) continue;
-    const [w, h] = sizes[job.kind];
+    const [w, baseHeight] = sizes[job.kind];
+    const h = job.kind === 'tower' && job.targetLevel >= 4 ? 120 : baseHeight;
     const scaffold = job.kind !== 'rack' && (job.working || job.progress > 0);
     const height = scaffold ? h : 26;
     for (let i = 0; i < 3; i++) {
@@ -482,7 +483,14 @@ export function drawWatchtower(g, x, ground, tower) {
     return;
   }
   const deck = ground - TOWER_HEIGHT[tower.level];
-  if (window.SpriteManager?.draw?.(g, `watchtower_level_${tower.level}`, ['idle'], x, ground, tower.side ?? 1, TOWER_HEIGHT[tower.level], 0)) return;
+  if (window.SpriteManager?.draw?.(g, `watchtower_level_${tower.level}`, ['idle'], x, ground, tower.side ?? 1, TOWER_HEIGHT[tower.level], 0)) {
+    if(tower.level===5){g.save();g.translate(x,ground-TOWER_HEIGHT[5]);g.scale(tower.side??1,1);
+      woodFace(g,5,-43,27,12,'#725037',x);g.fillStyle='#c0a264';g.fillRect(5,-43,27,2);
+      for(let k=0;k<5;k++){g.fillStyle='#d6bd87';g.fillRect(8+k*4,-47,2,8);}
+      g.fillStyle='#806b4b';g.fillRect(-9,-29,10,3);g.fillRect(-11,-32,3,8);g.restore();}
+    if(tower.integrity<100){g.fillStyle='#302820';g.fillRect(x-18,ground-8,36,3);g.fillStyle='#c4a06b';g.fillRect(x-17,ground-7,34*Math.max(0,tower.integrity)/100,1);}
+    return;
+  }
   g.strokeStyle = '#4d3326';
   g.lineWidth = 5;
   g.beginPath();

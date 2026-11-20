@@ -1,4 +1,4 @@
-import { createAnimal } from './ecology.js?v=ee79ef434f2b';
+import { createAnimal } from './ecology.js?v=ea931d367785';
 
 export const ALTAR_X = -1880;
 export const TRAIL_SIGNS = [-1565, -1815, -4360];
@@ -23,7 +23,7 @@ export const TRAIL_CACHES = [
 
 export function initialExploration() {
   return { altarFound: false, frontierSeeded: false, trailSnakesSeeded: false, estateWildlifeSeeded: false, wildlifePairsSeeded: false,
-    distantWildlifeSeeded: false, waypoint: '', opened: [], revealed: [] };
+    distantWildlifeSeeded: false, pantherSeeded: false, waypoint: '', opened: [], revealed: [] };
 }
 
 export function ensureExploration(state) {
@@ -35,6 +35,7 @@ export function ensureExploration(state) {
     estateWildlifeSeeded: old?.estateWildlifeSeeded === true,
     wildlifePairsSeeded: old?.wildlifePairsSeeded === true,
     distantWildlifeSeeded: old?.distantWildlifeSeeded === true,
+    pantherSeeded: old?.pantherSeeded === true,
     waypoint: typeof old?.waypoint === 'string' && /^[a-z_]{1,30}$/.test(old.waypoint) ? old.waypoint : '',
     opened: TRAIL_CACHES.filter(cache => Array.isArray(old?.opened) && old.opened.includes(cache.id)).map(cache => cache.id),
     revealed: TRAIL_CACHES.filter(cache => Array.isArray(old?.revealed) && old.revealed.includes(cache.id)).map(cache => cache.id)
@@ -69,6 +70,7 @@ export function seedFrontier(state, nextId) {
     }
     state.exploration.wildlifePairsSeeded = true;
   }
+  if(!state.exploration.pantherSeeded){if(!state.wildlife.some(a=>a.species==='PANTHER'))state.wildlife.push(createAnimal(nextId(),'PANTHER',-3890));state.exploration.pantherSeeded=true;}
   if (state.exploration.frontierSeeded) return;
   for (const [species, x] of [['DEER', -2270], ['MACAW', -2040], ['MONKEY', -2205], ['TURTLE', 1995], ['CAPYBARA', 2080], ['BOAR', 2350]]) {
     if (!state.wildlife.some(animal => animal.species === species && Math.abs(animal.homeX - x) < 40)) {

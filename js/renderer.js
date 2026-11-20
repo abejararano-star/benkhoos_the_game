@@ -1,25 +1,25 @@
-import { crossingFeet } from './crossings.js?v=ee79ef434f2b';
-import { animalInStream } from './ecology.js?v=ee79ef434f2b';
-import { jaguarPose } from './jaguar.js?v=ee79ef434f2b';
-import { torchIsLit } from './exploration.js?v=ee79ef434f2b';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=ee79ef434f2b';
-import { blend, color, daylightAt } from './daylight.js?v=ee79ef434f2b';
-import { drawSky } from './sky.js?v=ee79ef434f2b';
-import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=ee79ef434f2b';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=ee79ef434f2b';
-import { createLighting } from './lighting.js?v=ee79ef434f2b';
-import { RenderInterpolation } from './visual-motion.js?v=ee79ef434f2b';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=ee79ef434f2b';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=ee79ef434f2b';
-import { drawParticle } from './effects.js?v=ee79ef434f2b';
-import { haciendaActive } from './haciendas.js?v=ee79ef434f2b';
-import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=ee79ef434f2b';
-import { COLONIAL_TOWERS } from './colonial-ai.js?v=ee79ef434f2b';
-import { CITIES, OUTPOSTS } from './story.js?v=ee79ef434f2b';
-import { WATER_LINE_Y } from './config.js?v=ee79ef434f2b';
-import { roleAvailable } from './people.js?v=ee79ef434f2b';
-import { drawPlaza, drawFestival, drawFestivalKiss } from './festival-renderer.js?v=ee79ef434f2b';
-import { weatherAir, drawWeatherBack, drawWeatherFront, drawWetGround } from './weather-renderer.js?v=ee79ef434f2b';
+import { crossingFeet } from './crossings.js?v=ea931d367785';
+import { animalInStream } from './ecology.js?v=ea931d367785';
+import { jaguarPose } from './jaguar.js?v=ea931d367785';
+import { torchIsLit } from './exploration.js?v=ea931d367785';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=ea931d367785';
+import { blend, color, daylightAt } from './daylight.js?v=ea931d367785';
+import { drawSky } from './sky.js?v=ea931d367785';
+import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=ea931d367785';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=ea931d367785';
+import { createLighting } from './lighting.js?v=ea931d367785';
+import { RenderInterpolation } from './visual-motion.js?v=ea931d367785';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=ea931d367785';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=ea931d367785';
+import { drawParticle } from './effects.js?v=ea931d367785';
+import { haciendaActive } from './haciendas.js?v=ea931d367785';
+import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=ea931d367785';
+import { COLONIAL_TOWERS } from './colonial-ai.js?v=ea931d367785';
+import { CITIES, OUTPOSTS } from './story.js?v=ea931d367785';
+import { WATER_LINE_Y } from './config.js?v=ea931d367785';
+import { roleAvailable } from './people.js?v=ea931d367785';
+import { drawPlaza, drawFestival, drawFestivalKiss } from './festival-renderer.js?v=ea931d367785';
+import { weatherAir, drawWeatherBack, drawWeatherFront, drawWetGround } from './weather-renderer.js?v=ea931d367785';
 export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
@@ -247,7 +247,7 @@ function renderWorldAboveWater(g, time, air) {
       g.fillRect(sx - 9, ay - 1, 6, 1);
       g.fillRect(sx + 5, ay + 1, 6, 1);
     }
-    const pose = an.species === 'JAGUAR' ? jaguarPose(an) : null;
+    const pose = ['JAGUAR','PANTHER'].includes(an.species) ? jaguarPose(an) : null;
     if(window.SpriteManager?.drawAnimal?.(g,sx,ay,an,time,pose)){
       if(an.trapped||an.nettedTimer>0){g.strokeStyle='#c2ac70';g.lineWidth=1;g.strokeRect(sx-9,ay-9,18,9);for(let i=-6;i<9;i+=4){g.beginPath();g.moveTo(sx+i,ay-9);g.lineTo(sx+i+6,ay);g.stroke();}}
       if(an.trust>=2){g.fillStyle=an.bonded?'#e8bf69':'#a8c984';g.fillRect(sx-1,ay+2,3,2);}
@@ -345,7 +345,9 @@ function renderWorldAboveWater(g, time, air) {
   state.projectiles.forEach(p=>{
     const x=toScreenX(position(p)),y=Math.round(position(p,'y')-22+view.waterLine-WATER_LINE_Y),side=Math.sign(p.vx)||1;
     g.save();g.translate(x,y);g.scale(side,1);
-    if(p.isNet){
+    if(p.explosive){g.fillStyle='#252c28';g.fillRect(-3,-3,6,5);g.fillRect(-4,-1,8,2);g.fillStyle='#a4a68b';g.fillRect(-2,-3,3,1);
+    }else if(p.siege||p.javelin){g.fillStyle=p.siege?'#9b7447':'#a17e51';g.fillRect(-12,-1,23,2);g.fillStyle='#d9d1a5';g.fillRect(10,-2,4,3);g.fillStyle='#8d9b74';g.fillRect(-12,-3,4,2);
+    }else if(p.isNet){
       g.strokeStyle='#c6b177';g.lineWidth=1;g.beginPath();g.ellipse(0,0,6,5,0,0,Math.PI*2);g.moveTo(-4,-3);g.lineTo(4,3);g.moveTo(-4,3);g.lineTo(4,-3);g.stroke();
     }else if(p.vy!==0){
       g.fillStyle='#bc9a60';g.fillRect(-7,0,13,1);g.fillStyle='#d0d3c1';g.beginPath();g.moveTo(9,0);g.lineTo(4,-2);g.lineTo(4,2);g.fill();g.fillStyle='#b3bd9c';g.fillRect(-7,-2,3,1);g.fillRect(-7,2,3,1);

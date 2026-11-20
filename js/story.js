@@ -1,7 +1,7 @@
-import { CAMP_EDGE } from './config.js?v=ee79ef434f2b';
-import { INFANTRY } from './equipment.js?v=ee79ef434f2b';
-import { COLONIAL_POSTS } from './frontier.js?v=ee79ef434f2b';
-import { PROLOGUE } from './chronicle.js?v=ee79ef434f2b';
+import { CAMP_EDGE } from './config.js?v=ea931d367785';
+import { INFANTRY } from './equipment.js?v=ea931d367785';
+import { COLONIAL_POSTS } from './frontier.js?v=ea931d367785';
+import { PROLOGUE } from './chronicle.js?v=ea931d367785';
 
 export const ESTATES = [
   { id: 'hacienda_jegua', name: 'Hacienda del Paso de Jegua', x: -3510, side: -1, maxHp: 440, prisoners: 5,
@@ -13,20 +13,20 @@ export const CITIES = [
   { id: 'cartagena', name: 'Cartagena de Indias', x: -10420, cityX: -11220, side: -1, grade: 5, maxHp: 775, prisoners: 6,
     sprite: 'city_cartagena', gateOffset: 26, envoy: 'Escribano de Cartagena',
     context: 'Las carretas de las haciendas pasan por aquí. El gobernador Girón ordenó retener a quienes venían del camino de Jegua.',
-    roster: ['PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'ARQUERO_COLONIAL', 'PIQUERO', 'CABALLERO', 'SOLDADO_ESPANOL', 'ARCABUCERO'],
-    reserve: ['PIQUERO', 'ARQUERO_COLONIAL', 'CABALLERO'] },
+    roster: ['PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'ARQUERO_COLONIAL', 'PIQUERO', 'CABALLERO', 'SOLDADO_ESPANOL', 'MOSQUETERO', 'CANONERO'],
+    reserve: ['MOSQUETERO', 'CANONERO', 'CABALLERO'] },
   { id: 'puerto_marea', name: 'Puerto de la Marea', x: 10280, cityX: 11090, side: 1, grade: 4, maxHp: 700, prisoners: 6,
     sprite: 'city_marea', gateOffset: 9, envoy: 'Portera del cabildo',
     context: 'El gobernador del puerto cerró el paso por el estero. Desde entonces, las familias cautivas esperan en el patio exterior.',
-    roster: ['ARQUERO_COLONIAL', 'PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'BANDOLERO', 'PIQUERO', 'CABALLERO'],
-    reserve: ['SOLDADO_ESPANOL', 'ARQUERO_COLONIAL'] }
+    roster: ['ARQUERO_COLONIAL', 'PIQUERO', 'ARCABUCERO', 'SOLDADO_ESPANOL', 'BANDOLERO', 'MOSQUETERO', 'CANONERO'],
+    reserve: ['MOSQUETERO', 'ARQUERO_COLONIAL'] }
 ];
 export const OUTPOSTS = [
   { id: 'avanzada_jegua', name: 'Avanzada de la Loma', x: -7960, side: -1 },
   { id: 'avanzada_estero', name: 'Avanzada del Estero', x: 8170, side: 1 }
 ];
 const SITES = [...ESTATES, ...CITIES];
-const COMPANIONS = [...INFANTRY, 'CAZADOR', 'CAMPEON_REAL', 'CABALLERO_ALIADO'];
+const COMPANIONS = [...INFANTRY, 'CAZADOR', 'CAMPEON_REAL', 'CABALLERO_ALIADO', 'ESCUDERO', 'LANCERO', 'ARQUERO_COMPUESTO', 'JAVALINERO'];
 export const localHaciendas = state => state.haciendas.filter(h => !h.major);
 export const estateById = id => SITES.find(site => site.id === id);
 export function majorHaciendas() {
