@@ -1,0 +1,36 @@
+{
+  "videos": [
+    "abuelo",
+    "mapa",
+    "fuga",
+    "matuna"
+  ],
+  "voices": [
+    "abuelo-marea",
+    "benkos-nino-barcos",
+    "narrador-primera-noche",
+    "narrador-segunda-noche",
+    "narrador-tercera-noche",
+    "benkos-captura",
+    "narrador-travesia",
+    "narrador-cartagena",
+    "benkos-mapa",
+    "benkos-fuga",
+    "wiwa-refugio",
+    "benkos-matuna"
+  ],
+  "localVoices": [
+    "abuelo-marea",
+    "benkos-nino-barcos",
+    "narrador-primera-noche",
+    "narrador-segunda-noche",
+    "narrador-tercera-noche",
+    "benkos-captura",
+    "narrador-travesia",
+    "narrador-cartagena",
+    "benkos-mapa",
+    "benkos-fuga",
+    "wiwa-refugio",
+    "benkos-matuna"
+  ]
+}

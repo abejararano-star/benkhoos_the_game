@@ -4,7 +4,6 @@ node_modules/
 .env
 .env.*
 !.env.example
-assets/prologue-local/
 api/config.local.php
 *.log
 __pycache__/
