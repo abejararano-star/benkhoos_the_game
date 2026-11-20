@@ -1,6 +1,6 @@
-import { blend, color } from './daylight.js?v=ea931d367785';
-import { landscapeSeed } from './sky.js?v=ea931d367785';
-import { leafPose, leafSources, rainCeiling, weatherShelters, isSheltered } from './weather.js?v=ea931d367785';
+import { blend, color } from './daylight.js?v=70b671881237';
+import { landscapeSeed } from './sky.js?v=70b671881237';
+import { leafPose, leafSources, rainCeiling, weatherShelters, isSheltered } from './weather.js?v=70b671881237';
 
 export function weatherAir(air, weather) {
   const cloud = weather.clouds;

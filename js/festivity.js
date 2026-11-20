@@ -1,7 +1,7 @@
-import { CAMP_EDGE, PLAZA } from './config.js?v=ea931d367785';
-import { canTendCrop } from './crops.js?v=ea931d367785';
-import { roleAvailable } from './people.js?v=ea931d367785';
-import { threatensMilitia } from './combat.js?v=ea931d367785';
+import { CAMP_EDGE, PLAZA } from './config.js?v=70b671881237';
+import { canTendCrop } from './crops.js?v=70b671881237';
+import { roleAvailable } from './people.js?v=70b671881237';
+import { threatensMilitia } from './combat.js?v=70b671881237';
 
 const DUTY = new Set(['GUERRERO', 'ESPADACHIN', 'ARQUERO', 'CABALLERO_ALIADO', 'CAMPEON_REAL', 'CAZADOR', 'CURANDERO', 'BRUJO', 'ESCUDERO', 'LANCERO', 'ARQUERO_COMPUESTO', 'JAVALINERO', 'MINERO']);
 export const initialFestivity = () => ({ clock: 0, mode: 'REST', x: PLAZA.dayX, attendees: [],

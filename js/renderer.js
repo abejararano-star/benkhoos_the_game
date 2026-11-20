@@ -1,26 +1,26 @@
-import { crossingFeet } from './crossings.js?v=ea931d367785';
-import { animalInStream } from './ecology.js?v=ea931d367785';
-import { jaguarPose } from './jaguar.js?v=ea931d367785';
-import { torchIsLit } from './exploration.js?v=ea931d367785';
-import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=ea931d367785';
-import { blend, color, daylightAt } from './daylight.js?v=ea931d367785';
-import { drawSky } from './sky.js?v=ea931d367785';
-import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=ea931d367785';
-import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=ea931d367785';
-import { createLighting } from './lighting.js?v=ea931d367785';
-import { RenderInterpolation } from './visual-motion.js?v=ea931d367785';
-import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=ea931d367785';
-import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=ea931d367785';
-import { drawParticle } from './effects.js?v=ea931d367785';
-import { haciendaActive } from './haciendas.js?v=ea931d367785';
-import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=ea931d367785';
-import { COLONIAL_TOWERS } from './colonial-ai.js?v=ea931d367785';
-import { CITIES, OUTPOSTS } from './story.js?v=ea931d367785';
-import { WATER_LINE_Y } from './config.js?v=ea931d367785';
-import { roleAvailable } from './people.js?v=ea931d367785';
-import { drawPlaza, drawFestival, drawFestivalKiss } from './festival-renderer.js?v=ea931d367785';
-import { weatherAir, drawWeatherBack, drawWeatherFront, drawWetGround } from './weather-renderer.js?v=ea931d367785';
-export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings }) {
+import { crossingFeet } from './crossings.js?v=70b671881237';
+import { animalInStream } from './ecology.js?v=70b671881237';
+import { jaguarPose } from './jaguar.js?v=70b671881237';
+import { torchIsLit } from './exploration.js?v=70b671881237';
+import { drawCrossings, drawCropPlot, drawTerrainFeatures } from './terrain.js?v=70b671881237';
+import { blend, color, daylightAt } from './daylight.js?v=70b671881237';
+import { drawSky } from './sky.js?v=70b671881237';
+import { drawCampEnclosure, drawColonialTower, drawWatchtower } from './terrain.js?v=70b671881237';
+import { ALTAR_X, TRAIL_CACHES, TRAIL_SIGNS } from './exploration.js?v=70b671881237';
+import { createLighting } from './lighting.js?v=70b671881237';
+import { RenderInterpolation } from './visual-motion.js?v=70b671881237';
+import { altarSprite, ALTAR_HEIGHT } from './settlement.js?v=70b671881237';
+import { drawLandscape, drawMist, drawAmbientMotes, drawVines, drawCaptiveGate, drawRiverbank, drawTrailScenery, drawVillage, drawConstructionSites, drawHacienda, drawEstateScenery, drawMarker, drawRoadGate, drawPersonStory, drawFortification, drawToolStand, drawStreams } from './terrain.js?v=70b671881237';
+import { drawParticle } from './effects.js?v=70b671881237';
+import { haciendaActive } from './haciendas.js?v=70b671881237';
+import { COLONIAL_POSTS, orderPost, towerHealth } from './frontier.js?v=70b671881237';
+import { COLONIAL_TOWERS } from './colonial-ai.js?v=70b671881237';
+import { CITIES, OUTPOSTS } from './story.js?v=70b671881237';
+import { WATER_LINE_Y } from './config.js?v=70b671881237';
+import { roleAvailable } from './people.js?v=70b671881237';
+import { drawPlaza, drawFestival, drawFestivalKiss } from './festival-renderer.js?v=70b671881237';
+import { weatherAir, drawWeatherBack, drawWeatherFront, drawWetGround } from './weather-renderer.js?v=70b671881237';
+export function createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings, showHud = () => true }) {
 const lightScene = createLighting();
 const interpolation=new RenderInterpolation();let renderAlpha=1,renderCamera=state.cameraX;
 const position=(e,key='x')=>interpolation.value(e,key,renderAlpha);
@@ -89,6 +89,7 @@ function drawKingdomClusterTree(g, sx, groundY, height, markedForChop, chopped, 
 
 // ==================== 10. HD-2D SCENE & REFLECTION RENDERER ====================
 function renderWorldAboveWater(g, time, air) {
+  const markersVisible = showHud();
   const w = view.width;
   const h = view.waterLine;
   const GROUND_SURFACE_Y = h - 22;
@@ -133,7 +134,7 @@ function renderWorldAboveWater(g, time, air) {
   drawPlaza(g, toScreenX, GROUND_SURFACE_Y);
   drawVillage(g, toScreenX, GROUND_SURFACE_Y, air.shadow, time, state.settlement, state.armyTier, settings.reduce_motion);
   drawWetGround(g, state, camX, w, GROUND_SURFACE_Y, air, settings.reduce_motion);
-  drawFestival(g, toScreenX, GROUND_SURFACE_Y, w, state, settings.reduce_motion);
+  drawFestival(g, toScreenX, GROUND_SURFACE_Y, w, state, settings.reduce_motion, markersVisible);
 
   state.trees.forEach((tr) => {
     const sx = toScreenX(tr.x);
@@ -275,7 +276,7 @@ function renderWorldAboveWater(g, time, air) {
     const feet = GROUND_SURFACE_Y - (u.towerHeight || 0) + crossingFeet(state, u, position(u));
     drawBody(u, sx, feet, y => window.SpriteManager?.drawAlly?.(g, sx, y, u.facing, u, time));
     if (u.waterFall) return;
-    drawMarker(g, sx, feet, u);
+    if (markersVisible) drawMarker(g, sx, feet, u);
     if (u.activity === 'BATHE') {
       g.fillStyle = '#558f8d98';
       g.fillRect(sx - 10, GROUND_SURFACE_Y - 1, 20, 5);
@@ -285,7 +286,7 @@ function renderWorldAboveWater(g, time, air) {
     }
     const amaraSpeech = u.speechTimer > 0 && Math.abs(u.x - state.benkos.x) < 155 &&
       (u.namedAmara && (u.activity === 'LEAD' || u.activity === 'FLIRT') || u.speech === 'De acuerdo, Amara.');
-    drawPersonStory(g,sx,feet,u,amaraSpeech);
+    if (markersVisible) drawPersonStory(g,sx,feet,u,amaraSpeech);
   });
   for (const hacienda of state.haciendas) {
     const x = toScreenX(hacienda.x);
@@ -312,7 +313,7 @@ function renderWorldAboveWater(g, time, air) {
     const feet = GROUND_SURFACE_Y - (en.towerHeight ?? 0) + crossingFeet(state, en, position(en));
     drawBody(en, sx, feet, y => window.SpriteManager?.drawEnemy?.(g, sx, y, en.facing, en, time));
     g.restore();
-    if (!en.waterFall) drawMarker(g, sx, feet, en, true);
+    if (!en.waterFall && markersVisible) drawMarker(g, sx, feet, en, true);
   });
 
   const b = state.benkos;

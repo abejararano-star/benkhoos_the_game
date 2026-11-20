@@ -1,5 +1,5 @@
-import { HQ_X } from './settlement.js?v=ea931d367785';
-import { FELIDS } from './config.js?v=ea931d367785';
+import { HQ_X } from './settlement.js?v=70b671881237';
+import { FELIDS } from './config.js?v=70b671881237';
 
 export const INFANTRY = ['GUERRERO', 'ARQUERO', 'ESPADACHIN', 'ESCUDERO', 'LANCERO', 'ARQUERO_COMPUESTO', 'JAVALINERO'];
 export const RANK_NAMES = ['Básico', 'Élite', 'Real'];

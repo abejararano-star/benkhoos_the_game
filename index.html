@@ -7,12 +7,12 @@
 <meta name="description" content="Construye, libera y defiende el Palenque de la Matuna. Estrategia y acción para PC.">
 <title>Benkhoos · El Palenque de la Matuna</title>
 <link rel="icon" href="assets/ui/emblem.svg">
-<link rel="stylesheet" href="css/game.css?v=ea931d367785">
-<script src="js/db.js?v=ea931d367785" defer>
+<link rel="stylesheet" href="css/game.css?v=70b671881237">
+<script src="js/db.js?v=70b671881237" defer>
 </script>
-<script src="js/sprite_manager.js?v=ea931d367785" defer>
+<script src="js/sprite_manager.js?v=70b671881237" defer>
 </script>
-<script type="module" src="js/game.js?v=ea931d367785">
+<script type="module" src="js/game.js?v=70b671881237">
 </script>
 </head>
 <body>
@@ -23,7 +23,7 @@
 <div class="game-ui" id="gameUI">
 <div id="worldLabels" class="world-labels" aria-hidden="true"></div>
 <header class="topbar">
-<div class="wordmark">
+<div class="wordmark" hidden>
 <img src="assets/ui/emblem.svg" alt="" width="34" height="34">
 <div>
 <strong>BENKHOOS</strong>
@@ -61,8 +61,9 @@
 <i class="divider">
 </i>
 <div>
-<span class="eyebrow">COFRE DE WIWA</span>
+<span class="eyebrow">Cofre</span>
 <strong id="hudTreasury">12</strong>
+<i id="hudDepositCoin" aria-hidden="true"></i>
 <small id="hudMaterials" class="material-count">8 madera · 4 piedra</small>
 </div>
 </div>
@@ -89,21 +90,27 @@
 <span class="eyebrow">AMENAZA</span>
 <strong id="hudAlertLevel">15%</strong>
 </div>
-<button id="btnSettlement" title="Obras y evoluciones">Palenque <kbd>B</kbd></button>
-<button id="btnArmy">Ejército <kbd>Tab</kbd>
+<button id="btnSettlement" title="Obras · B" aria-label="Abrir obras"><svg class="icon"><use href="assets/ui/icons.svg#tree"/></svg></button>
+<button id="btnArmy" title="Ejército · Tab" aria-label="Abrir ejército"><svg class="icon"><use href="assets/ui/icons.svg#flag"/></svg>
 </button>
 </div>
 </section>
+<div id="hudDanger" aria-live="polite"></div>
+<div id="interactionDock">
 <aside id="nodeHint" class="node-hint hidden" aria-label="Interacción cercana"><strong id="nodeHintTitle"></strong><p id="nodeHintDescription"></p><span class="node-price"><svg class="icon" aria-hidden="true"><use href="assets/ui/icons.svg#coin"></use></svg><b id="nodeHintCoins"></b></span></aside>
+<div id="campaignNotice" class="campaign-notice" aria-live="polite"></div>
+<div id="torchStatus" class="torch-status hidden"></div>
+<div id="contextHint" class="context-hint"></div>
+</div>
 <aside class="objective">
 <span class="eyebrow">EL CAMINO A LA LIBERTAD</span>
-<h1 id="objectiveTitle">Un pueblo que resiste</h1>
+<button id="btnObjective" aria-expanded="false" aria-controls="objectiveText" title="Ver objetivo · mantén Q"><span id="objectiveArrow" aria-hidden="true"></span><strong id="objectiveTitle">Un pueblo que resiste</strong><kbd>Q</kbd></button>
 <p id="objectiveText">Libera a los fugitivos y fortalece el palenque antes de la noche.</p>
 <div class="objective-progress">
 <i id="objectiveProgress">
 </i>
 </div>
-<span id="hudArmyTierBadge" class="rank">Rango I · Cimarrón</span>
+
 <button id="btnWorldMap" class="map-shortcut" aria-haspopup="dialog"><span id="mapShortcutText">Mapa</span> <kbd>M</kbd></button>
 </aside>
 <aside id="armyPanel" class="drawer hidden" aria-label="Estado del ejército">
@@ -111,6 +118,7 @@
 <h2>Gente del palenque</h2>
 <button id="btnCloseArmy" aria-label="Cerrar ejército">×</button>
 </div>
+<span id="hudArmyTierBadge" class="rank">Rango I · Cimarrón</span>
 <button id="btnOpenPeople" class="people-link">Conocer a mi gente <kbd>F</kbd></button>
 <button id="btnArmyArmory" class="people-link">Armería <kbd>G</kbd></button>
 <div class="army-grid">
@@ -172,9 +180,6 @@
 <strong id="loreBannerMain">
 </strong>
 </div>
-<div id="campaignNotice" class="campaign-notice" aria-live="polite"></div>
-<div id="torchStatus" class="torch-status hidden"></div>
-<div id="contextHint" class="context-hint"></div>
 <footer class="bottom-bar">
 <div class="player-panel">
 <div class="spirit-label">
@@ -267,20 +272,27 @@
 </button>
 <button id="btnPauseSave">Guardar partida <kbd>F5</kbd>
 </button>
-<button id="btnQuickLoad">Cargar partida <kbd>F9</kbd>
-</button>
-<button id="btnSettlementPause">Construir y evolucionar <kbd>B</kbd></button>
-<button id="btnPeoplePause">Mi gente · dones y oficios</button>
-<button id="btnOpenCampaign">Cartas y caminos de campaña</button>
+<button id="btnPeoplePause">Mi gente <kbd>F</kbd></button>
 <button id="btnMapPause">Mapa del territorio <kbd>M</kbd></button>
-<button id="btnGuidePause">Guía y controles</button>
-<button id="btnOpenLeaderboard">Crónica de campañas</button>
-<button id="btnFullscreen">Pantalla completa <kbd>F11</kbd>
-</button>
 <button id="btnMainMenu">Menú principal</button>
 </div>
-<fieldset>
-<legend>Sonido y accesibilidad</legend>
+<details class="pause-options"><summary>Ajustes y opciones</summary>
+<div class="pause-tabs" aria-label="Secciones de pausa">
+<button id="btnTabSettings" aria-pressed="true">Ajustes</button>
+<button id="btnTabCampaign" aria-pressed="false">Campaña</button>
+</div>
+<div id="pauseCampaign" class="menu-buttons hidden">
+<button id="btnQuickLoad">Cargar partida <kbd>F9</kbd></button>
+<button id="btnSettlementPause">Construir y evolucionar <kbd>B</kbd></button>
+<button id="btnOpenCampaign">Cartas y caminos</button>
+<button id="btnOpenLeaderboard">Crónica de campañas</button>
+</div>
+<fieldset id="pauseSettings">
+<legend>Pantalla y sonido</legend>
+<label>Interfaz <select id="hudMode"><option value="minimal">Mínimo</option><option value="full">Completo</option><option value="clean">Limpio</option></select> <kbd>H</kbd></label>
+<button id="btnPhoto">Modo foto <kbd>P</kbd></button>
+<button id="btnFullscreen">Pantalla completa <kbd>F11</kbd></button>
+<button id="btnGuidePause">Guía y controles</button>
 <label>
 <input type="checkbox" id="audioEnabled" checked> Música, ambiente y efectos</label>
 <label>Volumen <input id="audioVolumeSlider" type="range" min="0" max="100" value="65">
@@ -290,6 +302,7 @@
 <button id="btnToggleRoyalArmor">Armadura real <kbd>C</kbd>
 </button>
 </fieldset>
+</details>
 <button id="btnOpenDebug" class="hidden">Abrir taller de desarrollo</button>
 </div>
 </dialog>
@@ -326,6 +339,9 @@
 <div class="controls-grid">
 <span>
 <kbd>A / D</kbd> Mover · mantén para correr</span>
+<span><kbd>Q</kbd> Mantén para leer el objetivo</span>
+<span><kbd>H</kbd> Cambiar la interfaz</span>
+<span><kbd>P</kbd> Modo foto · vuelve con P o Esc</span>
 <span>
 <kbd>Espacio / J</kbd> Lanza y espada</span>
 <span>

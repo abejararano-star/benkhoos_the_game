@@ -1,6 +1,10 @@
-export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleArmor, togglePause, save, load, toggleArmy, toggleFullscreen, rest, torch, inspectNpc, openSettlement, toggleMap, toggleArmory, storyControl, clearStoryInput }) {
-  const clear = () => { for (const key of Object.keys(keys)) delete keys[key]; };
+export function bindInput({ hud, keys, isPlaying, attack, interact, useSkill, toggleArmor, togglePause, save, load, toggleArmy, toggleFullscreen, rest, torch, inspectNpc, openSettlement, toggleMap, toggleArmory, storyControl, clearStoryInput }) {
+  const clear = () => { hud?.hold(false); for (const key of Object.keys(keys)) delete keys[key]; };
   const down = e => {
+    if (hud?.isPhoto()) {
+      if (!e.repeat && ['Escape','KeyP'].includes(e.code)) hud.photo();
+      e.preventDefault(); return;
+    }
     if (storyControl?.(e, true)) return;
     const globalKeys = ['F5', 'F9', 'F11', 'Escape'];
     if (globalKeys.includes(e.code)) e.preventDefault();
@@ -15,6 +19,9 @@ export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleA
     if (/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName)) return;
     if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.code)) e.preventDefault();
     if (e.code === 'Tab') { toggleArmy(); return; }
+    if (e.code === 'KeyP') { hud?.photo(); return; }
+    if (e.code === 'KeyH') { hud?.cycle(); return; }
+    if (e.code === 'KeyQ') { hud?.hold(true); return; }
     keys[e.code] = true;
     if (['Space', 'KeyJ'].includes(e.code)) attack();
     if (['KeyE', 'KeyW', 'ArrowUp'].includes(e.code)) interact();
@@ -25,7 +32,7 @@ export function bindInput({ keys, isPlaying, attack, interact, useSkill, toggleA
     if (e.code === 'KeyT') torch();
     if (/^Digit[1-4]$/.test(e.code)) useSkill(['dash', 'ceiba', 'roar', 'jaguar'][Number(e.code.slice(-1)) - 1]);
   };
-  const up = e => { delete keys[e.code]; storyControl?.(e, false); };
+  const up = e => { if(e.code === 'KeyQ') hud?.hold(false); delete keys[e.code]; storyControl?.(e, false); };
   window.addEventListener('keydown', down);
   window.addEventListener('keyup', up);
   const blur = () => { clear(); clearStoryInput?.(); if (isPlaying()) togglePause(); };

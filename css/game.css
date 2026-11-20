@@ -1014,3 +1014,90 @@ select { color:var(--light); background:#173028; border:1px solid var(--line); p
 
 .torch-status{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);font:10px monospace;color:#f2c680;text-shadow:1px 1px #0e1712;white-space:nowrap}
 .minimap .minimap-altar{position:absolute;top:50%;width:7px;height:7px;background:#eac476;transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 5px #eac47688}
+
+/* Field HUD. The same controls keep their positions as detail appears. */
+.game-ui[data-hud] {
+  --hud-wood: linear-gradient(105deg, #352c21f5, #252d22eb 60%, #182820e3);
+  --hud-shadow: 0 3px 12px #0c150f55;
+  --edge: clamp(10px, 1.6vw, 24px);
+}
+.game-ui[data-photo], .game-ui[data-hud=clean] {visibility:hidden; pointer-events:none}
+#gameUI .wordmark,#gameUI #btnQuickSave {display:none}
+#dbStatusLabel {position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
+#gameUI .topbar {left:auto;top:var(--edge);right:var(--edge);z-index:4}
+#gameUI .status-dot {opacity:0;width:9px;height:9px}
+#gameUI[data-save] .status-dot {opacity:1;background:#e8bd70}
+#gameUI[data-save=saved] .status-dot {background:#aad89b}
+#gameUI[data-save=error] .status-dot {background:#ff887a}
+#gameUI .stats-row {display:flex;align-items:flex-start;justify-content:flex-start;left:var(--edge);right:auto;top:var(--edge);gap:4px}
+#gameUI .stat,#gameUI .objective,#gameUI .player-panel,#gameUI .banner,#interactionDock>aside,#interactionDock>div {
+  background:var(--hud-wood);border:0;border-left:2px solid #b59a67;box-shadow:var(--hud-shadow);border-radius:2px;
+}
+#gameUI .stat {gap:7px;min-width:0;min-height:38px;padding:5px 10px;backdrop-filter:none}
+#gameUI .pouch-art {width:27px;height:29px}
+#gameUI .pouch .eyebrow:first-child {font-size:12px;letter-spacing:0}
+#gameUI .pouch-art+div>.eyebrow {display:none}
+#gameUI .pouch strong {font-size:16px;margin:0}
+#gameUI .pouch strong small {font-size:12px}
+#gameUI .pouch .divider {height:22px;margin:0 2px}
+#gameUI .day-stat .icon {width:19px;height:19px}
+#gameUI .day-stat .eyebrow,#gameUI .day-stat strong,#gameUI .stat small,#gameUI .phase-track {font-size:12px}
+#gameUI .day-stat strong {margin:1px 0}
+#gameUI .day-stat {max-width:235px}
+#gameUI .stats-row .threat-stat {position:fixed;right:calc(var(--edge) + 56px);top:var(--edge);padding:0;background:none;border:0;box-shadow:none}
+#gameUI .threat-stat button,#gameUI #btnPause {width:37px;height:37px;padding:7px;display:grid;place-items:center;background:var(--hud-wood);border:1px solid #927c52}
+#gameUI .threat-stat button .icon {display:block;width:17px;height:17px}
+#gameUI .threat-stat>svg {display:none}
+#gameUI .threat-stat>div {display:none;color:#ffd5ad;text-shadow:1px 1px #1b1e18;background:#352b24dd;padding:3px 7px}
+#gameUI.show-threat .threat-stat>div {display:block}
+#gameUI .threat-stat strong,#gameUI .threat-stat .eyebrow {font-size:12px;margin:0}
+#gameUI:not(.army-known) #btnArmy {display:none}
+#gameUI.hud-idle .threat-stat button:not(:hover):not(:focus-visible) {opacity:.65}
+#gameUI:not(.first-visit) .movement-help {display:none}
+#gameUI .objective {top:calc(var(--edge) + 58px);left:var(--edge);width:max-content;max-width:min(280px,39vw);padding:6px 10px}
+#btnObjective {display:flex;align-items:center;gap:7px;background:none;border:0;padding:2px;color:#fff3d4;text-align:left}
+#btnObjective strong {font:600 15px Georgia,serif}
+#objectiveArrow {color:#e6bd70}
+#gameUI .objective p {font-size:13px;line-height:1.45;display:block;margin:6px 0;overflow:visible}
+#gameUI:not(.objective-open) .objective :is(p,.objective-progress,.map-shortcut) {display:none}
+#gameUI.inventory-open .objective,#gameUI[data-hud=full] .objective {top:calc(var(--edge) + 104px)}
+#gameUI[data-hud=minimal]:not(.inventory-open) :is(.material-count,.bag-slots,.bag-free) {display:none}
+#gameUI[data-hud=minimal] #phaseCountdown {display:none}
+#gameUI .material-count {max-width:125px;font-size:12px}
+#gameUI .bottom-bar {left:var(--edge);right:var(--edge);bottom:var(--edge);align-items:end}
+#gameUI .player-panel {padding:8px 10px;width:min(320px,40vw)}
+#gameUI .player-panel :is(.spirit-label,.player-badges,.movement-help){font-size:12px}
+#gameUI[data-hud=minimal] .player-badges {display:none}
+#gameUI[data-hud=minimal] .player-badges:has(.danger) {display:flex}
+#gameUI[data-hud=minimal] .skills button {width:38px;height:42px;min-height:0;padding:5px;background:var(--hud-wood)}
+#gameUI[data-hud=minimal] .skills button :is(small,span),#gameUI[data-hud=minimal] .skills button.locked {display:none}
+#gameUI .skills .icon {width:18px;height:18px;margin:0}
+#gameUI .banner {display:block;top:calc(var(--edge) + 58px);right:var(--edge);left:auto;bottom:auto;width:min(245px,32vw);max-height:none;transform:translateY(-4px);text-align:left;padding:8px 12px}
+#gameUI .banner.visible {transform:none}
+#gameUI .banner>span,#gameUI .banner strong {font-size:12px;line-height:1.4;max-height:none;overflow:visible}
+#gameUI .boss-panel {top:auto;bottom:82px;right:var(--edge);left:auto;transform:none;width:min(235px,32vw);padding:7px}
+#gameUI .boss-panel small {display:none}
+#interactionDock {position:absolute;left:var(--edge);bottom:130px;max-width:min(280px,40vw)}
+#interactionDock>aside,#interactionDock>div {display:none;position:static;transform:none;width:auto;max-width:100%;padding:7px 10px;text-align:left;font-size:12px;line-height:1.45;white-space:normal}
+#gameUI.hint-ready[data-hint=node] #nodeHint:not(.hidden),#gameUI.hint-ready[data-hint=context] #contextHint:not(:empty),#gameUI.hint-ready[data-hint=campaign] #campaignNotice {display:block;opacity:1}
+#interactionDock .node-hint p {display:block;font-size:12px;margin:3px 0}
+#interactionDock .node-price {font-size:12px;border:0;padding:0}
+#gameUI #hudDanger {position:absolute;top:45%;background:#502420f2;color:#ffddad;box-shadow:var(--hud-shadow);font:600 13px monospace;padding:5px 8px}
+#hudDanger:empty {display:none}
+#gameUI[data-danger=oeste] #hudDanger {left:0}
+#gameUI[data-danger=este] #hudDanger {right:0}
+#gameUI[data-danger=este] {box-shadow:inset -18px 0 24px -18px #c94737}
+#gameUI[data-danger=oeste] {box-shadow:inset 18px 0 24px -18px #c94737}
+.pause-options {margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.pause-options summary {cursor:pointer;color:var(--gold);padding:6px 0}
+.pause-tabs {display:flex;gap:8px;margin:10px 0}
+.pause-tabs [aria-pressed=true] {border-color:var(--gold)}
+#hudMode {color:#f2e5ca;background:#1c342a;font:inherit}
+#hudTreasury {position:relative}
+#hudDepositCoin {display:inline-block;pointer-events:none;opacity:0;width:8px;height:8px;border:1px solid #ffdf86;border-radius:50%;background:#ba842c;position:absolute}
+@media(max-width:650px){
+  #gameUI .stat {gap:3px;padding:3px 5px}
+  #gameUI .pouch-art {width:20px}
+  #gameUI .stats-row {gap:2px}
+  #gameUI .objective {max-width:46vw}
+}

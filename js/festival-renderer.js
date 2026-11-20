@@ -1,4 +1,4 @@
-import { PLAZA } from './config.js?v=ea931d367785';
+import { PLAZA } from './config.js?v=70b671881237';
 
 export function drawPlaza(g, toScreen, ground) {
   const left = toScreen(PLAZA.left), right = toScreen(PLAZA.right);
@@ -28,7 +28,7 @@ function caption(g, x, y, message) {
   for (let i = 0; i < lines.length; i++) g.fillText(lines[i], x, y + i * 10);
 }
 
-export function drawFestival(g, toScreen, ground, width, state, reduceMotion) {
+export function drawFestival(g, toScreen, ground, width, state, reduceMotion, showCaptions = true) {
   const f = state.festivity;
   const x = toScreen(f.x), sprites = window.SpriteManager;
   if (x < -120 || x > width + 120) return;
@@ -56,7 +56,7 @@ export function drawFestival(g, toScreen, ground, width, state, reduceMotion) {
     const talking = (clock % 3) < 2;
     sprites?.draw?.(g, 'stall_vendor_m', [talking ? 'offer' : 'idle'], x, ground - 3, 1, 43, 0);
   }
-  if (Math.abs(state.benkos.x - f.x) < 310) {
+  if (showCaptions && Math.abs(state.benkos.x - f.x) < 310) {
     caption(g, x + 42, ground - 90, f.line || 'Plaza de la Matuna');
     if (f.mode === 'MUSIC' && !state.benkos.festivalDance && state.amara.leads &&
         Math.abs(state.benkos.x - 255) < 95) {

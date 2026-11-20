@@ -1,4 +1,4 @@
-import { ScenarioSoundtrack } from './soundtrack.js?v=ea931d367785';
+import { ScenarioSoundtrack } from './soundtrack.js?v=70b671881237';
 
 export class AfroColombianAudioEngine {
   constructor() {

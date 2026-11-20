@@ -1,34 +1,34 @@
-import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=ea931d367785';
-import { ensureCrop, needsCropCare } from './crops.js?v=ea931d367785';
-import { NIGHT_START } from './daylight.js?v=ea931d367785';
-import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=ea931d367785';
-import { GROUND_COIN_LIFE } from './coins.js?v=ea931d367785';
-import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=ea931d367785';
-import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=ea931d367785';
-import { GaitClock, pixelViewport } from './visual-motion.js?v=ea931d367785';
-import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=ea931d367785';
-import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus, refillTower } from './settlement.js?v=ea931d367785';
-import { emitEffect } from './effects.js?v=ea931d367785';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=ea931d367785';
-import { AfroColombianAudioEngine } from './audio.js?v=ea931d367785';
-import { createInitialState } from './world-state.js?v=ea931d367785';
-import { makeSave, restoreSave } from './save-system.js?v=ea931d367785';
-import { createRenderer } from './renderer.js?v=ea931d367785';
-import { createSimulation } from './simulation.js?v=ea931d367785';
-import { FixedStepper } from './clock.js?v=ea931d367785';
-import { bindInput } from './input.js?v=ea931d367785';
-import { createUI } from './ui.js?v=ea931d367785';
-import { chooseDefenseSide } from './ai.js?v=ea931d367785';
-import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=ea931d367785';
-import { addWound } from './care.js?v=ea931d367785';
-import { COLONIAL_TOWERS, damageColonialTower } from './colonial-ai.js?v=ea931d367785';
-import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=ea931d367785';
-import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=ea931d367785';
-import { mediateEncounter } from './community.js?v=ea931d367785';
-import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, canOccupyCity, establishOutpost, estateById, localHaciendas, occupyCity, onEstateLiberated, storyChapter } from './story.js?v=ea931d367785';
-import { historyDeparture, historyEnding, PROLOGUE } from './chronicle.js?v=ea931d367785';
-import { capturedEnding } from './capture.js?v=ea931d367785';
-import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=ea931d367785';
+import { bridgePost, crossingAt, interactBridge } from './crossings.js?v=70b671881237';
+import { ensureCrop, needsCropCare } from './crops.js?v=70b671881237';
+import { NIGHT_START } from './daylight.js?v=70b671881237';
+import { ALTAR_X, TRAIL_SIGNS, nearestTrailCache, seedFrontier, torchIsLit } from './exploration.js?v=70b671881237';
+import { GROUND_COIN_LIFE } from './coins.js?v=70b671881237';
+import { createAnimal, seedEcology, interactEcology, isHuntable, SPECIES } from './ecology.js?v=70b671881237';
+import { startPlayerAttack, playerAttackSpec, inStrikeRange, strikeEnemy } from './combat.js?v=70b671881237';
+import { GaitClock, pixelViewport } from './visual-motion.js?v=70b671881237';
+import { armyRequirement, orderEquipment, ROYAL_ARMOR_COST } from './equipment.js?v=70b671881237';
+import { requestBuilding, upgradeInfo, queueConstruction, constructionAt, ALTAR_HEIGHT, TOWER_HEIGHT, TOWER_TIERS, constructionStatus, refillTower } from './settlement.js?v=70b671881237';
+import { emitEffect } from './effects.js?v=70b671881237';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, WATER_LINE_Y, ENEMY_CATALOG, getUnitMaxHp } from './config.js?v=70b671881237';
+import { AfroColombianAudioEngine } from './audio.js?v=70b671881237';
+import { createInitialState } from './world-state.js?v=70b671881237';
+import { makeSave, restoreSave } from './save-system.js?v=70b671881237';
+import { createRenderer } from './renderer.js?v=70b671881237';
+import { createSimulation } from './simulation.js?v=70b671881237';
+import { FixedStepper } from './clock.js?v=70b671881237';
+import { bindInput } from './input.js?v=70b671881237';
+import { createUI } from './ui.js?v=70b671881237';
+import { chooseDefenseSide } from './ai.js?v=70b671881237';
+import { ensurePerson, requestProfession, roleAvailable, ROLE_NAMES } from './people.js?v=70b671881237';
+import { addWound } from './care.js?v=70b671881237';
+import { COLONIAL_TOWERS, damageColonialTower } from './colonial-ai.js?v=70b671881237';
+import { createCampaign, dispatchRaid, dispatchReinforcement, ensureCampaign, startFinale } from './campaign.js?v=70b671881237';
+import { conquerHacienda, gateRequirement, haciendaActive, updateHaciendas } from './haciendas.js?v=70b671881237';
+import { mediateEncounter } from './community.js?v=70b671881237';
+import { CITIES, ESTATES, OUTPOSTS, advanceExpedition, beginExpedition, campaignOutcome, canNegotiateFinale, canOccupyCity, establishOutpost, estateById, localHaciendas, occupyCity, onEstateLiberated, storyChapter } from './story.js?v=70b671881237';
+import { historyDeparture, historyEnding, PROLOGUE } from './chronicle.js?v=70b671881237';
+import { capturedEnding } from './capture.js?v=70b671881237';
+import { amaraConversation, amaraNearby, chooseAmara } from './amara.js?v=70b671881237';
 
 const reviewMode=new URLSearchParams(location.search).get('review')==='1';
 const reviewScene=new URLSearchParams(location.search).get('scene')||'village';
@@ -494,7 +494,7 @@ function worldPrices() {
     if (!info.next) continue;
     const sprite = window.SpriteManager.atlas?.[`building_${kind}_${info.target.level}`];
     const frame = sprite?.anims.idle[0];
-    const height = 11 + (frame ? (frame.ay - frame.top) * size / sprite.ref : size * .78);
+    const height = 11 + (frame ? (frame.ay - (frame.top ?? 0)) * size / sprite.ref : size * .78);
     prices.push({
       id: kind === 'hq' ? 'node_central_house' : 'works_' + id, x: info.target.x, height, cost: info.coins,
       paid: info.paid, locked: !!info.reason, title: title + ' · ' + (kind === 'hq' ? 'S' : 'B'), works: kind !== 'hq'
@@ -891,7 +891,8 @@ function hitBenkosKingdomStyle(rawDmg, knockDir) {
 
 
 
-const renderFrame = createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings });
+const renderFrame = createRenderer({ state, canvas, ctx, sceneCanvas, sctx, view, settings,
+  showHud: () => !ui.hud.isPhoto() && ui.hud.mode() !== 'clean' });
 const campaign = createCampaign({ state, spawnEnemy, nextId: () => nextEntityId++, showBanner, onTreaty: () => ui.open('modalPolitics') });
 const simulation = createSimulation({ state, keys, audio, updateHUD, spawnSpanishWave, spawnWildlife,
   showBanner, resolveBenkosHit, triggerBenkosAttack, saveGameToMySQL, getNearestInteractiveNode, refundUnfinishedSlots, addParticles,
@@ -914,7 +915,7 @@ function newGame() {
   if (saveTask || loading) return;
   audio.resetSoundtrack();
   input?.clear();
-  Object.assign(state, createInitialState()); nextEntityId = 1;
+  Object.assign(state, createInitialState()); nextEntityId = 1; ui.campaignStart(true);
   session.hasCampaign = true;
   state.sandbox=reviewMode;
   window.BenkosDB.currentSaveId = null;
@@ -1017,14 +1018,15 @@ async function saveGameToMySQL(automatic = false) {
   if (session.mode === 'menu' || loading || (state.status !== 'playing' && !(automatic && state.story.finalWon))) return;
   if (saveTask) return saveTask;
   const payload = makeSave(state, nextEntityId);
-  ui.busy(true);
+  ui.busy(true); ui.hud.saveStatus('saving');
   saveTask = window.BenkosDB.saveGame(payload);
   try {
     const res = await saveTask;
+    ui.hud.saveStatus(res.success ? 'saved' : 'error');
     if (!res.success) showBanner('NO SE PUDO GUARDAR', res.error ?? 'El almacenamiento no está disponible.');
     else if (!automatic || res.storage !== 'server') showBanner(res.storage === 'server' ? 'PARTIDA GUARDADA EN EL SERVIDOR' : 'PARTIDA GUARDADA EN ESTE NAVEGADOR', res.storage === 'server' ? `Día ${payload.dia_actual} · ${res.localBackup === false ? 'copia local no disponible' : 'copia local de respaldo'}.` : 'Tu progreso está a salvo localmente. El servidor no está disponible.');
     return res;
-  } finally { saveTask = null; ui.busy(false); }
+  } catch (error) { ui.hud.saveStatus('error'); throw error; } finally { saveTask = null; ui.busy(false); }
 }
 async function loadGameFromMySQL() {
   if(reviewMode){newGame();return;}
@@ -1036,6 +1038,7 @@ async function loadGameFromMySQL() {
     const restored = restoreSave(save, createInitialState());
     // Commit only after the complete snapshot has passed validation.
     audio.resetSoundtrack();
+    ui.campaignStart(false);
     Object.assign(state, restored.state); nextEntityId = restored.nextEntityId;
     session.hasCampaign = true;
     stepper.reset();
@@ -1098,7 +1101,7 @@ function debugAction(id) {
   if (id === 'btnSimWave') spawnSpanishWave(1.2);
   if (id === 'btnSpawnGovernor') spawnEnemy('GOBERNADOR_GIRON', 1, state.benkos.x + 220);
 }
-input = bindInput({ keys, isPlaying, openSettlement:()=>ui.openSettlement(), inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
+input = bindInput({ hud:ui.hud, keys, isPlaying, openSettlement:()=>ui.openSettlement(), inspectNpc: () => inspectNpc(), attack: triggerBenkosAttack, interact: handleInteractOrMount, useSkill,
   storyControl: ui.storyControl, clearStoryInput: ui.clearStoryInput,
   toggleMap: ui.toggleMap,
   toggleArmory: ui.toggleArmory,

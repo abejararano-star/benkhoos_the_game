@@ -1,28 +1,31 @@
-import { needsCropCare } from './crops.js?v=ea931d367785';
-import { AMARA_NAME, amaraNearby } from './amara.js?v=ea931d367785';
-import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=ea931d367785';
-import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=ea931d367785';
-import { daylightLabel, NIGHT_START } from './daylight.js?v=ea931d367785';
-import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=ea931d367785';
-import { describeTraits } from './daily-life.js?v=ea931d367785';
-import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=ea931d367785';
-import { canMediate, relationshipsFor } from './community.js?v=ea931d367785';
-import { gateRequirement, haciendaActive } from './haciendas.js?v=ea931d367785';
-import { ecologyHint } from './ecology.js?v=ea931d367785';
-import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=ea931d367785';
-import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, SPECIALISTS, FELIDS } from './config.js?v=ea931d367785';
-import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=ea931d367785';
-import { arrivalHint } from './campaign.js?v=ea931d367785';
-import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=ea931d367785';
-import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=ea931d367785';
-import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=ea931d367785';
-import { createStoryMedia } from './story-media.js?v=ea931d367785';
-import { CAPTURE_DURATION, drawCapture } from './capture.js?v=ea931d367785';
-import { drawWatchtower } from './terrain.js?v=ea931d367785';
+import { needsCropCare } from './crops.js?v=70b671881237';
+import { AMARA_NAME, amaraNearby } from './amara.js?v=70b671881237';
+import { returnAmaraBudget, transferAmaraBudget } from './amara-orders.js?v=70b671881237';
+import { bridgeHint, bridgePost, crossingAt } from './crossings.js?v=70b671881237';
+import { daylightLabel, NIGHT_START } from './daylight.js?v=70b671881237';
+import { ALTAR_X, explorationHint, torchIsLit } from './exploration.js?v=70b671881237';
+import { describeTraits } from './daily-life.js?v=70b671881237';
+import { armyRequirement, equipmentOffer, INFANTRY, RANK_NAMES, ROYAL_ARMOR_COST } from './equipment.js?v=70b671881237';
+import { canMediate, relationshipsFor } from './community.js?v=70b671881237';
+import { gateRequirement, haciendaActive } from './haciendas.js?v=70b671881237';
+import { ecologyHint } from './ecology.js?v=70b671881237';
+import { MATERIALS, HQ_NAMES, TOWER_TIERS, upgradeInfo, altarSprite, constructionStatus } from './settlement.js?v=70b671881237';
+import { BALANCE, WORLD_MIN_X, WORLD_MAX_X, SPECIALISTS, FELIDS } from './config.js?v=70b671881237';
+import { ROLE_NAMES, ATTRIBUTES, GIFT_NAMES, TEMPERAMENTS, WORK_ROLES, ensurePerson, affinity, proficiency, roleAvailable, toggleMountedEscort, describePhysique } from './people.js?v=70b671881237';
+import { arrivalHint } from './campaign.js?v=70b671881237';
+import { ESTATES, expeditionObjective, finalObjective, frontierHint, localHaciendas, storyChapter } from './story.js?v=70b671881237';
+import { mapDistance, mapLocations, mapX, missionDestination } from './route-map.js?v=70b671881237';
+import { createExercise, drawExercise, exerciseCue, PROLOGUE_HEIGHT, PROLOGUE_WIDTH, stepExercise } from './prologue.js?v=70b671881237';
+import { createStoryMedia } from './story-media.js?v=70b671881237';
+import { CAPTURE_DURATION, drawCapture } from './capture.js?v=70b671881237';
+import { drawWatchtower } from './terrain.js?v=70b671881237';
+
+import { createHud } from './hud.js?v=70b671881237';
 
 export function createUI({ state, session, settings, actions }) {
   const $ = id => document.getElementById(id);
   const text = (id, value) => { const el = $(id); if (el && el.textContent !== String(value)) el.textContent = value; };
+  const hud = createHud({state,session,actions,resume});
   let lastPouch = '';
   let prices = [];
   const bagDots=[];for(let i=0;i<state.maxCoins;i++){const dot=document.createElement('i');$('hudBagSlots').append(dot);bagDots.push(dot);}
@@ -232,11 +235,20 @@ export function createUI({ state, session, settings, actions }) {
       g.fillRect(0, 0, PROLOGUE_WIDTH, PROLOGUE_HEIGHT);
     }
   }
+  const queuedBanners = [];
   function banner(title, description = '') {
+    if ($('loreBanner').classList.contains('visible')) {
+      if (!queuedBanners.some(item => item[0] === title)) queuedBanners.push([title, description]);
+      if (queuedBanners.length > 4) queuedBanners.shift();
+      return;
+    }
     text('loreBannerMain', title); text('loreBannerSub', description);
     $('loreBanner').classList.add('visible');
     clearTimeout(bannerTimer);
-    bannerTimer = setTimeout(() => $('loreBanner').classList.remove('visible'), 4500);
+    bannerTimer = setTimeout(() => {
+      $('loreBanner').classList.remove('visible');
+      if (queuedBanners.length) banner(...queuedBanners.shift());
+    }, 3200);
   }
   function result(status, show = true) {
     session.mode = status;
@@ -372,7 +384,8 @@ export function createUI({ state, session, settings, actions }) {
     const context = Math.abs(state.benkos.x) < 23 && chapter > 1 ? 'E · Convocar al consejo · B · Obras' :
       hacienda ? gateRequirement(state, hacienda) || 'Espacio · Romper el portón para liberar a los cautivos' : '';
     const bridge = bridgePost(state.benkos.x) ?? crossingAt(state.benkos.x);
-    text('contextHint', state.benkos.waterFall ? 'La corriente arrastra a Benkos' : bridge ? bridgeHint(state, bridge) : messenger?'E · Escuchar al mensajero de Cartagena':amaraNearby(state)?'E · Hablar con Amara':frontierHint(state)|| (canMediate(state)?'E · Mediar en la discusión':context||social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||'B · Obras · F · Personas · E · Interactuar'));
+    text('contextHint', state.benkos.waterFall ? 'La corriente arrastra a Benkos' : bridge ? bridgeHint(state, bridge) : messenger?'E · Escuchar al mensajero de Cartagena':amaraNearby(state)?'E · Hablar con Amara':frontierHint(state)|| (canMediate(state)?'E · Mediar en la discusión':context||social||ecologyHint(state)||(neighbor ? `${neighbor.name.split(' ')[0]} · ${neighbor.mood}` : '')||(crop ? `Cultivo de yuca · ${crop}` : '')||explorationHint(state)||''));
+    hud.update(node,route,night,chapter);
   }
   const on = (id, fn) => $(id).addEventListener('click', fn);
   on('btnStoryNext', () => {
@@ -467,7 +480,7 @@ export function createUI({ state, session, settings, actions }) {
   const worldLabels=new Map();
   function renderWorldOverlay(layout){
     const root=$('worldLabels');
-    const hidden=session.mode==='menu'||dialogs.some(d=>d.open);root.style.visibility=hidden?'hidden':'visible';if(hidden)return;
+    const hidden=hud.mode()==='clean'||session.mode==='photo'||session.mode==='menu'||dialogs.some(d=>d.open);root.style.visibility=hidden?'hidden':'visible';if(hidden)return;
     const active=new Set(),placed=[];
     const projectX=x=>layout.offsetX+(x-layout.camera+layout.width/2)*layout.scale;
     const projectY=y=>layout.offsetY+y*layout.scale;
@@ -483,6 +496,8 @@ export function createUI({ state, session, settings, actions }) {
     const fightNearby = state.enemies.some(enemy => enemy.hp > 0 && Math.abs(enemy.x - state.benkos.x) < 140);
     if (!fightNearby && !state.benkos.attackTimer) {
       for (const price of prices) {
+        if (hud.mode() === 'minimal' && (state.activeNodeId ? price.id !== state.activeNodeId :
+          !price.works || Math.abs(price.x-state.benkos.x)>34)) continue;
         const px = projectX(price.x);
         const py = projectY(layout.ground - price.height);
         if (px < 16 || px > window.innerWidth - 16 || py < 90) continue;
@@ -510,9 +525,9 @@ export function createUI({ state, session, settings, actions }) {
             count.textContent = price.paid ? `${price.paid}/${price.cost}` : `×${price.cost}`;
             coins.push(count);
           }
-          if (price.works || price.locked) {
+          {
             const sign = document.createElement('span');
-            sign.textContent = price.works ? 'B' : '×';
+            sign.textContent = price.locked ? '×' : price.works ? 'B' : 'S';
             coins.unshift(sign);
           }
           el.replaceChildren(...coins);
@@ -520,6 +535,10 @@ export function createUI({ state, session, settings, actions }) {
         el.style.transform = `translate3d(${Math.round(px)}px,${Math.round(py)}px,0) translate(-50%,-100%)`;
         el.style.display = '';
       }
+    }
+    const contextual = $('contextHint').textContent;
+    if (!fightNearby && !state.activeNodeId && /^(E|Espacio) ·/.test(contextual)) {
+      label('context-key','world-price',state.benkos.x,layout.ground-65,contextual.split(' ·')[0],35);
     }
     const notices=state.floatingTexts.filter(ft=>/^(-\d+|\+2 moral|Brillo entre|Casa central|.* llegó a salvo)/.test(ft.text.trim())).slice(-2);
     notices.forEach((ft,i)=>{const line=ft.text.replace(/\s+/g,' ').replace('Cosecha Entregada','cosecha').replace('Plata de Mina','plata').trim();label('notice:'+i,'resource-label',layout.x(ft),layout.y(ft)-22+layout.ground-246,line,Math.max(100,Math.min(230,line.length*6+20)),true);});
@@ -758,7 +777,12 @@ export function createUI({ state, session, settings, actions }) {
     text('personFeedback', toggleMountedEscort(unit, state));
     renderPerson();
   });
-  return { update, banner, open, openStory, closeAll, resume, menu, result, togglePause, toggleMap, toggleArmory, applySettings, openPeople, openSettlement, renderWorldOverlay,
+  function campaignStart(fresh) {
+    clearTimeout(bannerTimer); queuedBanners.length = 0;
+    $('loreBanner').classList.remove('visible');
+    hud.campaignStart(fresh);
+  }
+  return { hud, campaignStart, update, banner, open, openStory, closeAll, resume, menu, result, togglePause, toggleMap, toggleArmory, applySettings, openPeople, openSettlement, renderWorldOverlay,
     updateStoryFrame, storyControl, clearStoryInput: () => { storyInput = {}; },
     isBlocking: () => dialogs.some(d => d.open),
     toggleArmy: () => $('armyPanel').classList.toggle('hidden'),

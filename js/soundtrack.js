@@ -1,5 +1,5 @@
-import { CAMP_EDGE } from './config.js?v=ea931d367785';
-import { threatensMilitia } from './combat.js?v=ea931d367785';
+import { CAMP_EDGE } from './config.js?v=70b671881237';
+import { threatensMilitia } from './combat.js?v=70b671881237';
 
 const asset = name => `assets/audio/music/${name}.mp3?v=ambient-20261119`;
 export const SOUNDTRACK = Object.freeze({
